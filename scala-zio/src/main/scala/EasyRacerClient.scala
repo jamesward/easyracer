@@ -7,12 +7,16 @@ import java.io.IOException
 
 object EasyRacerClient extends ZIOAppDefault:
 
-  val url = "https://random-num-x5ht4amjia-uc.a.run.app/"
+  val url = "http://localhost:8080/1?user=2"
 
   val app =
-    val r1 = Client.request(url)
-    val r2 = Client.request(url)
-    r1.race(r2).timeout(1.second).debug
+    val req = for
+      resp <- Client.request(url)
+      body <- resp.body.asString
+    yield
+      body
+
+    req.race(req).debug
 
   override val run =
     app.provide(Client.default, Scope.default)
