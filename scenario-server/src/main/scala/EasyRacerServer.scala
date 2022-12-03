@@ -8,61 +8,100 @@ import zio.concurrent.{ConcurrentMap, CyclicBarrier, ReentrantLock}
 import java.io.IOException
 import java.util.UUID
 
-opaque type User = String
-object User:
-  def apply(value: String): User = value
+opaque type Session = String
+object Session:
+  def apply(value: String): Session = value
 
 object EasyRacerServer extends ZIOAppDefault:
 
-  // terrible
-  // a user can have multiple concurrent calls to get but we need to single-thread it
-  // this uses a global lock where it would be much better to have a per-user lock
-  //
-  // todo: key instead of user to support multiple scenarios
-  case class Users(locker: ReentrantLock, concurrentMap: ConcurrentMap[User, CyclicBarrier]):
-    def get(user: User): ZIO[Any, Nothing, CyclicBarrier] =
+  // this needs to be extracted to a more general structure and needs a session-lock instead of a global lock
+  // design:
+  //   concurrent requests need to share global state
+  //   the global state keeps track of the number of concurrent requests
+  //   a promise is managed such that any request can await or fulfill the promise
+  //   the promise is reset when the number of concurrent requests is zero
+  //   the caller gets the number of concurrent requests and the promise
+  case class Sessions(locker: ReentrantLock, concurrentMap: ConcurrentMap[Session, (Ref[Int], Ref[Promise[Unit, Unit]])]):
+    def get(session: Session): ZIO[Any, Nothing, (Int, Promise[Unit, Unit])] =
+      println(session)
       for
         _ <- locker.lock
-        maybeUser <- concurrentMap.get(user)
-        barrier <- maybeUser.fold {
+        maybeSession <- concurrentMap.get(session)
+        refs <- maybeSession.fold {
           for
-            b <- CyclicBarrier.make(2) // configurable
-            _ <- concurrentMap.put(user, b)
+            i <- Ref.make(1)
+            p <- Promise.make[Unit, Unit].flatMap(Ref.make(_))
+            _ <- concurrentMap.put(session, (i, p))
           yield
-            b
-        } { ZIO.succeed(_) }
+            (i, p)
+        } { (refI, refP) =>
+          for
+            _ <- refI.update(_ + 1)
+          yield
+            (refI, refP)
+        }
+        (refI, refP) = refs
+        i <- refI.get
+        p <- refP.get
         _ <- locker.unlock
       yield
-        barrier
+        (i, p)
+
+    def done(session: Session): ZIO[Any, Nothing, Unit] =
+      for
+        _ <- locker.lock
+        maybeSession <- concurrentMap.get(session)
+        _ <- maybeSession.fold(ZIO.unit) { (refI, refP) =>
+          for
+            i <- refI.updateAndGet(_ - 1)
+            _ <- if i == 0 then Promise.make[Unit, Unit].flatMap(refP.set(_)) else ZIO.unit
+          yield
+            ()
+        }
+        _ <- locker.unlock
+      yield
+        ()
 
 
-  def withUser(req: Request)(handler: User => ZIO[Any, Nothing, Response]): ZIO[Any, Nothing, Response] =
+
+  def withSession(req: Request)(handler: Session => ZIO[Any, Nothing, Response]): ZIO[Any, Nothing, Response] =
     req.url.queryParams.get("user").fold {
       ZIO.succeed(Response.text("user query parameter required").setStatus(Status.UnprocessableEntity))
     } { chunks =>
-      val user = User(chunks.asString)
-      handler(user)
+      val user = chunks.asString
+      val session = Session(user + req.url.path)
+      handler(session)
     }
 
-  def app(users: Users) = Http.collectZIO[Request] {
-    case req @ Method.GET -> Path.root / "1" => withUser(req) { user =>
-      for
-        barrier <- users.get(user)
-        waiting <- barrier.waiting
-        _ = println(waiting)
-        _ <- barrier.await.exit // exit to map the error from Unit to Nothing ?
-        _ <- if waiting == 1 then ZIO.sleep(1.second) else ZIO.unit
-      yield
-        if waiting == 0 then Response.text("correct") else Response.text("wrong")
+  def scenario1(sessions: Sessions)(session: Session): ZIO[Any, Nothing, Response] =
+    val r = for
+      numAndPromise <- sessions.get(session)
+      (num, promise) = numAndPromise
+      resp <- if num == 1 then
+        promise.await.exit.map(_ => Response.text("correct"))
+      else
+        for
+          _ <- promise.succeed(())
+          _ <- ZIO.sleep(10.second)
+        yield
+          Response.text("wrong")
+    yield
+      resp
+
+    r.onExit { _ =>
+      sessions.done(session)
     }
+
+  def app(sessions: Sessions) = Http.collectZIO[Request] {
+    case req @ Method.GET -> Path.root / "1" => withSession(req)(scenario1(sessions))
   }
 
   def run =
     for
       locker <- ReentrantLock.make()
-      backing <- ConcurrentMap.empty[User, CyclicBarrier]
-      users = Users(locker, backing)
-      server <- Server.serve(app(users)).provide(Server.default)
+      backing <- ConcurrentMap.empty[Session, (Ref[Int], Ref[Promise[Unit, Unit]])]
+      sessions = Sessions(locker, backing)
+      server <- Server.serve(app(sessions)).provide(Server.default)
     yield
       server
 
