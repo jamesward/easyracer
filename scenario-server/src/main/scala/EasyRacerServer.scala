@@ -23,7 +23,6 @@ object EasyRacerServer extends ZIOAppDefault:
   //   the caller gets the number of concurrent requests and the promise
   case class Sessions(locker: ReentrantLock, concurrentMap: ConcurrentMap[Session, (Ref[Int], Ref[Promise[Unit, Unit]])]):
     def get(session: Session): ZIO[Any, Nothing, (Int, Promise[Unit, Unit])] =
-      println(session)
       for
         _ <- locker.lock
         maybeSession <- concurrentMap.get(session)
@@ -77,8 +76,30 @@ object EasyRacerServer extends ZIOAppDefault:
     val r = for
       numAndPromise <- sessions.get(session)
       (num, promise) = numAndPromise
+      resp <- if num < 10000 then
+        for
+          _ <- promise.await.exit
+          _ <- ZIO.sleep(10.seconds)
+        yield
+          Response.text("wrong")
+      else
+        for
+          _ <- promise.succeed(())
+        yield
+          Response.text("right")
+    yield
+      resp
+
+    r.onExit { _ =>
+      sessions.done(session)
+    }
+
+  def scenario2(sessions: Sessions)(session: Session): ZIO[Any, Nothing, Response] =
+    val r = for
+      numAndPromise <- sessions.get(session)
+      (num, promise) = numAndPromise
       resp <- if num == 1 then
-        promise.await.exit.map(_ => Response.text("correct"))
+        promise.await.exit.map(_ => Response.text("right"))
       else
         for
           _ <- promise.succeed(())
@@ -94,6 +115,7 @@ object EasyRacerServer extends ZIOAppDefault:
 
   def app(sessions: Sessions) = Http.collectZIO[Request] {
     case req @ Method.GET -> Path.root / "1" => withSession(req)(scenario1(sessions))
+    case req @ Method.GET -> Path.root / "2" => withSession(req)(scenario2(sessions))
   }
 
   def run =
