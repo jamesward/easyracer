@@ -22,31 +22,32 @@ object EasyRacerServer extends ZIOAppDefault:
   //   the promise is reset when the number of concurrent requests is zero
   //   the caller gets the number of concurrent requests and the promise
   case class Sessions(locker: ReentrantLock, concurrentMap: ConcurrentMap[Session, (Ref[Int], Ref[Promise[Unit, Unit]])]):
-    def get(session: Session): ZIO[Any, Nothing, (Int, Promise[Unit, Unit])] =
+    def get(session: Session): ZIO[Any, Nothing, (Ref[Int], Ref[Promise[Unit, Unit]])] =
       for
         _ <- locker.lock
         maybeSession <- concurrentMap.get(session)
         refs <- maybeSession.fold {
           for
-            i <- Ref.make(1)
+            i <- Ref.make(0)
             p <- Promise.make[Unit, Unit].flatMap(Ref.make(_))
             _ <- concurrentMap.put(session, (i, p))
           yield
             (i, p)
-        } { (refI, refP) =>
-          for
-            _ <- refI.update(_ + 1)
-          yield
-            (refI, refP)
-        }
-        (refI, refP) = refs
-        i <- refI.get
-        p <- refP.get
+        } { ZIO.succeed(_, _) }
         _ <- locker.unlock
+      yield
+        refs
+
+    def add(session: Session): ZIO[Any, Nothing, (Int, Promise[Unit, Unit])] =
+      for
+        refs <- get(session)
+        (refI, refP) = refs
+        i <- refI.updateAndGet(_ + 1)
+        p <- refP.get
       yield
         (i, p)
 
-    def done(session: Session): ZIO[Any, Nothing, Unit] =
+    def remove(session: Session): ZIO[Any, Nothing, Unit] =
       for
         _ <- locker.lock
         maybeSession <- concurrentMap.get(session)
@@ -61,8 +62,6 @@ object EasyRacerServer extends ZIOAppDefault:
       yield
         ()
 
-
-
   def withSession(req: Request)(handler: Session => ZIO[Any, Nothing, Response]): ZIO[Any, Nothing, Response] =
     req.url.queryParams.get("user").fold {
       ZIO.succeed(Response.text("user query parameter required").setStatus(Status.UnprocessableEntity))
@@ -72,9 +71,12 @@ object EasyRacerServer extends ZIOAppDefault:
       handler(session)
     }
 
+  /*
+  10000 concurrent requests gets a right response
+  */
   def scenario1(sessions: Sessions)(session: Session): ZIO[Any, Nothing, Response] =
     val r = for
-      numAndPromise <- sessions.get(session)
+      numAndPromise <- sessions.add(session)
       (num, promise) = numAndPromise
       resp <- if num < 10000 then
         for
@@ -91,31 +93,84 @@ object EasyRacerServer extends ZIOAppDefault:
       resp
 
     r.onExit { _ =>
-      sessions.done(session)
+      sessions.remove(session)
     }
 
+  /*
+  Once two concurrent requests have come in, the first request returns the right response before the second one which takes a long time
+  */
   def scenario2(sessions: Sessions)(session: Session): ZIO[Any, Nothing, Response] =
     val r = for
-      numAndPromise <- sessions.get(session)
+      numAndPromise <- sessions.add(session)
       (num, promise) = numAndPromise
       resp <- if num == 1 then
         promise.await.exit.map(_ => Response.text("right"))
       else
         for
           _ <- promise.succeed(())
-          _ <- ZIO.sleep(10.second)
+          _ <- ZIO.sleep(1.hour)
         yield
           Response.text("wrong")
     yield
       resp
 
     r.onExit { _ =>
-      sessions.done(session)
+      sessions.remove(session)
+    }
+
+  /*
+  Once a request is cancelled, other pending requests return a right response
+  */
+  def scenario3(sessions: Sessions)(session: Session): ZIO[Any, Nothing, Response] =
+    val r = for
+      numAndPromise <- sessions.add(session)
+      (_, promise) = numAndPromise
+      _ <- promise.await.exit
+    yield
+      Response.text("right")
+
+    r.onExit { e =>
+      val waiter = if e.isFailure then
+        for
+          refs <- sessions.get(session)
+          (_, refP) = refs
+          p <- refP.get
+          _ <- p.succeed(())
+        yield
+          ()
+      else
+        ZIO.unit
+
+      waiter &> sessions.remove(session)
+    }
+
+  /*
+  Once two requests have come in, the first one returns a 500, while a later one is right
+  */
+  def scenario4(sessions: Sessions)(session: Session): ZIO[Any, Nothing, Response] =
+    val r = for
+      numAndPromise <- sessions.add(session)
+      (num, promise) = numAndPromise
+      resp <- if num == 1 then
+        promise.await.exit.map(_ => Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
+      else
+        for
+          _ <- promise.succeed(())
+          _ <- ZIO.sleep(2.second)
+        yield
+          Response.text("right")
+    yield
+      resp
+
+    r.onExit { _ =>
+      sessions.remove(session)
     }
 
   def app(sessions: Sessions) = Http.collectZIO[Request] {
     case req @ Method.GET -> Path.root / "1" => withSession(req)(scenario1(sessions))
     case req @ Method.GET -> Path.root / "2" => withSession(req)(scenario2(sessions))
+    case req @ Method.GET -> Path.root / "3" => withSession(req)(scenario3(sessions))
+    case req @ Method.GET -> Path.root / "4" => withSession(req)(scenario4(sessions))
   }
 
   def run =
