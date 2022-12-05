@@ -50,8 +50,19 @@ object EasyRacerClient extends ZIOAppDefault:
     req.race(req)
 
 
+  val scenario5 =
+    val url = scenarioUrl(5)
+    val req = for
+      resp <- Client.request(url)
+      body <- resp.body.asString
+    yield
+      body
+
+    req.race(ZIO.sleep(3.seconds) *> req)
+
+
   override val run =
-    val scenarios = Seq(scenario1, scenario2, scenario4)
-    //val scenarios = Seq(scenario4)
+    val scenarios = Seq(scenario1, scenario2, scenario4, scenario5)
+    //val scenarios = Seq(scenario5)
     val all = ZIO.collectAllPar(scenarios).filterOrDie(_.forall(_ == "right"))(Error())
     all.provide(Client.default, Scope.default)

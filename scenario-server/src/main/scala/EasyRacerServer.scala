@@ -6,6 +6,7 @@ import zio.http.middleware.HttpMiddleware
 import zio.concurrent.{ConcurrentMap, CyclicBarrier, ReentrantLock}
 
 import java.io.IOException
+import java.time.Instant
 import java.util.UUID
 
 opaque type Session = String
@@ -21,15 +22,15 @@ object EasyRacerServer extends ZIOAppDefault:
   //   a promise is managed such that any request can await or fulfill the promise
   //   the promise is reset when the number of concurrent requests is zero
   //   the caller gets the number of concurrent requests and the promise
-  case class Sessions(locker: ReentrantLock, concurrentMap: ConcurrentMap[Session, (Ref[Int], Ref[Promise[Unit, Unit]])]):
-    def get(session: Session): ZIO[Any, Nothing, (Ref[Int], Ref[Promise[Unit, Unit]])] =
+  case class Sessions(locker: ReentrantLock, concurrentMap: ConcurrentMap[Session, (Ref[Int], Ref[Promise[Nothing, Unit | Instant]])]):
+    def get(session: Session): ZIO[Any, Nothing, (Ref[Int], Ref[Promise[Nothing, Unit | Instant]])] =
       for
         _ <- locker.lock
         maybeSession <- concurrentMap.get(session)
         refs <- maybeSession.fold {
           for
             i <- Ref.make(0)
-            p <- Promise.make[Unit, Unit].flatMap(Ref.make(_))
+            p <- Promise.make[Nothing, Unit | Instant].flatMap(Ref.make(_))
             _ <- concurrentMap.put(session, (i, p))
           yield
             (i, p)
@@ -38,7 +39,7 @@ object EasyRacerServer extends ZIOAppDefault:
       yield
         refs
 
-    def add(session: Session): ZIO[Any, Nothing, (Int, Promise[Unit, Unit])] =
+    def add(session: Session): ZIO[Any, Nothing, (Int, Promise[Nothing, Unit | Instant])] =
       for
         refs <- get(session)
         (refI, refP) = refs
@@ -54,7 +55,7 @@ object EasyRacerServer extends ZIOAppDefault:
         _ <- maybeSession.fold(ZIO.unit) { (refI, refP) =>
           for
             i <- refI.updateAndGet(_ - 1)
-            _ <- if i == 0 then Promise.make[Unit, Unit].flatMap(refP.set(_)) else ZIO.unit
+            _ <- if i == 0 then Promise.make[Nothing, Unit | Instant].flatMap(refP.set(_)) else ZIO.unit
           yield
             ()
         }
@@ -80,7 +81,7 @@ object EasyRacerServer extends ZIOAppDefault:
       (num, promise) = numAndPromise
       resp <- if num < 10000 then
         for
-          _ <- promise.await.exit
+          _ <- promise.await
           _ <- ZIO.sleep(10.seconds)
         yield
           Response.text("wrong")
@@ -104,7 +105,7 @@ object EasyRacerServer extends ZIOAppDefault:
       numAndPromise <- sessions.add(session)
       (num, promise) = numAndPromise
       resp <- if num == 1 then
-        promise.await.exit.map(_ => Response.text("right"))
+        promise.await.map(_ => Response.text("right"))
       else
         for
           _ <- promise.succeed(())
@@ -125,7 +126,7 @@ object EasyRacerServer extends ZIOAppDefault:
     val r = for
       numAndPromise <- sessions.add(session)
       (_, promise) = numAndPromise
-      _ <- promise.await.exit
+      _ <- promise.await
     yield
       Response.text("right")
 
@@ -152,7 +153,7 @@ object EasyRacerServer extends ZIOAppDefault:
       numAndPromise <- sessions.add(session)
       (num, promise) = numAndPromise
       resp <- if num == 1 then
-        promise.await.exit.map(_ => Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
+        promise.await.map(_ => Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
       else
         for
           _ <- promise.succeed(())
@@ -166,17 +167,50 @@ object EasyRacerServer extends ZIOAppDefault:
       sessions.remove(session)
     }
 
+  /*
+  The first request is right when a second "hedge" request starts after two seconds
+  */
+  def scenario5(sessions: Sessions)(session: Session): ZIO[Any, Nothing, Response] =
+    val r = for
+      numAndPromise <- sessions.add(session)
+      (num, promise) = numAndPromise
+      resp <- if num == 1 then
+        for
+          first <- Clock.instant
+          second <- promise.await
+        yield
+          second match {
+            case i: Instant if i.minusSeconds(2).isAfter(first) =>
+              Response.text("right")
+            case _ =>
+              Response.text("wrong")
+          }
+      else
+        for
+          now <- Clock.instant
+          _ <- promise.succeed(now)
+          _ <- ZIO.sleep(2.seconds)
+        yield
+          Response.text("wrong")
+    yield
+      resp
+
+    r.onExit { _ =>
+      sessions.remove(session)
+    }
+
   def app(sessions: Sessions) = Http.collectZIO[Request] {
     case req @ Method.GET -> Path.root / "1" => withSession(req)(scenario1(sessions))
     case req @ Method.GET -> Path.root / "2" => withSession(req)(scenario2(sessions))
     case req @ Method.GET -> Path.root / "3" => withSession(req)(scenario3(sessions))
     case req @ Method.GET -> Path.root / "4" => withSession(req)(scenario4(sessions))
+    case req @ Method.GET -> Path.root / "5" => withSession(req)(scenario5(sessions))
   }
 
   def run =
     for
       locker <- ReentrantLock.make()
-      backing <- ConcurrentMap.empty[Session, (Ref[Int], Ref[Promise[Unit, Unit]])]
+      backing <- ConcurrentMap.empty[Session, (Ref[Int], Ref[Promise[Nothing, Unit | Instant]])]
       sessions = Sessions(locker, backing)
       server <- Server.serve(app(sessions)).provide(Server.default)
     yield
