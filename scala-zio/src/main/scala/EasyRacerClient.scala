@@ -1,11 +1,12 @@
 import zio.*
 import zio.http.*
 
+import java.util.UUID
 import java.util.concurrent.TimeoutException
 
 object EasyRacerClient extends ZIOAppDefault:
 
-  def scenarioUrl(scenario: Int) = s"http://localhost:8080/$scenario?user=2"
+  def scenarioUrl(scenario: Int) = s"http://localhost:8080/$scenario"
 
   val scenario1 =
     val url = scenarioUrl(1)
@@ -58,11 +59,13 @@ object EasyRacerClient extends ZIOAppDefault:
     yield
       body
 
-    req.race(ZIO.sleep(3.seconds) *> req)
+    // todo: sometimes the first req can take a second or 2 to start which can break the hedge check which verifies the second request starts 2 seconds after the first one
+    //   but it isn't clear how to resolve that as there isn't a way to know when the req is connected, then send the second one
+    req.race(ZIO.sleep(4.seconds) *> req)
 
 
   override val run =
     val scenarios = Seq(scenario1, scenario2, scenario4, scenario5)
     //val scenarios = Seq(scenario5)
-    val all = ZIO.collectAllPar(scenarios).filterOrDie(_.forall(_ == "right"))(Error())
+    val all = ZIO.collectAllPar(scenarios).debug.filterOrDie(_.forall(_ == "right"))(Error())
     all.provide(Client.default, Scope.default)

@@ -3,3 +3,4 @@
 /project/target/
 /.bsp/
 /.idea/
+/native-toolchain/

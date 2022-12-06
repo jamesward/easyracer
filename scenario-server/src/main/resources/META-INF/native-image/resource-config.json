@@ -1,0 +1,7 @@
+{
+  "resources":{
+  "includes":[{
+      "pattern":"\\QMETA-INF/native/libnetty_transport_native_epoll_x86_64.so\\E"
+    }]},
+  "bundles":[]
+}
