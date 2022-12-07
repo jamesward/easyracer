@@ -177,8 +177,10 @@ object EasyRacerServer extends ZIOAppDefault:
     }
 
   def app(sessions: Map[String, ZIO[Any, Nothing, Response]]) = Http.collectZIO[Request] {
+    case Method.GET -> Path.root =>
+      ZIO.succeed(Response.ok)
     case Method.GET -> Path.root / scenario =>
-      sessions.getOrElse(scenario, ZIO.succeed(Response.text("asdf")))
+      sessions.getOrElse(scenario, ZIO.succeed(Response.status(Status.NotFound)))
   }
 
   def run =
