@@ -6,9 +6,7 @@ import java.util.concurrent.TimeoutException
 
 object EasyRacerClient extends ZIOAppDefault:
 
-  def scenarioUrl(scenario: Int) = s"http://localhost:8080/$scenario"
-
-  val scenario1 =
+  def scenario1(scenarioUrl: Int => String) =
     val url = scenarioUrl(1)
     val reqs = Seq.fill(10000)(Client.request(url))
     for
@@ -18,7 +16,7 @@ object EasyRacerClient extends ZIOAppDefault:
       body
 
 
-  val scenario2 =
+  def scenario2(scenarioUrl: Int => String) =
     val url = scenarioUrl(2)
     val req = for
       resp <- Client.request(url)
@@ -29,7 +27,7 @@ object EasyRacerClient extends ZIOAppDefault:
     req.race(req)
 
 
-  val scenario3 =
+  def scenario3(scenarioUrl: Int => String) =
     val url = scenarioUrl(3)
     val req = for
       resp <- Client.request(url)
@@ -40,7 +38,7 @@ object EasyRacerClient extends ZIOAppDefault:
     req.timeoutFail(TimeoutException())(1.seconds).race(req)
 
 
-  val scenario4 =
+  def scenario4(scenarioUrl: Int => String) =
     val url = scenarioUrl(4)
     val req = for
       resp <- Client.request(url).filterOrFail(_.status.isSuccess)(Error())
@@ -51,7 +49,7 @@ object EasyRacerClient extends ZIOAppDefault:
     req.race(req)
 
 
-  val scenario5 =
+  def scenario5(scenarioUrl: Int => String) =
     val url = scenarioUrl(5)
     val req = for
       resp <- Client.request(url)
@@ -63,9 +61,10 @@ object EasyRacerClient extends ZIOAppDefault:
     //   but it isn't clear how to resolve that as there isn't a way to know when the req is connected, then send the second one
     req.race(ZIO.sleep(4.seconds) *> req)
 
+  def scenarios(scenarioUrl: Int => String) = Seq(scenario1, scenario2, scenario4, scenario5).map(_.apply(scenarioUrl))
+  //val scenarios = Seq(scenario5)
+  def all(scenarioUrl: Int => String) = ZIO.collectAllPar(scenarios(scenarioUrl))
 
   override val run =
-    val scenarios = Seq(scenario1, scenario2, scenario4, scenario5)
-    //val scenarios = Seq(scenario5)
-    val all = ZIO.collectAllPar(scenarios).debug.filterOrDie(_.forall(_ == "right"))(Error())
-    all.provide(Client.default, Scope.default)
+    def scenarioUrl(scenario: Int) = s"http://localhost:8080/$scenario"
+    all(scenarioUrl).debug.filterOrDie(_.forall(_ == "right"))(Error()).provide(Client.default, Scope.default)
