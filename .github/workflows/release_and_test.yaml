@@ -32,6 +32,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   scala-zio:
+    needs: scenario-server
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
