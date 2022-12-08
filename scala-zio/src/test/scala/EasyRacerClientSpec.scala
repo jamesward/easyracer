@@ -5,13 +5,16 @@ import zio.test.*
 import zio.test.Annotations.*
 import zio.test.Assertion.*
 import com.dimafeng.testcontainers.GenericContainer
+import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.images.PullPolicy
+
 import java.io.IOException
 
 object EasyRacerClientSpec extends ZIOSpecDefault:
 
   val container = ZIO.acquireRelease {
     ZIO.attempt {
-      val container = GenericContainer("ghcr.io/jamesward/easyracer", Seq(8080))
+      val container = GenericContainer("ghcr.io/jamesward/easyracer", Seq(8080), waitStrategy = Wait.forHttp("/"), imagePullPolicy = PullPolicy.alwaysPull())
       container.start()
       container
     }.orDie
@@ -28,10 +31,8 @@ object EasyRacerClientSpec extends ZIOSpecDefault:
       for
         containerWrapper <- ZIO.service[GenericContainer]
         port = containerWrapper.container.getFirstMappedPort
-        f <- EasyRacerClient.all({ i => s"http://localhost:$port/$i" }).provide(Client.default, Scope.default).fork
-        _ <- TestClock.adjust(10.seconds)
-        results <- f.join
+        results <- EasyRacerClient.all({ i => s"http://localhost:$port/$i" }).provide(Client.default, Scope.default)
       yield
         assertTrue(results.forall(_ == "right"))
-    }
+    } @@ TestAspect.withLiveClock
   ).provideLayerShared(containerLayer)
