@@ -3,9 +3,6 @@ on: push
 jobs:
   scenario-server:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./scenario-server
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
@@ -29,16 +26,13 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: ./scenario-server
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
   scala-zio:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./scala-zio
     steps:
       - uses: actions/checkout@v3
 
@@ -49,3 +43,4 @@ jobs:
           cache: 'sbt'
 
       - run: ./sbt test
+        working-directory: ./scala-zio
