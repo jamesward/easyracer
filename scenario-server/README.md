@@ -1,37 +1,41 @@
 Easy Racer
 ----------
 
-Todo
-- Client depends on server container creation
-- Client tests via Testcontainers with server
+This project explores how easy it is to build programs which can "race" two or more concurrent computations while providing:
+ - loser cancellation
+ - resource management
+ - efficient thread utilization (i.e. reactive, non-blocking)
+ - explicit timeouts
+ - errors causing a race loss
+
+A scenario server validates the implementations of 6 scenarios:
+
+1. Race 2 concurrent requests
+    GET /1
+
+2. Race 10,000 concurrent requests
+    GET /2
+
+3. Race 2 concurrent requests but 1 of them should have a 1 second timeout
+    GET /3
+
+4. Race 2 concurrent requests where the winner is a 20x response
+    GET /4
+
+5. Start a request, wait at least 3 seconds then start a second request (hedging)
+    GET /5
+
+6. Race 2 concurrent requests that "use" a resource which is obtained and released through other requests
+    GET /6?open
+    GET /6?use=<id obtained from open request>
+    GET /6?close=<id obtained from open request>
 
 
-1. Install GraalVM
-2. Install Native Image
-3. Setup muslc
-    ```
-    mkdir native-toolchain
-    cd native-toolchain
-    
-    wget https://more.musl.cc/10/x86_64-linux-musl/x86_64-linux-musl-native.tgz
-    wget https://zlib.net/zlib-1.2.13.tar.gz
-    
-    tar -xvf x86_64-linux-musl-native.tgz
-    tar -xvf zlib-1.2.13.tar.gz
-    
-    export TOOLCHAIN_DIR=$(realpath x86_64-linux-musl-native)
-    export CC=$TOOLCHAIN_DIR/bin/gcc
-    
-    cd zlib-1.2.13
-    ./configure --prefix=$TOOLCHAIN_DIR --static
-    make
-    make install
-    
-    export PATH=$TOOLCHAIN_DIR/bin:$PATH
-    
-    cd ../..
-    ```
-4. Create Native Image
-    ```
-    ./sbt GraalVMNativeImage/packageBin
-    ```
+If your implementation is correct, each race will result in a 200 response with a body:
+    right
+
+
+The scenario server has a public container `ghcr.io/jamesward/easyracer` and if you contribute your client to this repo, use Testcontainers and include automated integration tests.
+
+## Clients
+- Scala 3 + ZIO ([source](../scala-zio))

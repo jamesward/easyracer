@@ -49,9 +49,32 @@ object EasyRacerServer extends ZIOAppDefault:
         Session(locker, numRequestsRef, raceCoordinatorRef)
 
   /*
-  10000 concurrent requests gets a right response
+  Once two concurrent requests have come in, the first request returns the right response before the second one which takes a long time
   */
   def scenario1(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
+    val r = for
+      numAndPromise <- session.add()
+      (num, promise) = numAndPromise
+      resp <- if num == 1 then
+        promise.await.map(_ => Response.text("right"))
+      else
+        for
+          _ <- promise.succeed(())
+          _ <- ZIO.sleep(1.hour)
+        yield
+          Response.text("wrong")
+    yield
+      resp
+
+    r.onExit { _ =>
+      session.remove()
+    }
+  }
+
+  /*
+  10000 concurrent requests gets a right response
+  */
+  def scenario2(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
     val r = for
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
@@ -66,29 +89,6 @@ object EasyRacerServer extends ZIOAppDefault:
           _ <- promise.succeed(())
         yield
           Response.text("right")
-    yield
-      resp
-
-    r.onExit { _ =>
-      session.remove()
-    }
-  }
-
-  /*
-  Once two concurrent requests have come in, the first request returns the right response before the second one which takes a long time
-  */
-  def scenario2(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
-    val r = for
-      numAndPromise <- session.add()
-      (num, promise) = numAndPromise
-      resp <- if num == 1 then
-        promise.await.map(_ => Response.text("right"))
-      else
-        for
-          _ <- promise.succeed(())
-          _ <- ZIO.sleep(1.hour)
-        yield
-          Response.text("wrong")
     yield
       resp
 
@@ -181,18 +181,18 @@ object EasyRacerServer extends ZIOAppDefault:
 
   /*
   Two "open" requests are made which return unique ids.
-  Two "get" requests are made; one returns an error, the other waits.
-  A "close" request is made using the id from the failed "get" request.
-  After that "close" request, the other "get" request's response is returned as the "right" response.
+  Two "use" requests are made; one returns an error, the other waits.
+  A "close" request is made using the id from the failed "use" request.
+  After that "close" request, the other "use" request's response is returned as the "right" response.
   */
   def scenario6(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
     enum Cmd:
       case Open
-      case Get(id: String)
+      case Use(id: String)
       case Close(id: String)
 
     val maybeCmd = req.url.queryParams.get("open").map(_ => Cmd.Open)
-      .orElse(req.url.queryParams.get("get").map(_.asString).map(Cmd.Get(_)))
+      .orElse(req.url.queryParams.get("use").map(_.asString).map(Cmd.Use(_)))
       .orElse(req.url.queryParams.get("close").map(_.asString).map(Cmd.Close(_)))
 
     maybeCmd match {
@@ -200,7 +200,7 @@ object EasyRacerServer extends ZIOAppDefault:
         val id = UUID.randomUUID().toString
         ZIO.succeed(Response.text(id))
 
-      case Some(Cmd.Get(id)) =>
+      case Some(Cmd.Use(id)) =>
         val r = for
           numAndPromise <- session.add()
           (num, promise) = numAndPromise

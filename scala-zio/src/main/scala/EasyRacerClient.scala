@@ -4,20 +4,11 @@ import zio.http.*
 import java.util.UUID
 import java.util.concurrent.TimeoutException
 
+// Note that code is intentionally NOT shared across different scenarios
 object EasyRacerClient extends ZIOAppDefault:
 
   def scenario1(scenarioUrl: Int => String) =
     val url = scenarioUrl(1)
-    val reqs = Seq.fill(10000)(Client.request(url))
-    for
-      winner <- ZIO.raceAll(reqs.head, reqs.tail)
-      body <- winner.body.asString
-    yield
-      body
-
-
-  def scenario2(scenarioUrl: Int => String) =
-    val url = scenarioUrl(2)
     val req = for
       resp <- Client.request(url)
       body <- resp.body.asString
@@ -25,6 +16,16 @@ object EasyRacerClient extends ZIOAppDefault:
       body
 
     req.race(req)
+
+
+  def scenario2(scenarioUrl: Int => String) =
+    val url = scenarioUrl(2)
+    val reqs = Seq.fill(10000)(Client.request(url))
+    for
+      winner <- ZIO.raceAll(reqs.head, reqs.tail)
+      body <- winner.body.asString
+    yield
+      body
 
 
   def scenario3(scenarioUrl: Int => String) =
@@ -71,11 +72,10 @@ object EasyRacerClient extends ZIOAppDefault:
       body
 
     val open = req(scenarioUrl(6) + "?open")
-    def close(id: String) = req(scenarioUrl(6) + "?close=" + id)
+    def use(id: String) = req(scenarioUrl(6) + s"?use=$id")
+    def close(id: String) = req(scenarioUrl(6) + s"?close=$id")
 
-    val reqRes = ZIO.acquireReleaseWith(open)(close(_).orDie) { id =>
-      req(scenarioUrl(6) + "?get=" + id)
-    }
+    val reqRes = ZIO.acquireReleaseWith(open)(close(_).orDie)(use)
 
     reqRes.race(reqRes)
 
