@@ -38,4 +38,4 @@ If your implementation is correct, each race will result in a 200 response with 
 The scenario server has a public container `ghcr.io/jamesward/easyracer` and if you contribute your client to this repo, use Testcontainers and include automated integration tests.
 
 ## Clients
-- Scala 3 + ZIO ([source](../scala-zio))
+- Scala 3 + ZIO ([source](scala-zio))
