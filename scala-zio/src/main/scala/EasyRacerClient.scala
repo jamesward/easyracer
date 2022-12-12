@@ -36,6 +36,7 @@ object EasyRacerClient extends ZIOAppDefault:
       body
 
     req.timeoutFail(TimeoutException())(1.seconds).race(req)
+      .timeout(2.seconds).someOrElse("wrong") // this race isn't working yet and hangs so the outer timeout limits the hang time
 
 
   def scenario4(scenarioUrl: Int => String) =
@@ -61,10 +62,28 @@ object EasyRacerClient extends ZIOAppDefault:
     //   but it isn't clear how to resolve that as there isn't a way to know when the req is connected, then send the second one
     req.race(ZIO.sleep(4.seconds) *> req)
 
-  def scenarios(scenarioUrl: Int => String) = Seq(scenario1, scenario2, scenario4, scenario5).map(_.apply(scenarioUrl))
-  //val scenarios = Seq(scenario5)
+
+  def scenario6(scenarioUrl: Int => String) =
+    def req(url: String) = for
+      resp <- Client.request(url).filterOrFail(_.status.isSuccess)(Error())
+      body <- resp.body.asString
+    yield
+      body
+
+    val open = req(scenarioUrl(6) + "?open")
+    def close(id: String) = req(scenarioUrl(6) + "?close=" + id)
+
+    val reqRes = ZIO.acquireReleaseWith(open)(close(_).orDie) { id =>
+      req(scenarioUrl(6) + "?get=" + id)
+    }
+
+    reqRes.race(reqRes)
+
+
+  def scenarios(scenarioUrl: Int => String) = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6).map(_.apply(scenarioUrl))
+  //def scenarios(scenarioUrl: Int => String) = Seq(scenario6).map(_.apply(scenarioUrl))
   def all(scenarioUrl: Int => String) = ZIO.collectAllPar(scenarios(scenarioUrl))
 
   override val run =
     def scenarioUrl(scenario: Int) = s"http://localhost:8080/$scenario"
-    all(scenarioUrl).debug.filterOrDie(_.forall(_ == "right"))(Error()).provide(Client.default, Scope.default)
+    all(scenarioUrl).debug.filterOrDie(_.forall(_ == "right"))(Error("not all right")).provide(Client.default, Scope.default)
