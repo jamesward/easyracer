@@ -45,3 +45,18 @@ jobs:
 
       - run: ./sbt test
         working-directory: ./scala-zio
+
+  kotlin-splitties:
+    needs: scenario-server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - run: ./gradlew test
+        working-directory: ./kotlin-splitties
