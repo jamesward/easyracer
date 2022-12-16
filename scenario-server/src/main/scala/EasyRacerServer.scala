@@ -1,12 +1,9 @@
 import zio.*
-import zio.stm.*
 import zio.http.*
 import zio.http.model.{Method, Status}
-import zio.concurrent.{ConcurrentMap, CyclicBarrier, ReentrantLock}
+import zio.concurrent.ReentrantLock
 
-import java.io.IOException
 import java.time.Instant
-import java.util.UUID
 
 object EasyRacerServer extends ZIOAppDefault:
 
@@ -58,11 +55,7 @@ object EasyRacerServer extends ZIOAppDefault:
       resp <- if num == 1 then
         promise.await.map(_ => Response.text("right"))
       else
-        for
-          _ <- promise.succeed(())
-          _ <- ZIO.sleep(1.hour)
-        yield
-          Response.text("wrong")
+        promise.succeed(()) *> ZIO.never
     yield
       resp
 
@@ -79,16 +72,9 @@ object EasyRacerServer extends ZIOAppDefault:
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
       resp <- if num < 10000 then
-        for
-          _ <- promise.await
-          _ <- ZIO.sleep(10.seconds)
-        yield
-          Response.text("wrong")
+        promise.await *> ZIO.never
       else
-        for
-          _ <- promise.succeed(())
-        yield
-          Response.text("right")
+        promise.succeed(()).as(Response.text("right"))
     yield
       resp
 
@@ -108,8 +94,8 @@ object EasyRacerServer extends ZIOAppDefault:
     yield
       Response.text("right")
 
-    r.onExit { e =>
-      val waiter = if e.isFailure then
+    r.onExit { exit =>
+      val waiter = if exit.isFailure then
         for
           numAndPromise <- session.get()
           (_, promise) = numAndPromise
@@ -119,7 +105,7 @@ object EasyRacerServer extends ZIOAppDefault:
       else
         ZIO.unit
 
-      waiter &> session.remove()
+      waiter *> session.remove()
     }
   }
 
@@ -131,13 +117,9 @@ object EasyRacerServer extends ZIOAppDefault:
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
       resp <- if num == 1 then
-        promise.await.map(_ => Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
+        promise.await.as(Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
       else
-        for
-          _ <- promise.succeed(())
-          _ <- ZIO.sleep(2.second)
-        yield
-          Response.text("right")
+        promise.succeed(()).as(Response.text("right"))
     yield
       resp
 
@@ -168,9 +150,9 @@ object EasyRacerServer extends ZIOAppDefault:
         for
           now <- Clock.instant
           _ <- promise.succeed(now)
-          _ <- ZIO.sleep(2.seconds)
+          _ <- ZIO.never
         yield
-          Response.text("wrong")
+          throw NotImplementedError("Never gonna happen")
     yield
       resp
 
@@ -191,21 +173,20 @@ object EasyRacerServer extends ZIOAppDefault:
       case Use(id: String)
       case Close(id: String)
 
-    val maybeCmd = req.url.queryParams.get("open").map(_ => Cmd.Open)
+    val maybeCmd: Option[Cmd] = req.url.queryParams.get("open").map(_ => Cmd.Open)
       .orElse(req.url.queryParams.get("use").map(_.asString).map(Cmd.Use(_)))
       .orElse(req.url.queryParams.get("close").map(_.asString).map(Cmd.Close(_)))
 
-    maybeCmd match {
+    maybeCmd match
       case Some(Cmd.Open) =>
-        val id = UUID.randomUUID().toString
-        ZIO.succeed(Response.text(id))
+        Random.nextUUID.map(id => Response.text(id.toString))
 
       case Some(Cmd.Use(id)) =>
         val r = for
           numAndPromise <- session.add()
           (num, promise) = numAndPromise
           resp <- if num == 1 then
-            promise.await.map(_ => Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
+            promise.await.as(Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
           else
             for
               nextPromise <- Promise.make[Nothing, String]
@@ -224,29 +205,31 @@ object EasyRacerServer extends ZIOAppDefault:
         for
           numAndPromise <- session.get()
           (num, promise) = numAndPromise
-          resp <- if num == 1 then
-            for
-              sessionData <- promise.await
-              resp <- sessionData match {
-                case p: Promise[Nothing, String] =>
-                  for
-                    _ <- p.succeed(id)
-                  yield
-                    Response.status(Status.Ok)
-                case _ =>
-                  ZIO.succeed(Response.status(Status.InternalServerError))
-              }
-            yield
-              resp
-          else
-            ZIO.succeed(Response.status(Status.Ok))
+          resp <-
+            if num == 1 then
+              for
+                sessionData <- promise.await
+                resp <- sessionData match
+                  case p: Promise[Nothing, String] =>
+                    p.succeed(id).as(Response.ok)
+                  case _ =>
+                    throw NotImplementedError("not gonna happen")
+              yield
+                resp
+            else
+              ZIO.succeed(Response.ok)
         yield
           resp
 
       case None =>
         ZIO.succeed(Response.status(Status.NotAcceptable))
-    }
   }
+
+  // scenario7
+  // retry
+  // game prevention: request 6 (randomly chosen number) will be the winner, but we wait for x seconds to
+  //   verify that no other requests come in after the winner
+  //
 
   def app(sessions: Map[String, Request => ZIO[Any, Nothing, Response]]) = Http.collectZIO[Request] {
     case Method.GET -> Path.root =>

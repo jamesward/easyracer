@@ -35,7 +35,7 @@ A scenario server validates the implementations of 6 scenarios:
     GET /5
     ```
 
-6. Race 2 concurrent requests that "use" a resource which is obtained and released through other requests
+6. Race 2 concurrent requests that "use" a resource which is obtained and released through other requests. The "use" request can return a non-20x request, in which case it is not a winner.
     ```
     GET /6?open
     GET /6?use=<id obtained from open request>
