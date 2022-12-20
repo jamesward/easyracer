@@ -2,6 +2,9 @@ on:
   workflow_run:
     workflows: [scenario-server]
     types: [completed]
+  push:
+    paths:
+      - kotlin-splitties/**
 
 jobs:
   test:
