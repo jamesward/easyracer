@@ -8,3 +8,13 @@ source venv/bin/activate
 pip install -U pip
 pip install -r requirements.txt
 ```
+
+Run against local server:
+```
+python main.py
+```
+
+Test with EasyRacer Container:
+```
+pytest
+```

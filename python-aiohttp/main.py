@@ -2,31 +2,48 @@ import aiohttp
 import asyncio
 
 
-async def req(session: aiohttp.ClientSession, scenario: int):
-    async with session.get(f'http://localhost:8080/{scenario}') as response:
-        print("Status:", response.status)
-        return await response.text()
+def url(port: int, scenario: int):
+    return f'http://localhost:{port}/{scenario}'
 
 
-async def scenario1(session: aiohttp.ClientSession):
-    reqs = [asyncio.create_task(req(session, 1)), asyncio.create_task(req(session, 1))]
+# request creation code is intentionally not shared across scenarios
+async def scenario1(session: aiohttp.ClientSession, port: int):
+    async def req():
+        async with session.get(url(port, 1)) as response:
+            return await response.text()
+
+    req1 = asyncio.create_task(req())
+    req2 = asyncio.create_task(req())
+    reqs = [req1, req2]
     done, pending = await asyncio.wait(reqs, return_when=asyncio.FIRST_COMPLETED)
     for task in pending:
         task.cancel()
     return await list(done)[0]
 
-async def scenario2(session: aiohttp.ClientSession):
-    reqs = [asyncio.create_task(req(session, 2)), asyncio.create_task(req(session, 2))]
+
+async def scenario2(session: aiohttp.ClientSession, port: int):
+    async def req():
+        async with session.get(url(port, 2)) as response:
+            return await response.text()
+
+    req1 = asyncio.create_task(req())
+    req2 = asyncio.create_task(req())
+    reqs = [req1, req2]
     done, pending = await asyncio.wait(reqs, return_when=asyncio.FIRST_COMPLETED)
     for task in pending:
         task.cancel()
     return await list(done)[0]
+
 
 # currently not working
-async def scenario3(session: aiohttp.ClientSession):
+async def scenario3(session: aiohttp.ClientSession, port: int):
+    async def req():
+        async with session.get(url(port, 3)) as response:
+            return await response.text()
+
     try:
         async with asyncio.timeout(5):  # temporary timeout to avoid blocking here
-            reqs = [asyncio.create_task(req(session, 3)) for _ in range(10_000)]
+            reqs = [asyncio.create_task(req()) for _ in range(10_000)]
             iterable = await asyncio.wait(reqs, return_when=asyncio.FIRST_COMPLETED)
             done = next(iterable)
             print(done)
@@ -34,22 +51,32 @@ async def scenario3(session: aiohttp.ClientSession):
     except asyncio.exceptions.TimeoutError:
         return "wrong"
 
+
 # currently not working
-async def scenario4(session: aiohttp.ClientSession):
-    task = asyncio.create_task(req(session, 4))
-    task_with_timeout = asyncio.wait_for(asyncio.create_task(req(session, 4)), timeout=1)
-    reqs = [task, task_with_timeout]
+async def scenario4(session: aiohttp.ClientSession, port: int):
+    async def req():
+        async with session.get(url(port, 4)) as response:
+            return await response.text()
+
+    req1 = asyncio.create_task(req())
+    req2 = asyncio.wait_for(asyncio.create_task(req()), timeout=1)
+    reqs = [req1, req2]
+
     done, pending = await asyncio.wait(reqs, return_when=asyncio.FIRST_COMPLETED)
     for task in pending:
         task.cancel()
     return await list(done)[0]
 
+
 # currently not working
-async def scenario5(session: aiohttp.ClientSession):
-    task = asyncio.create_task(req(session, 5))
-    task_with_valid_response = asyncio.create_task(req(session, 5))
-    # todo: filter response
-    reqs = [task, task_with_valid_response]
+async def scenario5(session: aiohttp.ClientSession, port: int):
+    async def req():
+        async with session.get(url(port, 5)) as response:
+            return await response.text()
+
+    req1 = asyncio.create_task(req())
+    req2 = asyncio.create_task(req()) # todo: filter response
+    reqs = [req1, req2]
     done, pending = await asyncio.wait(reqs, return_when=asyncio.FIRST_COMPLETED)
     print(done, pending)
 
@@ -57,38 +84,39 @@ async def scenario5(session: aiohttp.ClientSession):
         task.cancel()
     return await list(done)[0]
 
-# currently not working
-async def scenario6(session: aiohttp.ClientSession):
-    raise NotImplementedError
 
 # currently not working
-async def scenario7(session: aiohttp.ClientSession):
+async def scenario6(session: aiohttp.ClientSession, port: int):
+    raise NotImplementedError
+
+
+# currently not working
+async def scenario7(session: aiohttp.ClientSession, port: int):
     raise NotImplementedError
 
 
 async def main():
     async with aiohttp.ClientSession() as session:
-        result1 = await scenario1(session)
+        result1 = await scenario1(session, 8080)
         print(result1)
 
-        result2 = await scenario2(session)
+        result2 = await scenario2(session, 8080)
         print(result2)
 
-        result3 = await scenario3(session)
+        result3 = await scenario3(session, 8080)
         print(result3)
 
-        result4 = await scenario4(session)
+        result4 = await scenario4(session, 8080)
         print(result4)
 
-        result5 = await scenario5(session)
+        result5 = await scenario5(session, 8080)
         print(result5)
 
-        result6 = await scenario6(session)
+        result6 = await scenario6(session, 8080)
         print(result6)
 
-        result7 = await scenario7(session)
+        result7 = await scenario7(session, 8080)
         print(result7)
 
-        # todo: validate the rights
-
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -8,7 +8,7 @@ This project explores how easy it is to build programs which can "race" two or m
  - explicit timeouts
  - errors causing a race loss
 
-A scenario server validates the implementations of 6 scenarios:
+A scenario server validates the implementations of 7 scenarios:
 
 1. Race 2 concurrent requests
     ```
