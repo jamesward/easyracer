@@ -34,11 +34,29 @@ suspend fun scenario1(url: (Int) -> String) =
     }).bodyAsText()
 
 
-suspend fun scenario2(url: (Int) -> String) = coroutineScope {
+suspend fun scenario2(url: (Int) -> String) =
+    raceOf({
+        try {
+            client.get(url(2))
+        }
+        catch (e: Exception) {
+            awaitCancellation()
+        }
+    }, {
+        try {
+            client.get(url(2))
+        }
+        catch (e: Exception) {
+            awaitCancellation()
+        }
+    }).bodyAsText()
+
+
+suspend fun scenario3(url: (Int) -> String) = coroutineScope {
     race {
         repeat(10_000) {
             launchRacer {
-                client.get(url(2))
+                client.get(url(3))
             }
         }
     }.bodyAsText()
@@ -46,19 +64,19 @@ suspend fun scenario2(url: (Int) -> String) = coroutineScope {
 
 
 // todo: not working
-suspend fun scenario3(url: (Int) -> String) =
+suspend fun scenario4(url: (Int) -> String) =
     try {
         withTimeout(Duration.ofSeconds(5)) { // temporary while broken
             raceOf({
                 try {
                     withTimeout(Duration.ofSeconds(1)) {
-                        client.get(url(3)).bodyAsText()
+                        client.get(url(4)).bodyAsText()
                     }
                 } catch (e: TimeoutCancellationException) {
                     awaitCancellation()
                 }
             }, {
-                client.get(url(3)).bodyAsText()
+                client.get(url(4)).bodyAsText()
             })
         }
     }
@@ -67,10 +85,10 @@ suspend fun scenario3(url: (Int) -> String) =
     }
 
 
-suspend fun scenario4(url: (Int) -> String): String {
+suspend fun scenario5(url: (Int) -> String): String {
     suspend fun req(): String {
         try {
-            val resp = client.get(url(4))
+            val resp = client.get(url(5))
             require(resp.status.isSuccess())
             return resp.bodyAsText()
         }
@@ -87,21 +105,21 @@ suspend fun scenario4(url: (Int) -> String): String {
 }
 
 
-suspend fun scenario5(url: (Int) -> String) =
+suspend fun scenario6(url: (Int) -> String) =
     raceOf({
-        client.get(url(5))
+        client.get(url(6))
     }, {
         delay(Duration.ofSeconds(3))
-        client.get(url(5))
+        client.get(url(6))
     }).bodyAsText()
 
 
 // todo: not working
-suspend fun scenario6(url: (Int) -> String): String {
+suspend fun scenario7(url: (Int) -> String): String {
     suspend fun req(): String {
-        val id = client.get(url(6) + "?open").bodyAsText()
+        val id = client.get(url(7) + "?open").bodyAsText()
         try {
-            val resp = client.get(url(6) + "?use=$id")
+            val resp = client.get(url(7) + "?use=$id")
             require(resp.status.isSuccess())
             return resp.bodyAsText()
         }
@@ -109,7 +127,7 @@ suspend fun scenario6(url: (Int) -> String): String {
             awaitCancellation()
         }
         finally {
-            client.get(url(6) + "?close=$id").bodyAsText()
+            client.get(url(7) + "?close=$id").bodyAsText()
         }
     }
 
@@ -128,7 +146,7 @@ suspend fun scenario6(url: (Int) -> String): String {
 }
 
 
-val scenarios = listOf(::scenario1, ::scenario2, ::scenario3, ::scenario4, ::scenario5, ::scenario6)
+val scenarios = listOf(::scenario1, ::scenario2, ::scenario3, ::scenario4, ::scenario5, ::scenario6, ::scenario7)
 //val scenarios = listOf(::scenario6)
 
 suspend fun results(url: (Int) -> String) = scenarios.map {

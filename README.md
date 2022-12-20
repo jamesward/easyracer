@@ -15,27 +15,32 @@ A scenario server validates the implementations of 6 scenarios:
     GET /1
     ```
 
-2. Race 10,000 concurrent requests
+2. Race 2 concurrent requests, where one produces a connection error
+    ```
+    GET /1
+    ```
+
+3. Race 10,000 concurrent requests
     ```
     GET /2
     ```
 
-3. Race 2 concurrent requests but 1 of them should have a 1 second timeout
+4. Race 2 concurrent requests but 1 of them should have a 1 second timeout
     ```
     GET /3
     ```
 
-4. Race 2 concurrent requests where the winner is a 20x response
+5. Race 2 concurrent requests where the winner is a 20x response
     ```
     GET /4
     ```
 
-5. Start a request, wait at least 3 seconds then start a second request (hedging)
+6. Start a request, wait at least 3 seconds then start a second request (hedging)
     ```
     GET /5
     ```
 
-6. Race 2 concurrent requests that "use" a resource which is obtained and released through other requests. The "use" request can return a non-20x request, in which case it is not a winner.
+7. Race 2 concurrent requests that "use" a resource which is obtained and released through other requests. The "use" request can return a non-20x request, in which case it is not a winner.
     ```
     GET /6?open
     GET /6?use=<id obtained from open request>

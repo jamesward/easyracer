@@ -15,11 +15,18 @@ async def scenario1(session: aiohttp.ClientSession):
         task.cancel()
     return await list(done)[0]
 
-# currently not working
 async def scenario2(session: aiohttp.ClientSession):
+    reqs = [asyncio.create_task(req(session, 2)), asyncio.create_task(req(session, 2))]
+    done, pending = await asyncio.wait(reqs, return_when=asyncio.FIRST_COMPLETED)
+    for task in pending:
+        task.cancel()
+    return await list(done)[0]
+
+# currently not working
+async def scenario3(session: aiohttp.ClientSession):
     try:
         async with asyncio.timeout(5):  # temporary timeout to avoid blocking here
-            reqs = [asyncio.create_task(req(session, 2)) for _ in range(10_000)]
+            reqs = [asyncio.create_task(req(session, 3)) for _ in range(10_000)]
             iterable = await asyncio.wait(reqs, return_when=asyncio.FIRST_COMPLETED)
             done = next(iterable)
             print(done)
@@ -28,9 +35,9 @@ async def scenario2(session: aiohttp.ClientSession):
         return "wrong"
 
 # currently not working
-async def scenario3(session: aiohttp.ClientSession):
-    task = asyncio.create_task(req(session, 3))
-    task_with_timeout = asyncio.wait_for(asyncio.create_task(req(session, 3)), timeout=1)
+async def scenario4(session: aiohttp.ClientSession):
+    task = asyncio.create_task(req(session, 4))
+    task_with_timeout = asyncio.wait_for(asyncio.create_task(req(session, 4)), timeout=1)
     reqs = [task, task_with_timeout]
     done, pending = await asyncio.wait(reqs, return_when=asyncio.FIRST_COMPLETED)
     for task in pending:
@@ -38,9 +45,9 @@ async def scenario3(session: aiohttp.ClientSession):
     return await list(done)[0]
 
 # currently not working
-async def scenario4(session: aiohttp.ClientSession):
-    task = asyncio.create_task(req(session, 4))
-    task_with_valid_response = asyncio.create_task(req(session, 4))
+async def scenario5(session: aiohttp.ClientSession):
+    task = asyncio.create_task(req(session, 5))
+    task_with_valid_response = asyncio.create_task(req(session, 5))
     # todo: filter response
     reqs = [task, task_with_valid_response]
     done, pending = await asyncio.wait(reqs, return_when=asyncio.FIRST_COMPLETED)
@@ -51,11 +58,11 @@ async def scenario4(session: aiohttp.ClientSession):
     return await list(done)[0]
 
 # currently not working
-async def scenario5(session: aiohttp.ClientSession):
+async def scenario6(session: aiohttp.ClientSession):
     raise NotImplementedError
 
 # currently not working
-async def scenario6(session: aiohttp.ClientSession):
+async def scenario7(session: aiohttp.ClientSession):
     raise NotImplementedError
 
 
@@ -78,6 +85,9 @@ async def main():
 
         result6 = await scenario6(session)
         print(result6)
+
+        result7 = await scenario7(session)
+        print(result7)
 
         # todo: validate the rights
 

@@ -45,6 +45,7 @@ object EasyRacerServer extends ZIOAppDefault:
       yield
         Session(locker, numRequestsRef, raceCoordinatorRef)
 
+
   /*
   Once two concurrent requests have come in, the first request returns the right response before the second one which takes a long time
   */
@@ -64,10 +65,30 @@ object EasyRacerServer extends ZIOAppDefault:
     }
   }
 
+
+  /*
+  Once two concurrent requests have come in, the first request returns the right response while the second closes the connection
+  */
+  def scenario2(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
+    val r = for
+      numAndPromise <- session.add()
+      (num, promise) = numAndPromise
+      resp <- if num == 1 then
+        promise.await *> ZIO.sleep(1.second) as Response.text("right")
+      else
+        promise.succeed(()) *> ZIO.interrupt
+    yield
+      resp
+
+    r.onExit { _ =>
+      session.remove()
+    }
+  }
+
   /*
   10000 concurrent requests gets a right response
   */
-  def scenario2(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
+  def scenario3(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
     val r = for
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
@@ -86,7 +107,7 @@ object EasyRacerServer extends ZIOAppDefault:
   /*
   Once a request is cancelled, other pending requests return a right response
   */
-  def scenario3(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
+  def scenario4(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
     val r = for
       numAndPromise <- session.add()
       (_, promise) = numAndPromise
@@ -112,7 +133,7 @@ object EasyRacerServer extends ZIOAppDefault:
   /*
   Once two requests have come in, the first one returns a 500, while a later one is right
   */
-  def scenario4(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
+  def scenario5(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
     val r = for
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
@@ -135,7 +156,7 @@ object EasyRacerServer extends ZIOAppDefault:
   /*
   The first request is right when a second "hedge" request starts after two seconds
   */
-  def scenario5(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
+  def scenario6(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
     val r = for
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
@@ -171,7 +192,7 @@ object EasyRacerServer extends ZIOAppDefault:
   A "close" request is made using the id from the failed "use" request.
   After that "close" request, the other "use" request's response is returned as the "right" response.
   */
-  def scenario6(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
+  def scenario7(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
     enum Cmd:
       case Open
       case Use(id: String)
@@ -229,7 +250,7 @@ object EasyRacerServer extends ZIOAppDefault:
         ZIO.succeed(Response.status(Status.NotAcceptable))
   }
 
-  // scenario7
+  // scenario8
   // retry
   // game prevention: request 6 (randomly chosen number) will be the winner, but we wait for x seconds to
   //   verify that no other requests come in after the winner
@@ -253,6 +274,7 @@ object EasyRacerServer extends ZIOAppDefault:
       session4 <- Session.make()
       session5 <- Session.make()
       session6 <- Session.make()
+      session7 <- Session.make()
       sessions = Map(
         "1" -> scenario1(session1),
         "2" -> scenario2(session2),
@@ -260,6 +282,7 @@ object EasyRacerServer extends ZIOAppDefault:
         "4" -> scenario4(session4),
         "5" -> scenario5(session5),
         "6" -> scenario6(session6),
+        "7" -> scenario7(session7),
       )
       server <- Server.serve(app(sessions)).provide(Server.default)
     yield
