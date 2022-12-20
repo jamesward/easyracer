@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - scala-zio/**
+      - .github/**
 
 jobs:
   test:

@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - python-aiohttp/**
+      - .github/**
 
 jobs:
   test:
