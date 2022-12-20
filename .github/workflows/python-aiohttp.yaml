@@ -1,0 +1,14 @@
+on:
+  workflow_run:
+    workflows: [scenario-server]
+    types: [completed]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: exit 1
+        working-directory: ./python-aiohttp
