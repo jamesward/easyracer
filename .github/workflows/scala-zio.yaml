@@ -1,6 +1,6 @@
 on:
   workflow_run:
-    workflows: [scenario-server.yaml]
+    workflows: [scenario-server]
     types: [completed]
 
 jobs:

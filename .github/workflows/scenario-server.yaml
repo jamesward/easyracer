@@ -1,3 +1,5 @@
+name: scenario-server
+
 on:
   push:
     paths:
