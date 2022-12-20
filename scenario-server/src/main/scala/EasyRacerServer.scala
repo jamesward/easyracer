@@ -119,7 +119,11 @@ object EasyRacerServer extends ZIOAppDefault:
       resp <- if num == 1 then
         promise.await.as(Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
       else
-        promise.succeed(()).as(Response.text("right"))
+        for
+          _ <- promise.succeed(())
+          _ <- ZIO.sleep(1.second) // insure that the wrong response comes before the right one
+        yield
+          Response.text("right")
     yield
       resp
 

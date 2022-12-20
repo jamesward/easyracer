@@ -60,3 +60,12 @@ jobs:
 
       - run: ./gradlew test
         working-directory: ./kotlin-splitties
+
+  python-aiohttp:
+    needs: scenario-server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: exit 1
+        working-directory: ./python-aiohttp
