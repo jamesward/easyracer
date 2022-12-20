@@ -1,4 +1,7 @@
-on: push
+on:
+  push:
+    paths:
+      - scenario-server/**
 
 jobs:
   build-and-push:

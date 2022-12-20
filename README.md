@@ -56,6 +56,8 @@ right
 The scenario server has a public container `ghcr.io/jamesward/easyracer` and if you contribute your client to this repo, use Testcontainers and include automated integration tests.
 
 ## Clients
-- Scala 3 + ZIO ([source](scala-zio)) ![tests](https://github.com/jamesward/easyracer/actions/workflows/scala-zio.yaml/badge.svg)
-- Kotlin + Splitties ([source](kotlin-splitties)) ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-splitties.yaml/badge.svg)
-- Python + AIOHTTP ([source](python-aiohttp)) ![tests](https://github.com/jamesward/easyracer/actions/workflows/python-aiohttp.yaml/badge.svg)
+| Name | Source | Tests |
+| ---- | ------ | ----- |
+| Scala 3 + ZIO | ([scala-zio](scala-zio)) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/scala-zio.yaml/badge.svg) |
+| Kotlin + Splitties | ([kotlin-splitties](kotlin-splitties)) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-splitties.yaml/badge.svg) |
+| Python + AIOHTTP | ([python-aiohttp](python-aiohttp)) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/python-aiohttp.yaml/badge.svg) |
