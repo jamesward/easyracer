@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - scenario-server/**
-      - .github/**
+      - .github/scenario-server.yaml
 
 jobs:
   build-and-push:
