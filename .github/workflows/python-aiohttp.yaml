@@ -15,8 +15,8 @@ jobs:
       - uses: actions/checkout@v3
 
       - uses: actions/setup-python@v4
-        working-directory: ./python-aiohttp
         with:
+          python-version-file: ./python-aiohttp/.python-version
           cache: 'pip'
 
       - working-directory: ./python-aiohttp
