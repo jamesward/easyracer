@@ -153,10 +153,40 @@ object EasyRacerServer extends ZIOAppDefault:
     }
   }
 
+
+  /*
+  Once three requests have come in, the first one returns a 500, while a later one is right
+  */
+  def scenario6(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
+    val r = for
+      numAndPromise <- session.add()
+      (num, promise) = numAndPromise
+      resp <- if num == 1 then
+        promise.await.as(Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
+      else if num == 2 then
+        for
+          _ <- promise.await
+          _ <- ZIO.sleep(1.second) // insure that the wrong response comes before the right one
+        yield
+          Response.text("right")
+      else
+        for
+          _ <- promise.succeed(())
+          _ <- ZIO.never
+        yield
+          throw NotImplementedError("Never gonna happen")
+    yield
+      resp
+
+    r.onExit { _ =>
+      session.remove()
+    }
+  }
+
   /*
   The first request is right when a second "hedge" request starts after two seconds
   */
-  def scenario6(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
+  def scenario7(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
     val r = for
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
@@ -192,7 +222,7 @@ object EasyRacerServer extends ZIOAppDefault:
   A "close" request is made using the id from the failed "use" request.
   After that "close" request, the other "use" request's response is returned as the "right" response.
   */
-  def scenario7(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
+  def scenario8(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
     enum Cmd:
       case Open
       case Use(id: String)
@@ -250,40 +280,29 @@ object EasyRacerServer extends ZIOAppDefault:
         ZIO.succeed(Response.status(Status.NotAcceptable))
   }
 
-  // scenario8
+  // scenario9
   // retry
   // game prevention: request 6 (randomly chosen number) will be the winner, but we wait for x seconds to
   //   verify that no other requests come in after the winner
   //
 
-  def app(sessions: Map[String, Request => ZIO[Any, Nothing, Response]]) = Http.collectZIO[Request] {
+  def app(scenarios: Seq[Request => ZIO[Any, Nothing, Response]]) = Http.collectZIO[Request] {
     case Method.GET -> Path.root =>
       ZIO.succeed(Response.ok)
-    case req @ Method.GET -> Path.root / scenario =>
-      sessions.get(scenario) match {
-        case Some(f) => f(req)
-        case None => ZIO.succeed(Response.status(Status.NotFound))
-      }
+    case req @ Method.GET -> Path.root / scenarioNum =>
+      val maybeScenario = for
+        i <- scenarioNum.toIntOption
+        scenario <- scenarios.unapply(i - 1) //  /1 -> scenarios[0]
+      yield
+        scenario(req)
+
+      maybeScenario.getOrElse(ZIO.succeed(Response.status(Status.NotFound)))
   }
 
   def run =
+    val scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8)
     for
-      session1 <- Session.make()
-      session2 <- Session.make()
-      session3 <- Session.make()
-      session4 <- Session.make()
-      session5 <- Session.make()
-      session6 <- Session.make()
-      session7 <- Session.make()
-      sessions = Map(
-        "1" -> scenario1(session1),
-        "2" -> scenario2(session2),
-        "3" -> scenario3(session3),
-        "4" -> scenario4(session4),
-        "5" -> scenario5(session5),
-        "6" -> scenario6(session6),
-        "7" -> scenario7(session7),
-      )
-      server <- Server.serve(app(sessions)).provide(Server.default)
+      scenariosWithSession <- ZIO.foreach(scenarios) { f => Session.make().map(f(_)) }
+      server <- Server.serve(app(scenariosWithSession)).provide(Server.default)
     yield
       server

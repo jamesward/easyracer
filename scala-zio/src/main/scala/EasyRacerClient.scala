@@ -4,7 +4,7 @@ import zio.http.*
 import java.util.UUID
 import java.util.concurrent.TimeoutException
 
-// Note that code is intentionally NOT shared across different scenarios
+// Note that code is intentionally NOT shared across different scenarios, except for the url / config handling
 object EasyRacerClient extends ZIOAppDefault:
 
   def scenario1(scenarioUrl: Int => String) =
@@ -47,7 +47,6 @@ object EasyRacerClient extends ZIOAppDefault:
       body
 
     req.timeoutFail(TimeoutException())(1.seconds).race(req)
-      .timeout(2.seconds).someOrElse("wrong") // this race isn't working yet and hangs so the outer timeout limits the hang time
 
 
   def scenario5(scenarioUrl: Int => String) =
@@ -64,6 +63,17 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario6(scenarioUrl: Int => String) =
     val url = scenarioUrl(6)
     val req = for
+      resp <- Client.request(url).filterOrFail(_.status.isSuccess)(Error())
+      body <- resp.body.asString
+    yield
+      body
+
+    ZIO.raceAll(req, Seq(req, req))
+
+
+  def scenario7(scenarioUrl: Int => String) =
+    val url = scenarioUrl(7)
+    val req = for
       resp <- Client.request(url)
       body <- resp.body.asString
     yield
@@ -74,23 +84,23 @@ object EasyRacerClient extends ZIOAppDefault:
     req.race(ZIO.sleep(4.seconds) *> req)
 
 
-  def scenario7(scenarioUrl: Int => String) =
+  def scenario8(scenarioUrl: Int => String) =
     def req(url: String) = for
       resp <- Client.request(url).filterOrFail(_.status.isSuccess)(Error())
       body <- resp.body.asString
     yield
       body
 
-    val open = req(scenarioUrl(7) + "?open")
-    def use(id: String) = req(scenarioUrl(7) + s"?use=$id")
-    def close(id: String) = req(scenarioUrl(7) + s"?close=$id")
+    val open = req(scenarioUrl(8) + "?open")
+    def use(id: String) = req(scenarioUrl(8) + s"?use=$id")
+    def close(id: String) = req(scenarioUrl(8) + s"?close=$id")
 
     val reqRes = ZIO.acquireReleaseWith(open)(close(_).orDie)(use)
 
     reqRes.race(reqRes)
 
 
-  def scenarios(scenarioUrl: Int => String) = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7).map(_.apply(scenarioUrl))
+  def scenarios(scenarioUrl: Int => String) = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8).map(_.apply(scenarioUrl))
   //def scenarios(scenarioUrl: Int => String) = Seq(scenario6).map(_.apply(scenarioUrl))
   def all(scenarioUrl: Int => String) = ZIO.collectAllPar(scenarios(scenarioUrl))
 

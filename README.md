@@ -8,7 +8,7 @@ This project explores how easy it is to build programs which can "race" two or m
  - explicit timeouts
  - errors causing a race loss
 
-A scenario server validates the implementations of 7 scenarios:
+A scenario server validates the implementations of 8 scenarios:
 
 1. Race 2 concurrent requests
     ```
@@ -35,16 +35,21 @@ A scenario server validates the implementations of 7 scenarios:
     GET /5
     ```
 
-6. Start a request, wait at least 3 seconds then start a second request (hedging)
+6. Race 3 concurrent requests where the winner is a 20x response
     ```
     GET /6
     ```
 
-7. Race 2 concurrent requests that "use" a resource which is obtained and released through other requests. The "use" request can return a non-20x request, in which case it is not a winner.
+7. Start a request, wait at least 3 seconds then start a second request (hedging)
     ```
-    GET /7?open
-    GET /7?use=<id obtained from open request>
-    GET /7?close=<id obtained from open request>
+    GET /7
+    ```
+
+8. Race 2 concurrent requests that "use" a resource which is obtained and released through other requests. The "use" request can return a non-20x request, in which case it is not a winner.
+    ```
+    GET /8?open
+    GET /8?use=<id obtained from open request>
+    GET /8?close=<id obtained from open request>
     ```
 
 If your implementation is correct, each race will result in a 200 response with a body:

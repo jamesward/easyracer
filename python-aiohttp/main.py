@@ -88,6 +88,30 @@ async def scenario5(session: aiohttp.ClientSession, port: int):
 async def scenario6(session: aiohttp.ClientSession, port: int):
     async def req():
         async with session.get(url(port, 6)) as response:
+            if response.status != 200:
+                raise ValueError("invalid response")
+            return await response.text()
+
+    req1 = asyncio.create_task(req())
+    req2 = asyncio.create_task(req())
+    req3 = asyncio.create_task(req())
+    reqs = [req1, req2, req3]
+
+    for coro in asyncio.as_completed(reqs):
+        try:
+            result = await coro
+
+            for req in reqs:
+                req.cancel()
+
+            return result
+        except ValueError:
+            pass
+
+
+async def scenario7(session: aiohttp.ClientSession, port: int):
+    async def req():
+        async with session.get(url(port, 7)) as response:
             return await response.text()
 
     async def hedge():
@@ -104,22 +128,8 @@ async def scenario6(session: aiohttp.ClientSession, port: int):
 
 
 # currently not working
-async def scenario7(session: aiohttp.ClientSession, port: int):
-    async def req():
-        async with session.get(url(port, 6)) as response:
-            return await response.text()
-
-    async def hedge():
-        await asyncio.sleep(3)
-        return await req()
-
-    req1 = asyncio.create_task(req())
-    req2 = asyncio.create_task(hedge())
-    reqs = [req1, req2]
-    done, pending = await asyncio.wait(reqs, return_when=asyncio.FIRST_COMPLETED)
-    for task in pending:
-        task.cancel()
-    return await list(done)[0]
+async def scenario8(session: aiohttp.ClientSession, port: int):
+    raise NotImplementedError
 
 
 async def main():

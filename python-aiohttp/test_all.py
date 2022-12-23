@@ -7,6 +7,7 @@ from testcontainers.core.generic import DockerContainer
 
 @pytest.mark.asyncio
 async def test_all():
+    # todo: no way to set pull policy yet
     docker_container = DockerContainer("ghcr.io/jamesward/easyracer").with_exposed_ports(8080)
     with docker_container as easyracer:
         port = easyracer.get_exposed_port(8080)
@@ -36,7 +37,10 @@ async def test_all():
                 result6 = await main.scenario6(session, port)
                 assert result6 == "right"
 
-                # result7 = await main.scenario7(session, port)
-                # assert result7 == "right"
+                result7 = await main.scenario7(session, port)
+                assert result7 == "right"
+
+                result8 = await main.scenario8(session, port)
+                assert result8 == "right"
 
         await connected()

@@ -105,21 +105,43 @@ suspend fun scenario5(url: (Int) -> String): String {
 }
 
 
-suspend fun scenario6(url: (Int) -> String) =
+suspend fun scenario6(url: (Int) -> String): String {
+    suspend fun req(): String {
+        try {
+            val resp = client.get(url(6))
+            require(resp.status.isSuccess())
+            return resp.bodyAsText()
+        }
+        catch (e: IllegalArgumentException) {
+            awaitCancellation()
+        }
+    }
+
+    return raceOf({
+        req()
+    }, {
+        req()
+    }, {
+        req()
+    })
+}
+
+
+suspend fun scenario7(url: (Int) -> String) =
     raceOf({
-        client.get(url(6))
+        client.get(url(7))
     }, {
         delay(Duration.ofSeconds(3))
-        client.get(url(6))
+        client.get(url(7))
     }).bodyAsText()
 
 
 // todo: not working
-suspend fun scenario7(url: (Int) -> String): String {
+suspend fun scenario8(url: (Int) -> String): String {
     suspend fun req(): String {
-        val id = client.get(url(7) + "?open").bodyAsText()
+        val id = client.get(url(8) + "?open").bodyAsText()
         try {
-            val resp = client.get(url(7) + "?use=$id")
+            val resp = client.get(url(8) + "?use=$id")
             require(resp.status.isSuccess())
             return resp.bodyAsText()
         }
@@ -127,7 +149,7 @@ suspend fun scenario7(url: (Int) -> String): String {
             awaitCancellation()
         }
         finally {
-            client.get(url(7) + "?close=$id").bodyAsText()
+            client.get(url(8) + "?close=$id").bodyAsText()
         }
     }
 
@@ -146,7 +168,7 @@ suspend fun scenario7(url: (Int) -> String): String {
 }
 
 
-val scenarios = listOf(::scenario1, ::scenario2, ::scenario3, ::scenario4, ::scenario5, ::scenario6, ::scenario7)
+val scenarios = listOf(::scenario1, ::scenario2, ::scenario3, ::scenario4, ::scenario5, ::scenario6, ::scenario7, ::scenario8)
 //val scenarios = listOf(::scenario6)
 
 suspend fun results(url: (Int) -> String) = scenarios.map {
