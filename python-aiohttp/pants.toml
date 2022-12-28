@@ -1,0 +1,10 @@
+[GLOBAL]
+pants_version = "2.14.0"
+backend_packages = ["pants.backend.python"]
+
+[python]
+interpreter_constraints=["CPython==3.11.*"]
+
+[anonymous-telemetry]
+enabled = false
+

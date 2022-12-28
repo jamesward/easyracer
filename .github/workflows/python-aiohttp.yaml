@@ -14,17 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version-file: ./python-aiohttp/.python-version
-          cache: 'pip'
-          cache-dependency-path:
-            - ./python-aiohttp/requirements.txt
-
       - working-directory: ./python-aiohttp
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          # todo: install pants
+          pants tailor --check ::
+          pants test
 
-      - working-directory: ./python-aiohttp
-        run: pytest
