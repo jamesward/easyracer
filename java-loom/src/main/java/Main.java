@@ -6,6 +6,7 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -14,7 +15,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
-// Note: Intentionally, only url handling code is shared across scenarios
+// Note: Intentionally, code is not shared across scenarios
 public class Main {
 
     static class Scenarios {
@@ -52,8 +53,8 @@ public class Main {
             var req = HttpRequest.newBuilder(url.resolve("/3")).build();
             try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
                 IntStream.rangeClosed(1, 10_000)
-                        .forEach( i ->
-                                scope.fork( () ->
+                        .forEach(i ->
+                                scope.fork(() ->
                                         client.send(req, HttpResponse.BodyHandlers.ofString())
                                 )
                         );
@@ -67,37 +68,32 @@ public class Main {
         public String scenario4() throws ExecutionException, InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/4")).build();
             try (var outer = new StructuredTaskScope.ShutdownOnSuccess<String>()) {
-                try (var inner = Executors.newVirtualThreadPerTaskExecutor()) {
-                    var req1 = inner.submit(() -> client.send(req, HttpResponse.BodyHandlers.ofString()).body());
+                outer.fork(() -> {
+                    try (var inner = new StructuredTaskScope.ShutdownOnSuccess<String>()) {
+                        inner.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()).body());
+                        inner.joinUntil(Instant.now().plusSeconds(1));
+                        return inner.result();
+                    }
+                });
 
-                    outer.fork(() -> {
-                        try {
-                            return req1.get(1, TimeUnit.SECONDS);
-                        }
-                        catch (TimeoutException e) {
-                            req1.cancel(true);
-                            throw e;
-                        }
-                    });
+                outer.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()).body());
 
-                    outer.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()).body());
+                outer.join();
 
-                    outer.join();
-
-                    return outer.result();
-                }
+                return outer.result();
             }
         }
 
 
         public String scenario5() throws ExecutionException, InterruptedException {
             class Req {
+                final HttpRequest req = HttpRequest.newBuilder(url.resolve("/5")).build();
+
                 HttpResponse<String> make() throws Exception {
-                    var resp = client.send(HttpRequest.newBuilder(url.resolve("/5")).build(), HttpResponse.BodyHandlers.ofString());
+                    var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
                     if (resp.statusCode() == 200) {
                         return resp;
-                    }
-                    else {
+                    } else {
                         throw new Exception("invalid response");
                     }
                 }
@@ -114,12 +110,13 @@ public class Main {
 
         public String scenario6() throws ExecutionException, InterruptedException {
             class Req {
+                final HttpRequest req = HttpRequest.newBuilder(url.resolve("/6")).build();
+
                 HttpResponse<String> make() throws Exception {
-                    var resp = client.send(HttpRequest.newBuilder(url.resolve("/6")).build(), HttpResponse.BodyHandlers.ofString());
+                    var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
                     if (resp.statusCode() == 200) {
                         return resp;
-                    }
-                    else {
+                    } else {
                         throw new Exception("invalid response");
                     }
                 }
@@ -151,9 +148,12 @@ public class Main {
 
         public String scenario8() throws InterruptedException, ExecutionException {
             class Req implements AutoCloseable {
-                final HttpRequest openReq = HttpRequest.newBuilder(url.resolve("/8?open")).build();
-                final Function<String, HttpRequest> useReq = (id) -> HttpRequest.newBuilder(url.resolve("/8?use=" + id)).build();
-                final Function<String, HttpRequest> closeReq = (id) -> HttpRequest.newBuilder(url.resolve("/8?close=" + id)).build();
+                final HttpRequest openReq =
+                        HttpRequest.newBuilder(url.resolve("/8?open")).build();
+                final Function<String, HttpRequest> useReq = (id) ->
+                        HttpRequest.newBuilder(url.resolve("/8?use=" + id)).build();
+                final Function<String, HttpRequest> closeReq = (id) ->
+                        HttpRequest.newBuilder(url.resolve("/8?close=" + id)).build();
 
                 final String id;
 
@@ -165,8 +165,7 @@ public class Main {
                     var resp = client.send(useReq.apply(id), HttpResponse.BodyHandlers.ofString());
                     if (resp.statusCode() == 200) {
                         return resp;
-                    }
-                    else {
+                    } else {
                         throw new Exception("invalid response");
                     }
                 }
@@ -197,7 +196,7 @@ public class Main {
 
         List<String> results() throws ExecutionException, InterruptedException {
             return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8());
-            //return List.of(scenario8());
+            //return List.of(scenario4());
         }
     }
 
