@@ -6,6 +6,7 @@
 .bsp
 .metals
 project/metals.sbt
+**/project/metals.sbt
 
 # vs code
 .vscode
