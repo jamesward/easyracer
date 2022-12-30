@@ -1,25 +1,32 @@
 import weaver._
 
+import cats.implicits._
+
 import cats.effect._
 
 import org.http4s.Uri
+import org.http4s.client.Client
+import org.http4s.ember.client.EmberClientBuilder
+
+import EasyRacerClient.all
 
 object EasyRacerSuite extends IOSuite {
-  override type Res = EasyRacerContainer
+  override type Res = (EasyRacerContainer, Client[IO])
 
   def sharedResource: Resource[IO,Res] = {
-    ContainerResource(IO(EasyRacerContainer()))
+    (
+      ContainerResource(IO(EasyRacerContainer())),
+      EmberClientBuilder.default[IO].build
+    ).parTupled
   }
 
-  test("easyracer") { racer =>
-    val host = racer.host
-    val port = racer.mappedPort(8080)
+  test("easyracer") { case (racer, client) =>
+    val host   = racer.host
+    val port   = racer.mappedPort(8080)
 
-    EasyRacerClient.cr.use { client =>
-      for {
-        results <- EasyRacerClient.all(client, i => Uri.unsafeFromString(s"http://${host}:$port/$i"))
-        ans      = expect(results.forall(_ == "right"))
-      } yield ans
-    }
+    val ios    = all(client, i => Uri.unsafeFromString(s"http://${host}:$port/$i"))
+    val result = ios.map { _.forall(_ == "right") }
+
+    result.map(b => expect(b))
   }
 }
