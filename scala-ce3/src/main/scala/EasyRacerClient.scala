@@ -18,7 +18,7 @@ object EasyRacerClient extends IOApp.Simple {
   implicit class RaceSuccess[A](left: IO[A]) {
     private def cascade[A](outcome: OutcomeIO[A], fiber: FiberIO[A]): IO[A] = {
       outcome match {
-        case Succeeded(fa) => fa
+        case Succeeded(fa) => (fiber.cancel, fa).parMapN { case (_, a) => a }
         case _             => fiber.join.flatMap { right =>
           right.fold(
             IO.raiseError[A](new RuntimeException("cancelled")),
