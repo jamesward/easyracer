@@ -108,8 +108,10 @@ object EasyRacerClient extends ZIOAppDefault:
     yield
       now -> body
 
-    ZIO.collectAllSuccessesPar(Seq.fill(10)(req)).map { resp =>
-      resp.sortBy(_._1).map(_._2).mkString
+    ZIO.withParallelism(10) {
+      ZIO.collectAllSuccessesPar(Seq.fill(10)(req)).map { resp =>
+        resp.sortBy(_._1).map(_._2).mkString
+      }
     }
 
 

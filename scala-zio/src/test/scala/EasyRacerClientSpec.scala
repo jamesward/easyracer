@@ -31,7 +31,7 @@ object EasyRacerClientSpec extends ZIOSpecDefault:
       for
         containerWrapper <- ZIO.service[GenericContainer]
         port = containerWrapper.container.getFirstMappedPort
-        results <- EasyRacerClient.all({ i => s"http://localhost:$port/$i" }).provide(Client.default, Scope.default)
+        results <- EasyRacerClient.all({ i => s"http://localhost:$port/$i" }).timeout(1.minute).some.provide(Client.default, Scope.default)
       yield
         assertTrue(results.forall(_ == "right"))
     } @@ TestAspect.withLiveClock
