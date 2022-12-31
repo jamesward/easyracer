@@ -52,6 +52,11 @@ A scenario server validates the implementations of 8 scenarios:
     GET /8?close=<id obtained from open request>
     ```
 
+9. Race 10 concurrent requests where 5 return a 200 response with a letter, when assembled in order of when they responded, form the "right" answer
+    ```
+    GET /9
+    ```
+
 If your implementation is correct, each race will result in a 200 response with a body:
 ```
 right

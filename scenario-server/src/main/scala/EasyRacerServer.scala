@@ -7,7 +7,9 @@ import java.time.Instant
 
 object EasyRacerServer extends ZIOAppDefault:
 
-  type SessionPromise = Promise[Nothing, Unit | Instant | Promise[Nothing, String]]
+  private val wrong = Response(status = Status.InternalServerError, body = Body.fromString("wrong"))
+
+  type SessionPromise = Promise[Nothing, Unit | Instant | Promise[Nothing, String] | Queue[Option[(Char, Int)]]]
   case class Session(private val locker: ReentrantLock, private val numRequestsRef: Ref[Int], private val raceCoordinatorRef: Ref[SessionPromise]):
     def get(): ZIO[Any, Nothing, (Int, SessionPromise)] =
       for
@@ -41,7 +43,7 @@ object EasyRacerServer extends ZIOAppDefault:
       for
         locker <- ReentrantLock.make()
         numRequestsRef <- Ref.make[Int](0)
-        raceCoordinatorRef <- Promise.make[Nothing, Unit | Instant | Promise[Nothing, String]].flatMap(Ref.make(_))
+        raceCoordinatorRef <- Promise.make[Nothing, Unit | Instant | Promise[Nothing, String] | Queue[Option[(Char, Int)]]].flatMap(Ref.make(_))
       yield
         Session(locker, numRequestsRef, raceCoordinatorRef)
 
@@ -138,7 +140,7 @@ object EasyRacerServer extends ZIOAppDefault:
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
       resp <- if num == 1 then
-        promise.await.as(Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
+        promise.await.as(wrong)
       else
         for
           _ <- promise.succeed(())
@@ -162,7 +164,7 @@ object EasyRacerServer extends ZIOAppDefault:
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
       resp <- if num == 1 then
-        promise.await.as(Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
+        promise.await.as(wrong)
       else if num == 2 then
         for
           _ <- promise.await
@@ -241,7 +243,7 @@ object EasyRacerServer extends ZIOAppDefault:
           numAndPromise <- session.add()
           (num, promise) = numAndPromise
           resp <- if num == 1 then
-            promise.await.as(Response(status = Status.InternalServerError, body = Body.fromString("wrong")))
+            promise.await.as(wrong)
           else
             for
               nextPromise <- Promise.make[Nothing, String]
@@ -280,6 +282,52 @@ object EasyRacerServer extends ZIOAppDefault:
         ZIO.succeed(Response.status(Status.NotAcceptable))
   }
 
+  /*
+  Ten concurrent requests, 5 of them return errors, 5 return the letters "r", "i", "g", "h", and "t" in that order
+  */
+  def scenario9(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
+    def letterOrFail(chars: Queue[Option[(Char, Int)]]): ZIO[Any, Nothing, Response] =
+      for
+        mine <- chars.take
+        resp <- mine.fold(ZIO.succeed(wrong)) { (c, s) =>
+          ZIO.sleep(s.seconds).as(Response.text(c.toString))
+        }
+      yield
+        resp
+
+    val r = for
+      numAndPromise <- session.add()
+      (num, promise) = numAndPromise
+      resp <- if num < 10 then
+        for
+          sessionData <- promise.await
+          resp <- sessionData match
+            case chars: Queue[Option[(Char, Int)]] =>
+              letterOrFail(chars)
+            case _ =>
+              throw NotImplementedError("not gonna happen")
+        yield
+          resp
+      else
+        // create a queue with randomly dispersed chars
+        for
+          queue <- Queue.bounded[Option[(Char, Int)]](10)
+          right = "right".zipWithIndex
+          all = List.fill(5)(None) ++ right.map(Some(_))
+          allMixed <- Random.shuffle(all)
+          _ <- queue.offerAll(allMixed)
+          _ <- promise.succeed(queue)
+          resp <- letterOrFail(queue)
+        yield
+          resp
+    yield
+      resp
+
+    r.onExit { _ =>
+      session.remove()
+    }
+  }
+
   // scenario9
   // retry
   // game prevention: request 6 (randomly chosen number) will be the winner, but we wait for x seconds to
@@ -300,7 +348,7 @@ object EasyRacerServer extends ZIOAppDefault:
   }
 
   def run =
-    val scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8)
+    val scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9)
     for
       scenariosWithSession <- ZIO.foreach(scenarios) { f => Session.make().map(f(_)) }
       server <- Server.serve(app(scenariosWithSession)).provide(Server.default)

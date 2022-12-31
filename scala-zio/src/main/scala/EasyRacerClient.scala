@@ -100,8 +100,21 @@ object EasyRacerClient extends ZIOAppDefault:
     reqRes.race(reqRes)
 
 
-  def scenarios(scenarioUrl: Int => String) = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8).map(_.apply(scenarioUrl))
-  //def scenarios(scenarioUrl: Int => String) = Seq(scenario6).map(_.apply(scenarioUrl))
+  def scenario9(scenarioUrl: Int => String) =
+    val req = for
+      resp <- Client.request(scenarioUrl(9)).filterOrFail(_.status.isSuccess)(Error())
+      body <- resp.body.asString
+      now <- Clock.nanoTime
+    yield
+      now -> body
+
+    ZIO.collectAllSuccessesPar(Seq.fill(10)(req)).map { resp =>
+      resp.sortBy(_._1).map(_._2).mkString
+    }
+
+
+  def scenarios(scenarioUrl: Int => String) = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9).map(_.apply(scenarioUrl))
+  //def scenarios(scenarioUrl: Int => String) = Seq(scenario9).map(_.apply(scenarioUrl))
   def all(scenarioUrl: Int => String) = ZIO.collectAllPar(scenarios(scenarioUrl))
 
   override val run =
