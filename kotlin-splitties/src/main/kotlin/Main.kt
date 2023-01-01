@@ -21,6 +21,7 @@ import splitties.coroutines.raceOf
 import splitties.experimental.ExperimentalSplittiesApi
 import java.lang.IllegalArgumentException
 import java.time.Duration
+import java.time.Instant
 
 
 val client = HttpClient()
@@ -167,9 +168,31 @@ suspend fun scenario8(url: (Int) -> String): String {
     }
 }
 
+suspend fun scenario9(url: (Int) -> String): String {
+    suspend fun req(): Pair<Instant, String>? {
+        val resp = client.get(url(9))
+        return if (resp.status.isSuccess()) {
+            Instant.now() to resp.bodyAsText()
+        }
+        else {
+            null
+        }
+    }
 
-val scenarios = listOf(::scenario1, ::scenario2, ::scenario3, ::scenario4, ::scenario5, ::scenario6, ::scenario7, ::scenario8)
-//val scenarios = listOf(::scenario6)
+    return coroutineScope {
+        val letters = List(10) {
+            async {
+                req()
+            }
+        }.awaitAll()
+
+        letters.filterNotNull().sortedBy { it.first }.joinToString("") { it.second }
+    }
+}
+
+
+val scenarios = listOf(::scenario1, ::scenario2, ::scenario3, ::scenario4, ::scenario5, ::scenario6, ::scenario7, ::scenario8, ::scenario9)
+//val scenarios = listOf(::scenario9)
 
 suspend fun results(url: (Int) -> String) = scenarios.map {
     coroutineScope {

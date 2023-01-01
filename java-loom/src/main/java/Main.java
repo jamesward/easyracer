@@ -7,11 +7,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -194,9 +192,39 @@ public class Main {
             }
         }
 
+        public String scenario9() throws InterruptedException {
+            record TimedResponse(Instant instant, HttpResponse<String> response) {
+            }
+
+            final HttpRequest req = HttpRequest.newBuilder(url.resolve("/9")).build();
+            try (var scope = new StructuredTaskScope<TimedResponse>()) {
+                var futures = IntStream.rangeClosed(1, 10)
+                        .mapToObj(i ->
+                                scope.fork(() -> {
+                                    var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+                                    return new TimedResponse(Instant.now(), resp);
+                                })
+                        ).toList();
+
+                scope.join();
+
+                return futures.stream().map(f -> {
+                    try {
+                        return f.get();
+                    } catch (ExecutionException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).filter(r -> r.response.statusCode() == 200).sorted(Comparator.comparing(TimedResponse::instant)).collect(
+                        StringBuilder::new,
+                        (acc, timedResponse) -> acc.append(timedResponse.response.body()),
+                        StringBuilder::append
+                ).toString();
+            }
+        }
+
         List<String> results() throws ExecutionException, InterruptedException {
-            return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8());
-            //return List.of(scenario4());
+            return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9());
+            //return List.of(scenario9());
         }
     }
 
