@@ -8,7 +8,7 @@ import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 
-import EasyRacerClient.all
+import EasyRacerClient._
 
 object EasyRacerSuite extends IOSuite {
   override type Res = (EasyRacerContainer, Client[IO])
@@ -20,13 +20,18 @@ object EasyRacerSuite extends IOSuite {
     ).parTupled
   }
 
-  test("easyracer") { case (racer, client) =>
-    val host   = racer.host
-    val port   = racer.mappedPort(8080)
+  def scenarioUrl(racer: EasyRacerContainer)(scenario: Int): Uri =
+    Uri.unsafeFromString(s"http://${racer.host}:${racer.mappedPort(8080)}/$scenario")
 
-    val ios    = all(client, i => Uri.unsafeFromString(s"http://${host}:$port/$i"))
-    val result = ios.map { _.forall(_ == "right") }
+  test("scenario1") { case (racer, client) =>
+    scenario1(client, scenarioUrl(racer)).map(s => expect(s == "right"))
+  }
 
-    result.map(b => expect(b))
+  test("scenario2") { case (racer, client) =>
+    scenario2(client, scenarioUrl(racer)).map(s => expect(s == "right"))
+  }
+
+  test("scenario3") { case (racer, client) =>
+    scenario3(client, scenarioUrl(racer)).map(s => expect(s == "right"))
   }
 }

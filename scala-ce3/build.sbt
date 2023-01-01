@@ -10,6 +10,8 @@ libraryDependencies ++= List(
 
 testFrameworks += new TestFramework("weaver.framework.CatsEffect")
 
+IntegrationTest / fork := true
+
 lazy val root = (project in file("."))
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
