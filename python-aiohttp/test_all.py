@@ -43,4 +43,7 @@ async def test_all():
                 result8 = await main.scenario8(session, port)
                 assert result8 == "right"
 
+                result9 = await main.scenario9(session, port)
+                assert result9 == "right"
+
         await connected()

@@ -132,6 +132,38 @@ async def scenario8(session: aiohttp.ClientSession, port: int):
     raise NotImplementedError
 
 
+# currently not working
+async def scenario9(session: aiohttp.ClientSession, port: int):
+    async def req():
+        resp = await session.get(url(port, 9))
+        from datetime import datetime
+        now = datetime.now()
+        return now, resp
+
+    reqs = [asyncio.create_task(req()) for _ in range(10)]
+    (done, _) = await asyncio.wait(reqs, return_when=asyncio.ALL_COMPLETED)
+    valid = list(filter(lambda task: task.result()[1].status == 200, done))
+
+    async def text(task):
+        return task.result()[0], await task.result()[1].text()
+
+    letters_async = list(map(text, valid))
+
+    print(letters_async)
+
+    letters = await asyncio.gather(letters_async)
+
+    print(letters)
+
+    ordered = sorted(letters, key=lambda time, _: time)
+
+    print(ordered)
+
+    import functools
+
+    return functools.reduce(lambda acc, letter: acc + letter, ordered, "")
+
+
 async def main():
     async with aiohttp.ClientSession() as session:
         # result1 = await scenario1(session, 8080)
@@ -149,8 +181,8 @@ async def main():
         # result5 = await scenario5(session, 8080)
         # print(result5)
 
-        result6 = await scenario6(session, 8080)
-        print(result6)
+        result9 = await scenario9(session, 8080)
+        print(result9)
 
         # result7 = await scenario7(session, 8080)
         # print(result7)
