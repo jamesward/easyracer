@@ -12,13 +12,16 @@ ARG RESULT_LIB="/staticlibs"
 RUN mkdir ${RESULT_LIB}
 
 RUN cd ${RESULT_LIB} && \
-    ls /usr/lib/gcc/ && \
+    case ${TARGETARCH} in \
+      "amd64") PDIR=x86_64-redhat-linux ;; \
+      "arm64") PDIR=aarch64-redhat-linux ;; \
+    esac && \
     curl -L -s -o musl.tar.gz https://musl.libc.org/releases/musl-1.2.3.tar.gz && \
     mkdir musl && tar -xzf musl.tar.gz -C musl --strip-components 1 && cd musl && \
     ./configure --disable-shared --prefix=${RESULT_LIB} &>/dev/null && \
     make -s && make install -s && \
     rm -rf ${RESULT_LIB}/muscl && rm -f ${RESULT_LIB}/musl.tar.gz && \
-    cp /usr/lib/gcc/x86_64-redhat-linux/4.8.2/libstdc++.a ${RESULT_LIB}/lib/
+    cp /usr/lib/gcc/$PDIR/4.8.2/libstdc++.a ${RESULT_LIB}/lib/
 
 #ARG TOOLCHAIN_DIR="${RESULT_LIB}/x86_64-linux-musl-native"
 ARG TOOLCHAIN_DIR="${RESULT_LIB}"
