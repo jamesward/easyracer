@@ -33,7 +33,7 @@ object EasyRacerServer extends ZIOAppDefault:
       for
         _ <- locker.lock
         numRequests <- numRequestsRef.updateAndGet(_ - 1)
-        _ <- if numRequests == 0 then Promise.make.flatMap(raceCoordinatorRef.set(_)) else ZIO.unit
+        _ <- ZIO.when(numRequests == 0)(Promise.make.flatMap(raceCoordinatorRef.set))
         _ <- locker.unlock
       yield
         ()
@@ -56,7 +56,7 @@ object EasyRacerServer extends ZIOAppDefault:
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
       resp <- if num == 1 then
-        promise.await.map(_ => Response.text("right"))
+        promise.await.as(Response.text("right"))
       else
         promise.succeed(()) *> ZIO.never
     yield
@@ -118,17 +118,14 @@ object EasyRacerServer extends ZIOAppDefault:
       Response.text("right")
 
     r.onExit { exit =>
-      val waiter = if exit.isFailure then
+      ZIO.when(exit.isFailure) {
         for
           numAndPromise <- session.get()
           (_, promise) = numAndPromise
           _ <- promise.succeed(())
         yield
           ()
-      else
-        ZIO.unit
-
-      waiter *> session.remove()
+      } *> session.remove()
     }
   }
 
