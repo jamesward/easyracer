@@ -20,7 +20,6 @@ import cats.effect.kernel.Outcome.Succeeded
 object EasyRacerClient extends IOApp.Simple {
   val cr = EmberClientBuilder.default[IO]
     .withMaxTotal(10000)
-    .withTimeout(Duration.Inf)
     .build
 
   // Questionable semantics: throws away errors!
@@ -91,7 +90,7 @@ object EasyRacerClient extends IOApp.Simple {
     }
   }
 
-  // Fabio Labella's multiRace.
+  // Fabio Labella's multiRace, at <https://gitter.im/typelevel/cats-effect?at=5f479a3e89cf2d584b7c65cf>
   def multiRace[F[_]: Concurrent, A](fas: List[F[A]]): F[A] = {
     def spawn[B](fa: F[B]): Resource[F, Unit] =
       Resource.make(fa.start)(_.cancel).void
