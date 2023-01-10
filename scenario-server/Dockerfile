@@ -12,10 +12,15 @@ ARG RESULT_LIB="/staticlibs"
 RUN mkdir ${RESULT_LIB}
 
 RUN cd ${RESULT_LIB} && \
-    curl -L -s -o musl.tar.gz https://more.musl.cc/10/x86_64-linux-musl/x86_64-linux-musl-native.tgz && \
-    tar -xzf musl.tar.gz
+    curl -L -s -o musl.tar.gz https://musl.libc.org/releases/musl-1.2.3.tar.gz && \
+    mkdir musl && tar -xzf musl.tar.gz -C musl --strip-components 1 && cd musl && \
+    ./configure --disable-shared --prefix=${RESULT_LIB} &>/dev/null && \
+    make -s && make install -s && \
+    rm -rf ${RESULT_LIB}/muscl && rm -f ${RESULT_LIB}/musl.tar.gz # && \
+    #cp /usr/lib/gcc/x86_64-redhat-linux/4.8.2/libstdc++.a ${RESULT_LIB}/lib/
 
-ARG TOOLCHAIN_DIR="${RESULT_LIB}/x86_64-linux-musl-native"
+#ARG TOOLCHAIN_DIR="${RESULT_LIB}/x86_64-linux-musl-native"
+ARG TOOLCHAIN_DIR="${RESULT_LIB}"
 ARG CC="${TOOLCHAIN_DIR}/bin/gcc"
 
 RUN cd ${RESULT_LIB} && \
@@ -23,16 +28,26 @@ RUN cd ${RESULT_LIB} && \
     tar -xzf zlib.tar.gz && \
     cd zlib-1.2.13 && \
     ./configure --static --prefix=${TOOLCHAIN_DIR} &>/dev/null && \
-    make -s && make install -s
+    make -s && make install -s && \
+    rm -rf ${RESULT_LIB}/zlib-1.2.13 && rm -f ${RESULT_LIB}/zlib.tar.gz
 #END PRE-REQUISITES FOR STATIC NATIVE IMAGES FOR GRAAL
 
 RUN cd ${RESULT_LIB} && \
-    curl -L -o xz-libs.rpm https://rpmfind.net/linux/centos-stream/9-stream/BaseOS/x86_64/os/Packages/xz-libs-5.2.5-8.el9.x86_64.rpm && \
+    case ${TARGETARCH} in \
+      "amd64")  S6_ARCH=amd64  ;; \
+      "arm64")  S6_ARCH=aarch64  ;; \
+    esac && \
+    echo ${S6_ARCH} && \
+    curl -L -s -o xz-libs.rpm https://rpmfind.net/linux/centos-stream/9-stream/BaseOS/x86_64/os/Packages/xz-libs-5.2.5-8.el9.x86_64.rpm && \
     rpm -iv --force xz-libs.rpm && \
-    curl -L -o xz.rpm https://rpmfind.net/linux/centos-stream/9-stream/BaseOS/x86_64/os/Packages/xz-5.2.5-8.el9.x86_64.rpm && \
+    rm -f xz-libs.rpm && \
+    curl -L -s -o xz.rpm https://rpmfind.net/linux/centos-stream/9-stream/BaseOS/x86_64/os/Packages/xz-5.2.5-8.el9.x86_64.rpm && \
     rpm -iv xz.rpm && \
-    curl -L -o upx-amd64_linux.tar.xz https://github.com/upx/upx/releases/download/v4.0.1/upx-4.0.1-amd64_linux.tar.xz && \
-    tar -xvf upx-amd64_linux.tar.xz
+    rm -f xz.rpm && \
+    curl -L -s -o upx-amd64_linux.tar.xz https://github.com/upx/upx/releases/download/v4.0.1/upx-4.0.1-amd64_linux.tar.xz && \
+    tar -xf upx-amd64_linux.tar.xz && \
+    rm -f upx-amd64_linux.tar.xz
+
 
 ENV PATH="$PATH:${TOOLCHAIN_DIR}/bin"
 
