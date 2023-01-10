@@ -1,3 +1,5 @@
+import scala.concurrent.duration._
+
 import cats._, cats.implicits._
 import cats.data.Chain
 
@@ -11,10 +13,15 @@ import org.http4s.client.Client
 import org.http4s.client.dsl.io._
 
 import org.http4s.ember.client.EmberClientBuilder
+
+
 import cats.effect.kernel.Outcome.Succeeded
 
 object EasyRacerClient extends IOApp.Simple {
-  val cr = EmberClientBuilder.default[IO].build
+  val cr = EmberClientBuilder.default[IO]
+    .withMaxTotal(10000)
+    .withTimeout(Duration.Inf)
+    .build
 
   // Questionable semantics: throws away errors!
   implicit class RaceSuccess[A](left: IO[A]) {
@@ -84,6 +91,22 @@ object EasyRacerClient extends IOApp.Simple {
     }
   }
 
+  // Fabio Labella's multiRace.
+  def multiRace[F[_]: Concurrent, A](fas: List[F[A]]): F[A] = {
+    def spawn[B](fa: F[B]): Resource[F, Unit] =
+      Resource.make(fa.start)(_.cancel).void
+
+    def finish(fa: F[A], d: Deferred[F, Either[Throwable, A]]): F[Unit] =
+      fa.attempt.flatMap(d.complete).void
+
+    Deferred[F, Either[Throwable, A]]
+      .flatMap { result =>
+        fas
+          .traverse(fa => spawn(finish(fa, result)))
+          .use(_ => result.get.rethrow)
+      }
+  }
+
   def scenario1(client: Client[IO], scenarioUrl: Int => Uri) = {
     val url = scenarioUrl(1)
     val req = client.expect[String](GET(url))
@@ -102,7 +125,7 @@ object EasyRacerClient extends IOApp.Simple {
     val url = scenarioUrl(3)
     val reqs = List.fill(10000)(client.expect[String](GET(url)))
     
-    raceSuccessAll(reqs).flatMap(_.fold(_ => IO.raiseError[String](new RuntimeException("all failed")), IO.pure))
+    multiRace(reqs)
   }
 
   def all(client: Client[IO], scenarioUrl: Int => Uri) =

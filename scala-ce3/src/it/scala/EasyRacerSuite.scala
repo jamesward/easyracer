@@ -1,12 +1,13 @@
 import weaver._
 
+import scala.concurrent.duration._
+
 import cats.implicits._
 
 import cats.effect._
 
 import org.http4s.Uri
 import org.http4s.client.Client
-import org.http4s.ember.client.EmberClientBuilder
 
 import EasyRacerClient._
 
@@ -16,7 +17,7 @@ object EasyRacerSuite extends IOSuite {
   def sharedResource: Resource[IO,Res] = {
     (
       ContainerResource(IO(EasyRacerContainer())),
-      EmberClientBuilder.default[IO].build
+      cr
     ).parTupled
   }
 
