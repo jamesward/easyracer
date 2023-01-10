@@ -18,8 +18,7 @@ jobs:
         with:
           python-version-file: ./python-aiohttp/.python-version
           cache: 'pip'
-          cache-dependency-path:
-            - ./python-aiohttp/requirements.txt
+          cache-dependency-path: ./python-aiohttp/requirements.txt
 
       - working-directory: ./python-aiohttp
         run: |
