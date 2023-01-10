@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - kotlin-splitties/**
-      - .github/kotlin-splitties.yaml
+      - .github/workflows/kotlin-splitties.yaml
 
 jobs:
   test:

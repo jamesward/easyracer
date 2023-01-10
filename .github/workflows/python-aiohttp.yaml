@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - python-aiohttp/**
-      - .github/python-aiohttp.yaml
+      - .github/workflows/python-aiohttp.yaml
 
 jobs:
   test:

@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - scala-zio/**
-      - .github/scala-zio.yaml
+      - .github/workflows/scala-zio.yaml
 
 jobs:
   test:

@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - java-loom/**
-      - .github/java-loom.yaml
+      - .github/workflows/java-loom.yaml
 
 jobs:
   test:

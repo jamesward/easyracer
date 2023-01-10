@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - kotlin-arrow/**
-      - .github/kotlin-arrow.yaml
+      - .github/workflows/kotlin-arrow.yaml
 
 jobs:
   test:
