@@ -11,6 +11,8 @@ libraryDependencies ++= List(
 testFrameworks += new TestFramework("weaver.framework.CatsEffect")
 
 IntegrationTest / fork := true
+javaOptions in (IntegrationTest / run) ++= Seq(
+    "-Xms256M", "-Xmx2G", "-XX:MaxPermSize=1024M", "-XX:+UseConcMarkSweepGC")
 
 lazy val root = (project in file("."))
   .configs(IntegrationTest)
