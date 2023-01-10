@@ -15,8 +15,6 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
-        with:
-          platforms: 'amd64,arm64'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -40,8 +38,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
         with:
+          platforms: linux/amd64,linux/arm64
           context: ./scenario-server
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
