@@ -22,7 +22,7 @@ RUN cd ${RESULT_LIB} && \
     ./configure --disable-shared --prefix=${RESULT_LIB} &>/dev/null && \
     make -s && make install -s && \
     rm -rf ${RESULT_LIB}/muscl && rm -f ${RESULT_LIB}/musl.tar.gz && \
-    cp /usr/lib/gcc/$PDIR/4.8.2/libstdc++.a ${RESULT_LIB}/lib/
+    cp /usr/lib/gcc/$PDIR/11/libstdc++.a ${RESULT_LIB}/lib/
 
 #ARG TOOLCHAIN_DIR="${RESULT_LIB}/x86_64-linux-musl-native"
 ARG TOOLCHAIN_DIR="${RESULT_LIB}"
