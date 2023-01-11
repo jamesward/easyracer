@@ -33,7 +33,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: ./scenario-server
-          file: Dockerfile-amd64
+          file: ./scenario-server/Dockerfile-amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -71,7 +71,7 @@ jobs:
         with:
           platforms: linux/arm64
           context: ./scenario-server
-          file: Dockerfile-aarch64
+          file: ./scenario-server/Dockerfile-aarch64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
