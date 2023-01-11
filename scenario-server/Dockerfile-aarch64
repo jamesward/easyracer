@@ -9,7 +9,7 @@ RUN gu install native-image
 RUN cd /app && ./sbt clean GraalVMNativeImage/packageBin
 
 
-FROM gcr.io/distroless/base
+FROM oraclelinux:9-slim
 
 WORKDIR /tmp
 
