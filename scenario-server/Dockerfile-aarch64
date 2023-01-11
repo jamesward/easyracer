@@ -9,7 +9,7 @@ RUN gu install native-image
 RUN cd /app && ./sbt clean GraalVMNativeImage/packageBin
 
 
-FROM scratch
+FROM gcr.io/distroless/base
 
 WORKDIR /tmp
 

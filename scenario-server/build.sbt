@@ -50,7 +50,10 @@ graalVMNativeImageOptions ++= Seq(
 )
 
 if (sys.env.get("TARGETARCH").contains("arm64")) {
-  graalVMNativeImageOptions += "-H:+StaticExecutableWithDynamicLibC"
+  graalVMNativeImageOptions ++= Seq(
+    "-H:+StaticExecutableWithDynamicLibC",
+    "--initialize-at-run-time=io.netty.incubator.channel.uring.IOUringEventLoopGroup",
+  )
 } else {
   graalVMNativeImageOptions ++= Seq(
     "--static",
