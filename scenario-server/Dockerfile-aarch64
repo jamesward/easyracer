@@ -1,0 +1,17 @@
+FROM ghcr.io/graalvm/graalvm-ce:22.3.0 as builder
+
+WORKDIR /app
+COPY . /app
+
+RUN gu install native-image
+
+RUN cd /app && ./sbt clean GraalVMNativeImage/packageBin
+
+
+FROM scratch
+
+WORKDIR /tmp
+
+COPY --from=builder /app/target/graalvm-native-image/easyracer-server /easyracer-server
+
+ENTRYPOINT ["/easyracer-server"]

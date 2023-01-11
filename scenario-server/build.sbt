@@ -28,7 +28,6 @@ Compile / packageDoc / publishArtifact := false
 Compile / doc / sources := Seq.empty
 
 graalVMNativeImageOptions ++= Seq(
-  "--static",
   "--no-fallback",
   "--install-exit-handlers",
 
@@ -47,14 +46,17 @@ graalVMNativeImageOptions ++= Seq(
   "--initialize-at-run-time=io.netty.handler.codec.compression.ZstdOptions",
   "--initialize-at-run-time=io.netty.handler.ssl.BouncyCastleAlpnSslUtils",
 
-  //"--enable-http",
-  //"--enable-https",
-  //"--allow-incomplete-classpath", // for netty
-  //"--verbose",
-  "--libc=musl",
-  //"--report-unsupported-elements-at-runtime",
   "-H:+ReportExceptionStackTraces",
 )
+
+if (sys.env.get("TARGETARCH").contains("arm64")) {
+  graalVMNativeImageOptions += "-H:+StaticExecutableWithDynamicLibC"
+} else {
+  graalVMNativeImageOptions ++= Seq(
+    "--static",
+    "--libc=musl",
+  )
+}
 
 //fork := true
 

@@ -7,7 +7,38 @@ on:
       - .github/workflows/scenario-server.yaml
 
 jobs:
-  build-and-push:
+  build-and-push-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Login to GitHub Package Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        name: Extract metadata (tags, labels) for Docker
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./scenario-server
+          file: Dockerfile-amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  build-and-push-aarch64:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
@@ -38,8 +69,9 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
           context: ./scenario-server
+          file: Dockerfile-aarch64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
