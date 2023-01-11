@@ -40,23 +40,22 @@ RUN cd ${RESULT_LIB} && \
 
 RUN cd ${RESULT_LIB} && \
     case ${TARGETARCH} in \
-      "amd64")  S6_ARCH=amd64  ;; \
-      "arm64")  S6_ARCH=aarch64  ;; \
+      "amd64") PARCH=x86_64 ;; \
+      "arm64") PARCH=aarch64 ;; \
     esac && \
-    echo ${S6_ARCH} && \
-    curl -L -s -o xz-libs.rpm https://rpmfind.net/linux/centos-stream/9-stream/BaseOS/x86_64/os/Packages/xz-libs-5.2.5-8.el9.x86_64.rpm && \
+    curl -L -s -o xz-libs.rpm https://rpmfind.net/linux/centos-stream/9-stream/BaseOS/$PARCH/os/Packages/xz-libs-5.2.5-8.el9.$PARCH.rpm && \
     rpm -iv --force xz-libs.rpm && \
     rm -f xz-libs.rpm && \
-    curl -L -s -o xz.rpm https://rpmfind.net/linux/centos-stream/9-stream/BaseOS/x86_64/os/Packages/xz-5.2.5-8.el9.x86_64.rpm && \
+    curl -L -s -o xz.rpm https://rpmfind.net/linux/centos-stream/9-stream/BaseOS/$PARCH/os/Packages/xz-5.2.5-8.el9.$PARCH.rpm && \
     rpm -iv xz.rpm && \
     rm -f xz.rpm && \
-    curl -L -s -o upx-amd64_linux.tar.xz https://github.com/upx/upx/releases/download/v4.0.1/upx-4.0.1-amd64_linux.tar.xz && \
-    tar -xf upx-amd64_linux.tar.xz && \
-    rm -f upx-amd64_linux.tar.xz
+    curl -L -s -o upx-${TARGETARCH}_linux.tar.xz https://github.com/upx/upx/releases/download/v4.0.1/upx-4.0.1-${TARGETARCH}_linux.tar.xz && \
+    tar -xf upx-${TARGETARCH}_linux.tar.xz && \
+    rm -f upx-${TARGETARCH}_linux.tar.xz
 
 RUN cd /app && ./sbt clean GraalVMNativeImage/packageBin
 
-RUN ${RESULT_LIB}/upx-4.0.1-amd64_linux/upx -7 /app/target/graalvm-native-image/easyracer-server
+RUN ${RESULT_LIB}/upx-4.0.1-${TARGETARCH}_linux/upx -7 /app/target/graalvm-native-image/easyracer-server
 
 FROM scratch
 
