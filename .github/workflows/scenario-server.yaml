@@ -97,8 +97,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=sha
+          tags: type=sha
 
       - name: Create SHA manifest and push
         run: |
@@ -109,7 +108,7 @@ jobs:
           docker manifest push ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tags }}
 
       - name: Create latest manifest and push
-        if: {{ github.ref == 'ref/head/main' }}
+        if: ${{ github.ref == 'ref/head/main' }}
         run: |
           docker manifest create \
             ghcr.io/${{ github.repository }}:latest \
