@@ -97,7 +97,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ghcr.io/${{ github.repository }}
-          tags: type=sha
+          tags: |
+            type=sha
 
       - name: Create SHA manifest and push
         run: |
