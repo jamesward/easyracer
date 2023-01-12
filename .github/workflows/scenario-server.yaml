@@ -102,10 +102,10 @@ jobs:
       - name: Create SHA manifest and push
         run: |
           docker manifest create \
-            ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tags }} \
-            --amend ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tags }}-amd64 \
-            --amend ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tags }}-aarch64
-          docker manifest push ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tags }}
+            ${{ steps.meta.outputs.tags }} \
+            --amend ${{ steps.meta.outputs.tags }}-amd64 \
+            --amend ${{ steps.meta.outputs.tags }}-aarch64
+          docker manifest push ${{ steps.meta.outputs.tags }}
 
       - name: Create latest manifest and push
         if: ${{ github.ref == 'ref/head/main' }}
