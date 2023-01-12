@@ -92,15 +92,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - id: meta
+        name: Extract metadata (tags, labels) for Docker
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags:
+            - type=sha
+
       - name: Create SHA manifest and push
         run: |
           docker manifest create \
-            ghcr.io/${{ github.repository }}:${{ github.sha }} \
-            --amend ghcr.io/${{ github.repository }}:${{ github.sha }}-amd64 \
-            --amend ghcr.io/${{ github.repository }}:${{ github.sha }}-aarch64
-          docker manifest push ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tags }}
+            --amend ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tags }}-amd64 \
+            --amend ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tags }}-aarch64
+          docker manifest push ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tags }}
 
       - name: Create latest manifest and push
+        if: {{ github.ref == 'ref/head/main' }}
         run: |
           docker manifest create \
             ghcr.io/${{ github.repository }}:latest \
