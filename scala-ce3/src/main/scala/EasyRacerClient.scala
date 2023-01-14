@@ -19,7 +19,7 @@ import cats.effect.kernel.Outcome.Succeeded
 
 object EasyRacerClient extends IOApp.Simple {
   val cr = EmberClientBuilder.default[IO]
-    .withMaxTotal(10000)
+    .withMaxTotal(12000)
     .build
 
   // Questionable semantics: throws away errors!
@@ -127,15 +127,89 @@ object EasyRacerClient extends IOApp.Simple {
     multiRace(reqs)
   }
 
+  def scenario4(client: Client[IO], scenarioUrl: Int => Uri) = {
+    val url = scenarioUrl(4)
+    val req = client.expect[String](GET(url))
+
+    req.timeout(1.seconds).raceSuccess(req)
+  }
+
+  def scenario5(client: Client[IO], scenarioUrl: Int => Uri) = {
+    val url = scenarioUrl(5)
+    // This captures the "require success and get theh body as a String" constraint
+    val req = client.expect[String](GET(url))
+
+    req.raceSuccess(req)
+  }
+
+  def scenario6(client: Client[IO], scenarioUrl: Int => Uri) = {
+    val url = scenarioUrl(6)
+    // This captures the "require success and get theh body as a String" constraint
+    val req = client.expect[String](GET(url))
+
+   /* multiRace(List(req, req, req)) fails here, because multiRace races to completion,
+    * and the expectation is that we race to the first SUCCESSFUL completion. Daniel
+    * Spiewak's raceSuccessAll captures this, whereas Fabio Labella' multiRace captures
+    * the race-to-first-completion case.
+    */
+    raceSuccessAll(List(req, req, req)).flatMap(_.fold(
+      c => IO.raiseError[String](new RuntimeException(c.toString)),
+      IO.pure
+    ))
+  }
+
+  def scenario7(client: Client[IO], scenarioUrl: Int => Uri) = {
+    val url = scenarioUrl(7)
+    val req = client.expect[String](GET(url))
+
+    // todo: sometimes the first req can take a second or 2 to start which can break the hedge check which verifies the second request starts 2 seconds after the first one
+    //   but it isn't clear how to resolve that as there isn't a way to know when the req is connected, then send the second one
+    req.raceSuccess(IO.sleep(4.seconds) *> req)
+  }
+
+/*
+  def scenario8(client: Client[IO], scenarioUrl: Int => Uri) = {
+    def req(url: String) = for
+      resp <- Client.request(url).filterOrFail(_.status.isSuccess)(Error())
+      body <- resp.body.asString
+    yield
+      body
+
+    val open = req(client: Client[IO], scenarioUrl(8) + "?open")
+    def use(id: String) = req(scenarioUrl(8) + s"?use=$id")
+    def close(id: String) = req(scenarioUrl(8) + s"?close=$id")
+
+    val reqRes = ZIO.acquireReleaseWith(open)(close(_).orDie)(use)
+
+    reqRes.race(reqRes)
+  }
+
+  def scenario9(client: Client[IO], scenarioUrl: Int => Uri) = {
+    val req = for
+      resp <- Client.request(scenarioUrl(9)).filterOrFail(_.status.isSuccess)(Error())
+      body <- resp.body.asString
+      now <- Clock.nanoTime
+    yield
+      now -> body
+
+    ZIO.withParallelism(10) {
+      ZIO.collectAllSuccessesPar(Seq.fill(10)(req)).map { resp =>
+        resp.sortBy(_._1).map(_._2).mkString
+      }
+    }
+  }
+*/
+
   def all(client: Client[IO], scenarioUrl: Int => Uri) =
     List((scenario1 _), 
       (scenario2 _),
-      (scenario3 _) /* ,
+      (scenario3 _),
       (scenario4 _),
       (scenario5 _),
       (scenario6 _),
-      (scenario7 _),
-      (scenario8 _) */
+      (scenario7 _) /* ,
+      (scenario8 _),
+      (scenario9 _) */
     ).parTraverse { f =>
       f(client, scenarioUrl)
     }
