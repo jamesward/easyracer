@@ -51,4 +51,12 @@ object EasyRacerSuite extends IOSuite {
   test("scenario7") { case (racer, client) =>
     scenario7(client, scenarioUrl(racer)).map(s => expect(s === "right"))
   }
+
+  test("scenario8") { case (racer, client) =>
+    scenario8(client, scenarioUrl(racer)).map(s => expect(s === "right"))
+  }
+
+  test("scenario9") { case (racer, client) =>
+    scenario9(client, scenarioUrl(racer)).map(s => expect(s === "right"))
+  }
 }

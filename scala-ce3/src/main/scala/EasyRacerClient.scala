@@ -167,23 +167,19 @@ object EasyRacerClient extends IOApp.Simple {
     req.raceSuccess(IO.sleep(4.seconds) *> req)
   }
 
-/*
   def scenario8(client: Client[IO], scenarioUrl: Int => Uri) = {
-    def req(url: String) = for
-      resp <- Client.request(url).filterOrFail(_.status.isSuccess)(Error())
-      body <- resp.body.asString
-    yield
-      body
+    def req(client: Client[IO], url: Uri) = client.expect[String](GET(url))
 
-    val open = req(client: Client[IO], scenarioUrl(8) + "?open")
-    def use(id: String) = req(scenarioUrl(8) + s"?use=$id")
-    def close(id: String) = req(scenarioUrl(8) + s"?close=$id")
+    val open = req(client, scenarioUrl(8) +? "open")
+    def use(id: String) = req(client, scenarioUrl(8) +? ("use" -> id))
+    def close(id: String) = req(client, scenarioUrl(8) +? ("close" -> id))
 
-    val reqRes = ZIO.acquireReleaseWith(open)(close(_).orDie)(use)
+    val reqRes = Resource.make(open)(close(_).void).use(use(_))
 
-    reqRes.race(reqRes)
+    reqRes.raceSuccess(reqRes)
   }
 
+/*
   def scenario9(client: Client[IO], scenarioUrl: Int => Uri) = {
     val req = for
       resp <- Client.request(scenarioUrl(9)).filterOrFail(_.status.isSuccess)(Error())
@@ -200,6 +196,18 @@ object EasyRacerClient extends IOApp.Simple {
   }
 */
 
+  def scenario9(client: Client[IO], scenarioUrl: Int => Uri) = {
+    val req = for {
+      body <- client.expect[String](scenarioUrl(9))
+      now <- Clock[IO].realTimeInstant
+    } yield
+      now -> body
+
+    List.fill(10)(req)
+      .parTraverseFilter(_.attempt.map(_.toOption))
+      .map(_.sortBy(_._1).map(_._2).mkString)
+  }
+
   def all(client: Client[IO], scenarioUrl: Int => Uri) =
     List((scenario1 _), 
       (scenario2 _),
@@ -207,9 +215,9 @@ object EasyRacerClient extends IOApp.Simple {
       (scenario4 _),
       (scenario5 _),
       (scenario6 _),
-      (scenario7 _) /* ,
+      (scenario7 _),
       (scenario8 _),
-      (scenario9 _) */
+      (scenario9 _)
     ).parTraverse { f =>
       f(client, scenarioUrl)
     }
