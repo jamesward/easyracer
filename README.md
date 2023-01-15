@@ -52,7 +52,7 @@ A scenario server validates the implementations of 9 scenarios:
     GET /8?close=<id obtained from open request>
     ```
 
-9. Make 10 concurrent requests where 5 return a 200 response with a letter, when assembled in order of when they responded, form the "right" answer
+9. (Bonus fun concurrency scenario, but not race related) Make 10 concurrent requests where 5 return a 200 response with a letter, when assembled in order of when they responded, form the "right" answer
     ```
     GET /9
     ```
