@@ -1,3 +1,15 @@
+Easy Racer Python AIOHTTP
+-------------------------
+
+### Status
+Blocked on Scenario 3:
+```
+Too many open files
+```
+
+Not sure why or what to do.
+
+
 ```
 git clone https://github.com/pyenv/pyenv.git .pyenv
 export PYENV_ROOT=.pyenv
