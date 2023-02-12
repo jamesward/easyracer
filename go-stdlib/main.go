@@ -78,7 +78,7 @@ func scenario3(scenarioURL func(int) string) string {
 	defer cancel()
 
 	for i := 1; i <= 10_000; i++ {
-		time.Sleep(500 * time.Microsecond) // TODO Without this, connections starts dropping
+		//time.Sleep(500 * time.Microsecond) // TODO Without this, connections starts dropping
 		go func() {
 			text, err := httpText(url, ctx)
 			if err != nil {
