@@ -2,11 +2,11 @@ enablePlugins(GraalVMNativeImagePlugin)
 
 name := "easyracer-server"
 
-scalaVersion := "3.2.1"
+scalaVersion := "3.2.2"
 
 fork := true
 
-val zioVersion = "2.0.5"
+val zioVersion = "2.0.7"
 
 libraryDependencies ++= Seq(
   "dev.zio" %% "zio"              % zioVersion,
