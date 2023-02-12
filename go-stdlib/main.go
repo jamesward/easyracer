@@ -35,6 +35,8 @@ func httpText(url string, ctx context.Context) (string, error) {
 	return string(body), nil
 }
 
+// Note that code is intentionally NOT shared across different scenarios
+
 func scenario1(scenarioURL func(int) string) string {
 	url := scenarioURL(1)
 	result := make(chan string)
@@ -80,7 +82,8 @@ func scenario3(scenarioURL func(int) string) string {
 	for i := 1; i <= 10_000; i++ {
 		// On certain (macOS?) machines, creating 100+ concurrent connections at a time
 		// results in connections being dropped due to "Connection reset by peer" error.
-		// Commenting out the following line should resolve that
+		//
+		// If you are running on such a machine, uncomment the following line:
 		//time.Sleep(500 * time.Microsecond)
 		go func() {
 			text, err := httpText(url, ctx)
