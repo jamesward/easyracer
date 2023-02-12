@@ -40,15 +40,15 @@ func scenario1(scenarioURL func(int) string) string {
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	getHttpText := func() {
+	httpTextToChannel := func() {
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
-	go getHttpText()
-	go getHttpText()
+	go httpTextToChannel()
+	go httpTextToChannel()
 
 	return <-result
 }
@@ -58,15 +58,15 @@ func scenario2(scenarioURL func(int) string) string {
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	getHttpText := func() {
+	httpTextToChannel := func() {
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
-	go getHttpText()
-	go getHttpText()
+	go httpTextToChannel()
+	go httpTextToChannel()
 
 	return <-result
 }
@@ -107,15 +107,15 @@ func scenario4(scenarioURL func(int) string) string {
 	defer timeoutCancel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	getHttpText := func(ctx context.Context) {
+	httpTextToChannel := func(ctx context.Context) {
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
-	go getHttpText(timeoutCtx)
-	go getHttpText(ctx)
+	go httpTextToChannel(timeoutCtx)
+	go httpTextToChannel(ctx)
 
 	return <-result
 }
@@ -125,15 +125,15 @@ func scenario5(scenarioURL func(int) string) string {
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	getHttpText := func() {
+	httpTextToChannel := func() {
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
-	go getHttpText()
-	go getHttpText()
+	go httpTextToChannel()
+	go httpTextToChannel()
 
 	return <-result
 }
@@ -143,16 +143,16 @@ func scenario6(scenarioURL func(int) string) string {
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	getHttpText := func() {
+	httpTextToChannel := func() {
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
-	go getHttpText()
-	go getHttpText()
-	go getHttpText()
+	go httpTextToChannel()
+	go httpTextToChannel()
+	go httpTextToChannel()
 
 	return <-result
 }
@@ -162,16 +162,16 @@ func scenario7(scenarioURL func(int) string) string {
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	getHttpText := func() {
+	httpTextToChannel := func() {
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
-	go getHttpText()
+	go httpTextToChannel()
 	time.Sleep(3 * time.Second)
-	go getHttpText()
+	go httpTextToChannel()
 
 	return <-result
 }
@@ -182,7 +182,7 @@ func scenario8(scenarioURL func(int) string) string {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	openUseAndClose := func() {
+	openUseAndCloseToChannel := func() {
 		openURL := fmt.Sprintf("%s?open", url)
 		resourceID, openErr := httpText(openURL, ctx)
 		if openErr != nil {
@@ -202,8 +202,8 @@ func scenario8(scenarioURL func(int) string) string {
 
 		result <- text
 	}
-	go openUseAndClose()
-	go openUseAndClose()
+	go openUseAndCloseToChannel()
+	go openUseAndCloseToChannel()
 
 	return <-result
 }
@@ -213,7 +213,7 @@ func scenario9(scenarioURL func(int) string) string {
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	getHttpText := func() {
+	httpTextToChannel := func() {
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
@@ -221,7 +221,7 @@ func scenario9(scenarioURL func(int) string) string {
 	}
 
 	for i := 1; i <= 10; i++ {
-		go getHttpText()
+		go httpTextToChannel()
 	}
 
 	text := ""
