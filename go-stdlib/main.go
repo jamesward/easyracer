@@ -78,12 +78,14 @@ func scenario3(scenarioURL func(int) string) string {
 	defer cancel()
 
 	for i := 1; i <= 10_000; i++ {
-		//time.Sleep(500 * time.Microsecond) // TODO Without this, connections starts dropping
+		// On certain (macOS?) machines, creating 100+ concurrent connections at a time
+		// results in connections being dropped due to "Connection reset by peer" error.
+		// Commenting out the following line should resolve that
+		//time.Sleep(500 * time.Microsecond)
 		go func() {
 			text, err := httpText(url, ctx)
 			if err != nil {
 				// Connection reset by peer, occurs when connections are created too quickly
-				// TODO could potentially retry, but easier to just abandon the test
 				syscallErr := &os.SyscallError{}
 				isSyscallErr := errors.As(err, &syscallErr)
 				if isSyscallErr && syscallErr.Syscall == "read" && syscallErr.Err == syscall.Errno(0x36) {
