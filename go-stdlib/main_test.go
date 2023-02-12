@@ -13,7 +13,7 @@ func TestScenarios(t *testing.T) {
 	req := testcontainers.ContainerRequest{
 		Image:        "ghcr.io/jamesward/easyracer",
 		ExposedPorts: []string{"8080/tcp"},
-		WaitingFor:   wait.ForExposedPort(),
+		WaitingFor:   wait.ForHTTP("/").WithPort("8080"),
 	}
 
 	scenarioServer, containerErr := testcontainers.GenericContainer(
