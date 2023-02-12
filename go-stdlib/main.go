@@ -35,31 +35,20 @@ func httpText(url string, ctx context.Context) (string, error) {
 	return string(body), nil
 }
 
-func httpTextAsync(url string, result chan<- string, ctx context.Context) {
-	text, err := httpText(url, ctx)
-	if err != nil {
-		// Connection reset by peer, occurs when connections are created too quickly (for 10k request test)
-		// TODO could potentially retry, but easier to just abandon the test
-		syscallErr := &os.SyscallError{}
-		isSyscallErr := errors.As(err, &syscallErr)
-		if isSyscallErr && syscallErr.Syscall == "read" && syscallErr.Err == syscall.Errno(0x36) {
-			panic(err)
-		}
-
-		return
-	}
-
-	result <- text
-}
-
 func scenario1(scenarioURL func(int) string) string {
 	url := scenarioURL(1)
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	getHttpText := func() {
+		text, err := httpText(url, ctx)
+		if err == nil {
+			result <- text
+		}
+	}
 
-	go httpTextAsync(url, result, ctx)
-	go httpTextAsync(url, result, ctx)
+	go getHttpText()
+	go getHttpText()
 
 	return <-result
 }
@@ -69,9 +58,15 @@ func scenario2(scenarioURL func(int) string) string {
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	getHttpText := func() {
+		text, err := httpText(url, ctx)
+		if err == nil {
+			result <- text
+		}
+	}
 
-	go httpTextAsync(url, result, ctx)
-	go httpTextAsync(url, result, ctx)
+	go getHttpText()
+	go getHttpText()
 
 	return <-result
 }
@@ -84,7 +79,22 @@ func scenario3(scenarioURL func(int) string) string {
 
 	for i := 1; i <= 10_000; i++ {
 		time.Sleep(500 * time.Microsecond) // TODO Without this, connections starts dropping
-		go httpTextAsync(url, result, ctx)
+		go func() {
+			text, err := httpText(url, ctx)
+			if err != nil {
+				// Connection reset by peer, occurs when connections are created too quickly
+				// TODO could potentially retry, but easier to just abandon the test
+				syscallErr := &os.SyscallError{}
+				isSyscallErr := errors.As(err, &syscallErr)
+				if isSyscallErr && syscallErr.Syscall == "read" && syscallErr.Err == syscall.Errno(0x36) {
+					panic(err)
+				}
+
+				return
+			}
+
+			result <- text
+		}()
 	}
 
 	return <-result
@@ -97,9 +107,15 @@ func scenario4(scenarioURL func(int) string) string {
 	defer timeoutCancel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	getHttpText := func(ctx context.Context) {
+		text, err := httpText(url, ctx)
+		if err == nil {
+			result <- text
+		}
+	}
 
-	go httpTextAsync(url, result, timeoutCtx)
-	go httpTextAsync(url, result, ctx)
+	go getHttpText(timeoutCtx)
+	go getHttpText(ctx)
 
 	return <-result
 }
@@ -109,9 +125,15 @@ func scenario5(scenarioURL func(int) string) string {
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	getHttpText := func() {
+		text, err := httpText(url, ctx)
+		if err == nil {
+			result <- text
+		}
+	}
 
-	go httpTextAsync(url, result, ctx)
-	go httpTextAsync(url, result, ctx)
+	go getHttpText()
+	go getHttpText()
 
 	return <-result
 }
@@ -121,10 +143,16 @@ func scenario6(scenarioURL func(int) string) string {
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	getHttpText := func() {
+		text, err := httpText(url, ctx)
+		if err == nil {
+			result <- text
+		}
+	}
 
-	go httpTextAsync(url, result, ctx)
-	go httpTextAsync(url, result, ctx)
-	go httpTextAsync(url, result, ctx)
+	go getHttpText()
+	go getHttpText()
+	go getHttpText()
 
 	return <-result
 }
@@ -134,10 +162,16 @@ func scenario7(scenarioURL func(int) string) string {
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	getHttpText := func() {
+		text, err := httpText(url, ctx)
+		if err == nil {
+			result <- text
+		}
+	}
 
-	go httpTextAsync(url, result, ctx)
+	go getHttpText()
 	time.Sleep(3 * time.Second)
-	go httpTextAsync(url, result, ctx)
+	go getHttpText()
 
 	return <-result
 }
@@ -179,9 +213,15 @@ func scenario9(scenarioURL func(int) string) string {
 	result := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	getHttpText := func() {
+		text, err := httpText(url, ctx)
+		if err == nil {
+			result <- text
+		}
+	}
 
 	for i := 1; i <= 10; i++ {
-		go httpTextAsync(url, result, ctx)
+		go getHttpText()
 	}
 
 	text := ""
