@@ -121,4 +121,4 @@ object EasyRacerClient extends ZIOAppDefault:
 
   override val run =
     def scenarioUrl(scenario: Int) = s"http://localhost:8080/$scenario"
-    all(scenarioUrl).debug.filterOrDie(_.forall(_ == "right"))(Error("not all right")).provide(Client.default, Scope.default)
+    all(scenarioUrl).debug.filterOrDie(_.forall(_ == "right"))(Error("not all right")).provide(Client.default)
