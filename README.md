@@ -66,11 +66,11 @@ right
 The scenario server has a public container `ghcr.io/jamesward/easyracer` and if you contribute your client to this repo, use Testcontainers and include automated integration tests.
 
 ## Clients
-| Name | Source | Tests |
-| ---- | ------ | ----- |
-| Scala 3 + ZIO | [scala-zio](scala-zio) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/scala-zio.yaml/badge.svg) |
-| Kotlin + Splitties | [kotlin-splitties](kotlin-splitties) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-splitties.yaml/badge.svg) |
-| Kotlin + Arrow | [kotlin-arrow](kotlin-arrow) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-arrow.yaml/badge.svg) |
-| Java + Loom | [java-loom](java-loom) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/java-loom.yaml/badge.svg) |
-| Python + AIOHTTP | [python-aiohttp](python-aiohttp) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/python-aiohttp.yaml/badge.svg) |
-| Go | [go-stdlib](go-stdlib) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/go-stdlib.yaml/badge.svg) |
+| Name | Source | Tests | Author |
+| ---- | ------ | ----- | ------ |
+| Scala 3 + ZIO | [scala-zio](scala-zio) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/scala-zio.yaml/badge.svg) | [James Ward](https://github.com/jamesward) |
+| Kotlin + Splitties | [kotlin-splitties](kotlin-splitties) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-splitties.yaml/badge.svg) | [James Ward](https://github.com/jamesward) |
+| Kotlin + Arrow | [kotlin-arrow](kotlin-arrow) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-arrow.yaml/badge.svg) | [James Ward](https://github.com/jamesward) |
+| Java + Loom | [java-loom](java-loom) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/java-loom.yaml/badge.svg) | [James Ward](https://github.com/jamesward) |
+| Python + AIOHTTP | [python-aiohttp](python-aiohttp) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/python-aiohttp.yaml/badge.svg) | [James Ward](https://github.com/jamesward) |
+| Go | [go-stdlib](go-stdlib) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/go-stdlib.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) |
