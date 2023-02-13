@@ -175,7 +175,7 @@ func scenario7(scenarioURL func(int) string) string {
 	}
 
 	go httpTextToChannel()
-	time.Sleep(3 * time.Second)
+	time.Sleep(2 * time.Second)
 	go httpTextToChannel()
 
 	return <-result
