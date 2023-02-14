@@ -1,5 +1,3 @@
-import EasyRacerClient.scenario4
-
 import scala.concurrent.duration.*
 import sttp.client3.*
 import sttp.model.Uri
@@ -79,9 +77,10 @@ object EasyRacerClient:
     }
 
 @main def run(): Unit =
+  import EasyRacerClient.*
   def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
   // def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9)
-  def scenarios: Seq[(Int => Uri) => String] = Seq(scenario4)
+  def scenarios: Seq[(Int => Uri) => String] = Seq(scenario3)
   scenarios.foreach { s =>
     println(s(scenarioUrl))
   }

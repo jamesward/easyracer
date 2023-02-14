@@ -7,9 +7,6 @@ on:
       - scala-ox/**
       - .github/workflows/scala-ox.yaml
 
-env:
-  JAVA_OPTS: "--enable-preview --add-modules jdk.incubator.concurrent"
-
 jobs:
   test:
     runs-on: ubuntu-latest
