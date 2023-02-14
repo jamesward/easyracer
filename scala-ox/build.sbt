@@ -11,3 +11,5 @@ libraryDependencies ++= Seq(
 fork := true
 
 Test / fork := true
+
+javaOptions += "--enable-preview --add-modules jdk.incubator.concurrent"
