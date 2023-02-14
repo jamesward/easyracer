@@ -69,6 +69,7 @@ The scenario server has a public container `ghcr.io/jamesward/easyracer` and if 
 | Name | Source | Tests | Author | Notes |
 | ---- | ------ | ----- | ------ | ----- |
 | Scala 3 + ZIO | [scala-zio](scala-zio) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/scala-zio.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | Using an unreleased zio-http branch waiting on [zio-http#1994](https://github.com/zio/zio-http/pull/1994) |
+| Scala 3 + ox | [scala-ox](scala-ox) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/scala-ox.yaml/badge.svg) | [Adam Warski](https://github.com/adamw) | |
 | Kotlin + Splitties | [kotlin-splitties](kotlin-splitties) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-splitties.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | |
 | Kotlin + Arrow | [kotlin-arrow](kotlin-arrow) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-arrow.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | |
 | Java + Loom | [java-loom](java-loom) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/java-loom.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | |
