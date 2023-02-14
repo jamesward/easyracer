@@ -196,7 +196,7 @@ public struct EasyRacer {
             group.addTask(operation: doHTTPGet)
             group.addTask(operation: doHTTPGet)
             group.addTask(operation: doHTTPGet)
-
+            
             while let next: Result<String, Error> = await group.nextResult() {
                 switch(next) {
                 case let .success(first):
@@ -232,7 +232,7 @@ public struct EasyRacer {
             group.addTask(operation: doHTTPGet)
             try await Task.sleep(nanoseconds: 2_000_000_000) // TODO new API?
             group.addTask(operation: doHTTPGet)
-
+            
             while let next: Result<String, Error> = await group.nextResult() {
                 switch(next) {
                 case let .success(first):
@@ -255,7 +255,9 @@ public struct EasyRacer {
             let urlSession: URLSession = URLSession(configuration: .ephemeral)
             @Sendable func openUseAndClose() async throws -> String {
                 guard
-                    let urlComps: URLComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)
+                    let urlComps: URLComponents = URLComponents(
+                        url: url, resolvingAgainstBaseURL: false
+                    )
                 else {
                     throw EasyRacerError()
                 }
@@ -332,7 +334,7 @@ public struct EasyRacer {
         
         return result
     }
-
+    
     func scenario9() async -> String {
         let result: String = await withThrowingTaskGroup(of: String.self) { group in
             defer { group.cancelAll() }
@@ -340,7 +342,9 @@ public struct EasyRacer {
             let url: URL = baseURL.appendingPathComponent("9")
             let urlSessionConfiguration: URLSessionConfiguration = .ephemeral
             urlSessionConfiguration.httpMaximumConnectionsPerHost = 10
-            let urlSession: URLSession = URLSession(configuration: urlSessionConfiguration)
+            let urlSession: URLSession = URLSession(
+                configuration: urlSessionConfiguration
+            )
             for _ in 1...10 {
                 group.addTask {
                     // Separate URLSession per connection to circumvent throttling
