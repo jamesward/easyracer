@@ -13,7 +13,7 @@ class EasyRacerClientSpec extends AnyFlatSpec with Matchers with BeforeAndAfterA
   val scenarios = List(
     1 -> EasyRacerClient.scenario1,
     2 -> EasyRacerClient.scenario2,
-    // 3 -> EasyRacerClient.scenario3, // works for 100 connections, above that requests fail with "connection reset by peer"
+    3 -> EasyRacerClient.scenario3, // works for 100 connections, above that requests fail with "connection reset by peer"
     4 -> EasyRacerClient.scenario4,
     5 -> EasyRacerClient.scenario5,
     6 -> EasyRacerClient.scenario6,
