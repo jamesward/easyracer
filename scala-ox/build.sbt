@@ -12,4 +12,6 @@ fork := true
 
 Test / fork := true
 
+javacOptions += "--enable-preview"
+
 javaOptions += "--enable-preview --add-modules jdk.incubator.concurrent"
