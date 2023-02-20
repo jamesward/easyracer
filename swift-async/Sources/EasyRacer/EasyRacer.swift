@@ -1,11 +1,11 @@
 import Foundation
 
+enum EasyRacerError : Error {
+    case error(String)
+}
+
 @main
 public struct EasyRacer {
-    enum EasyRacerError : Error {
-        case error(String)
-    }
-    
     let baseURL: URL
     
     public init(baseURL: URL) {
@@ -48,6 +48,7 @@ public struct EasyRacer {
     }
     
     func scenario2() async throws -> String {
+        print("Scenario 2")
         let result: String = try await withThrowingTaskGroup(of: String.self) { group in
             defer { group.cancelAll() }
             
@@ -83,6 +84,7 @@ public struct EasyRacer {
     }
     
     func scenario3() async throws -> String {
+        print("Scenario 3")
         let result: String = try await withThrowingTaskGroup(of: String.self) { group in
             defer { group.cancelAll() }
             
@@ -119,6 +121,7 @@ public struct EasyRacer {
     }
     
     func scenario4() async throws -> String {
+        print("Scenario 4")
         let url: URL = baseURL.appendingPathComponent("4")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         async let result: String = {
@@ -143,6 +146,7 @@ public struct EasyRacer {
     }
     
     func scenario5() async throws -> String {
+        print("Scenario 5")
         let result: String = try await withThrowingTaskGroup(of: String.self) { group in
             defer { group.cancelAll() }
             
@@ -178,6 +182,7 @@ public struct EasyRacer {
     }
     
     func scenario6() async throws -> String {
+        print("Scenario 6")
         let result: String = try await withThrowingTaskGroup(of: String.self) { group in
             defer { group.cancelAll() }
             
@@ -214,6 +219,7 @@ public struct EasyRacer {
     }
     
     func scenario7() async throws -> String {
+        print("Scenario 7")
         let result: String = try await withThrowingTaskGroup(of: String.self) { group in
             defer { group.cancelAll() }
             
@@ -250,6 +256,7 @@ public struct EasyRacer {
     }
     
     func scenario8() async throws -> String {
+        print("Scenario 8")
         let result: String = try await withThrowingTaskGroup(of: String.self) { group in
             defer { group.cancelAll() }
             
@@ -338,6 +345,7 @@ public struct EasyRacer {
     }
     
     func scenario9() async -> String {
+        print("Scenario 9")
         let result: String = await withThrowingTaskGroup(of: String.self) { group in
             defer { group.cancelAll() }
             
@@ -382,7 +390,7 @@ public struct EasyRacer {
             (1, try await scenario1()),
             (2, try await scenario2()),
             (4, try await scenario4()), // TODO look into why 4 has to come before 3
-            (3, try await scenario3()),
+//            (3, try await scenario3()),
             (5, try await scenario5()),
             (6, try await scenario6()),
             (7, try await scenario7()),
