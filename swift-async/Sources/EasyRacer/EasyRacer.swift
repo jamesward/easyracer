@@ -230,7 +230,7 @@ public struct EasyRacer {
                 return dataUTF8
             }
             group.addTask(operation: doHTTPGet)
-            try await Task.sleep(nanoseconds: 2_000_000_000) // TODO new API?
+            try await Task.sleep(nanoseconds: 3_000_000_000) // TODO new API?
             group.addTask(operation: doHTTPGet)
             
             while let next: Result<String, Error> = await group.nextResult() {
