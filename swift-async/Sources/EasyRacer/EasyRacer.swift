@@ -387,15 +387,15 @@ public struct EasyRacer {
     
     public func scenarios() async throws -> [(Int, String)] {
         [
-            (1, try await scenario1()),
-            (2, try await scenario2()),
-            (4, try await scenario4()), // TODO look into why 4 has to come before 3
-//            (3, try await scenario3()),
-            (5, try await scenario5()),
-            (6, try await scenario6()),
-            (7, try await scenario7()),
-            (8, try await scenario8()),
-            (9, await scenario9())
+//            (1, try await scenario1()),
+//            (2, try await scenario2()),
+//            (4, try await scenario4()), // TODO look into why 4 has to come before 3
+            (3, try await scenario3()),
+//            (5, try await scenario5()),
+//            (6, try await scenario6()),
+//            (7, try await scenario7()),
+//            (8, try await scenario8()),
+//            (9, await scenario9())
         ]
     }
     
