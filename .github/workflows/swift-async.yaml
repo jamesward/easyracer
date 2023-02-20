@@ -16,7 +16,7 @@ jobs:
 
       - uses: swift-actions/setup-swift@v1
         with:
-          release-version: 5.5
+          swift-version: 5.5
 
       - run: swift -version
 
