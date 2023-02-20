@@ -14,5 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - uses: sersoft-gmbh/swifty-linux-action@v1
+        with:
+          release-version: 5.6.1
+
+      - run: swift -version
+
       - run: swift test -c release
         working-directory: ./swift-async
