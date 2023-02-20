@@ -9,6 +9,7 @@ let package = Package(
         .macOS(.v10_15)
     ],
     dependencies: [
+        .package(url: "https://github.com/jackgene/docker-client-swift.git", branch: "feature/port-forwarding"),
     ],
     targets: [
         .executableTarget(
@@ -16,6 +17,10 @@ let package = Package(
             dependencies: []),
         .testTarget(
             name: "EasyRacerTests",
-            dependencies: ["EasyRacer"]),
+            dependencies: [
+                "EasyRacer",
+                .product(name: "DockerClientSwift", package: "docker-client-swift")
+            ]
+        ),
     ]
 )

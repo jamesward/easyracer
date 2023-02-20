@@ -6,7 +6,7 @@ public struct EasyRacer {
     
     let baseURL: URL
     
-    init(baseURL: URL) {
+    public init(baseURL: URL) {
         self.baseURL = baseURL
     }
     
@@ -347,7 +347,6 @@ public struct EasyRacer {
             )
             for _ in 1...10 {
                 group.addTask {
-                    // Separate URLSession per connection to circumvent throttling
                     let (data, response) = try await urlSession.data(from: url)
                     guard
                         let response = response as? HTTPURLResponse,
@@ -374,6 +373,20 @@ public struct EasyRacer {
         }
         
         return result
+    }
+    
+    public func scenarios() async throws -> [(Int, String)] {
+        [
+            (1, try await scenario1()),
+            (2, try await scenario2()),
+            (4, try await scenario4()), // TODO look into why 4 has to come before 3
+            (3, try await scenario3()),
+            (5, try await scenario5()),
+            (6, try await scenario6()),
+            (7, try await scenario7()),
+            (8, try await scenario8()),
+            (9, await scenario9())
+        ]
     }
     
     public static func main() async throws {
