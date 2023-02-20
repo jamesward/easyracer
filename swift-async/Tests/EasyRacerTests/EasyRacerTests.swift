@@ -7,7 +7,7 @@ final class EasyRacerTests: XCTestCase {
     func testAllScenarios() async throws {
         // Set up
         var logger = Logger(label: "docker-client")
-        logger.logLevel = .error
+        logger.logLevel = .info
         let client = DockerClient(logger: logger)
         let image = try await client.images
             .pullImage(byName: "ghcr.io/jamesward/easyracer", tag: "latest").get()
@@ -16,6 +16,7 @@ final class EasyRacerTests: XCTestCase {
         let portBindings = try await container.start(on: client).get()
         let randomPort = portBindings[0].hostPort
         let baseURL = URL(string: "http://localhost:\(randomPort)")!
+        logger.info("waiting for scenario service to start")
         // Wait for scenario server to start handling HTTP requests
         while true {
             do {
@@ -26,7 +27,8 @@ final class EasyRacerTests: XCTestCase {
                 continue
             }
         }
-        
+        logger.info("scenario service to started")
+
         // Test
         let easyRacer = EasyRacer(baseURL: baseURL)
         let results = try await easyRacer.scenarios()
