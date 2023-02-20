@@ -14,9 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: sersoft-gmbh/swifty-linux-action@v1
+      - uses: swift-actions/setup-swift@v1
         with:
-          release-version: 5.6.1
+          swift-version: '5.6'
 
       - run: swift test -c release
         working-directory: ./swift-async
