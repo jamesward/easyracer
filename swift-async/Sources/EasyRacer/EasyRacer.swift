@@ -2,7 +2,9 @@ import Foundation
 
 @main
 public struct EasyRacer {
-    struct EasyRacerError : Error {}
+    enum EasyRacerError : Error {
+        case error(String)
+    }
     
     let baseURL: URL
     
@@ -23,7 +25,7 @@ public struct EasyRacer {
                     (200..<300).contains(response.statusCode),
                     let dataUTF8: String = String(data: data, encoding: .utf8)
                 else {
-                    throw EasyRacerError()
+                    throw EasyRacerError.error("invalid HTTP response")
                 }
                 
                 return dataUTF8
@@ -39,7 +41,7 @@ public struct EasyRacer {
                     continue
                 }
             }
-            throw EasyRacerError()
+            throw EasyRacerError.error("all requests failed")
         }
         
         return result
@@ -58,7 +60,7 @@ public struct EasyRacer {
                     (200..<300).contains(response.statusCode),
                     let dataUTF8: String = String(data: data, encoding: .utf8)
                 else {
-                    throw EasyRacerError()
+                    throw EasyRacerError.error("invalid HTTP response")
                 }
                 
                 return dataUTF8
@@ -74,7 +76,7 @@ public struct EasyRacer {
                     continue
                 }
             }
-            throw EasyRacerError()
+            throw EasyRacerError.error("all requests failed")
         }
         
         return result
@@ -95,7 +97,7 @@ public struct EasyRacer {
                         (200..<300).contains(response.statusCode),
                         let dataUTF8: String = String(data: data, encoding: .utf8)
                     else {
-                        throw EasyRacerError()
+                        throw EasyRacerError.error("invalid HTTP response")
                     }
                     
                     return dataUTF8
@@ -110,7 +112,7 @@ public struct EasyRacer {
                     continue
                 }
             }
-            throw EasyRacerError()
+            throw EasyRacerError.error("all requests failed")
         }
         
         return result
@@ -126,7 +128,7 @@ public struct EasyRacer {
                 (200..<300).contains(response.statusCode),
                 let dataUTF8: String = String(data: data, encoding: .utf8)
             else {
-                throw EasyRacerError()
+                throw EasyRacerError.error("invalid HTTP response")
             }
             
             return dataUTF8
@@ -153,7 +155,7 @@ public struct EasyRacer {
                     (200..<300).contains(response.statusCode),
                     let dataUTF8: String = String(data: data, encoding: .utf8)
                 else {
-                    throw EasyRacerError()
+                    throw EasyRacerError.error("invalid HTTP response")
                 }
                 
                 return dataUTF8
@@ -169,7 +171,7 @@ public struct EasyRacer {
                     continue
                 }
             }
-            throw EasyRacerError()
+            throw EasyRacerError.error("all requests failed")
         }
         
         return result
@@ -188,7 +190,7 @@ public struct EasyRacer {
                     (200..<300).contains(response.statusCode),
                     let dataUTF8: String = String(data: data, encoding: .utf8)
                 else {
-                    throw EasyRacerError()
+                    throw EasyRacerError.error("invalid HTTP response")
                 }
                 
                 return dataUTF8
@@ -205,7 +207,7 @@ public struct EasyRacer {
                     continue
                 }
             }
-            throw EasyRacerError()
+            throw EasyRacerError.error("all requests failed")
         }
         
         return result
@@ -224,7 +226,7 @@ public struct EasyRacer {
                     (200..<300).contains(response.statusCode),
                     let dataUTF8: String = String(data: data, encoding: .utf8)
                 else {
-                    throw EasyRacerError()
+                    throw EasyRacerError.error("invalid HTTP response")
                 }
                 
                 return dataUTF8
@@ -241,7 +243,7 @@ public struct EasyRacer {
                     continue
                 }
             }
-            throw EasyRacerError()
+            throw EasyRacerError.error("all requests failed")
         }
         
         return result
@@ -259,7 +261,7 @@ public struct EasyRacer {
                         url: url, resolvingAgainstBaseURL: false
                     )
                 else {
-                    throw EasyRacerError()
+                    throw EasyRacerError.error("invalid HTTP response")
                 }
                 
                 // Open
@@ -269,7 +271,7 @@ public struct EasyRacer {
                 guard
                     let openURL: URL = openURLComps.url
                 else {
-                    throw EasyRacerError()
+                    throw EasyRacerError.error("bad open URL")
                 }
                 let (openData, openResponse) = try await urlSession.data(from: openURL)
                 
@@ -278,7 +280,7 @@ public struct EasyRacer {
                     (200..<300).contains(response.statusCode),
                     let id: String = String(data: openData, encoding: .utf8)
                 else {
-                    throw EasyRacerError()
+                    throw EasyRacerError.error("invalid HTTP response")
                 }
                 
                 // Use
@@ -288,7 +290,7 @@ public struct EasyRacer {
                 guard
                     let useURL: URL = useURLComps.url
                 else {
-                    throw EasyRacerError()
+                    throw EasyRacerError.error("bad use URL")
                 }
                 let (useData, useResponse) = try await urlSession.data(from: useURL)
                 
@@ -309,12 +311,12 @@ public struct EasyRacer {
                 guard
                     let closeURL: URL = closeURLComps.url
                 else {
-                    throw EasyRacerError()
+                    throw EasyRacerError.error("bad close URL")
                 }
                 let _ = try await urlSession.data(from: closeURL)
                 
                 guard let dataUTF8: String = dataUTF8 else {
-                    throw EasyRacerError()
+                    throw EasyRacerError.error("invalid HTTP response")
                 }
                 return dataUTF8
             }
@@ -329,7 +331,7 @@ public struct EasyRacer {
                     continue
                 }
             }
-            throw EasyRacerError()
+            throw EasyRacerError.error("all requests failed")
         }
         
         return result
@@ -353,7 +355,7 @@ public struct EasyRacer {
                         (200..<300).contains(response.statusCode),
                         let dataUTF8: String = String(data: data, encoding: .utf8)
                     else {
-                        throw EasyRacerError()
+                        throw EasyRacerError.error("invalid HTTP response")
                     }
                     
                     return dataUTF8
