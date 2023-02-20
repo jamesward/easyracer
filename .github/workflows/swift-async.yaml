@@ -16,7 +16,7 @@ jobs:
 
       - run: export
 
-      - run: ls -la /var/run
+      - run: ls -la ~/.docker
 
       - run: swift test -c release
         working-directory: ./swift-async
