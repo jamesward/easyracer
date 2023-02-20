@@ -14,5 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - run: export
+
       - run: swift test -c release
         working-directory: ./swift-async
