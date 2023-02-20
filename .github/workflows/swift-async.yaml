@@ -16,7 +16,5 @@ jobs:
 
       - uses: docker-practice/actions-setup-docker@master
 
-      - run: ls /var/run
-
       - run: swift test -c release
         working-directory: ./swift-async
