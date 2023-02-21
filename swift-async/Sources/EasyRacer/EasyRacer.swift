@@ -34,7 +34,7 @@ public struct EasyRacer {
             group.addTask(operation: { try? await doHTTPGet() })
             group.addTask(operation: { try? await doHTTPGet() })
             
-            return await group.first { $0 != nil }.flatMap { $0 } ?? "fuck"
+            return await group.first { $0 != nil }.flatMap { $0 } ?? "wrong"
         }
         
         return result
@@ -83,11 +83,10 @@ public struct EasyRacer {
             
             let url: URL = baseURL.appendingPathComponent("3")
             let urlSessionConf = URLSessionConfiguration.ephemeral
-            urlSessionConf.httpMaximumConnectionsPerHost = 10_000
             urlSessionConf.timeoutIntervalForRequest = 900 // Ridiculous 15-minute time out
-            let urlSession: URLSession = URLSession(configuration: urlSessionConf)
             for _ in 1...10_000 {
                 group.addTask {
+                    let urlSession: URLSession = URLSession(configuration: urlSessionConf)
                     let (data, response) = try await urlSession.data(from: url)
                     guard
                         let response = response as? HTTPURLResponse,
