@@ -83,6 +83,7 @@ public struct EasyRacer {
             
             let url: URL = baseURL.appendingPathComponent("3")
             let urlSessionConf = URLSessionConfiguration.ephemeral
+            urlSessionConf.httpMaximumConnectionsPerHost = 10_000
             urlSessionConf.timeoutIntervalForRequest = 900 // Ridiculous 15-minute time out
             let urlSession: URLSession = URLSession(configuration: urlSessionConf)
             for _ in 1...10_000 {
