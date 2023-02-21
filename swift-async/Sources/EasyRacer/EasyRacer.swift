@@ -1,7 +1,4 @@
 import Foundation
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
 
 enum EasyRacerError : Error {
     case error(String)
@@ -85,10 +82,11 @@ public struct EasyRacer {
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("3")
+            let urlSessionConf = URLSessionConfiguration.ephemeral
+            urlSessionConf.timeoutIntervalForRequest = 900 // Ridiculous 15-minute time out
+            let urlSession: URLSession = URLSession(configuration: urlSessionConf)
             for _ in 1...10_000 {
                 group.addTask {
-                    // Separate URLSession per connection to circumvent throttling
-                    let urlSession: URLSession = URLSession(configuration: .ephemeral)
                     let (data, response) = try await urlSession.data(from: url)
                     guard
                         let response = response as? HTTPURLResponse,
