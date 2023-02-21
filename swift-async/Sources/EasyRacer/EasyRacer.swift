@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 enum EasyRacerError : Error {
     case error(String)
@@ -13,7 +16,8 @@ public struct EasyRacer {
     }
     
     func scenario1() async throws -> String {
-        let result: String = try await withThrowingTaskGroup(of: String.self) { group in
+        print("Scenario 1")
+        let result: String = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("1")
@@ -30,18 +34,10 @@ public struct EasyRacer {
                 
                 return dataUTF8
             }
-            group.addTask(operation: doHTTPGet)
-            group.addTask(operation: doHTTPGet)
+            group.addTask(operation: { try? await doHTTPGet() })
+            group.addTask(operation: { try? await doHTTPGet() })
             
-            while let next: Result<String, Error> = await group.nextResult() {
-                switch(next) {
-                case let .success(first):
-                    return first
-                case .failure:
-                    continue
-                }
-            }
-            throw EasyRacerError.error("all requests failed")
+            return await group.first { $0 != nil }.flatMap { $0 } ?? "fuck"
         }
         
         return result
