@@ -14,9 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: docker-practice/actions-setup-docker@master
-
       - run: sysctl kern.maxfiles kern.maxfilesperproc
+
+      - uses: docker-practice/actions-setup-docker@master
 
       - run: swift test -c release
         working-directory: ./swift-async
