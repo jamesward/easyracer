@@ -16,7 +16,7 @@ jobs:
 
       - uses: docker-practice/actions-setup-docker@master
 
-      - run: ulimit -n 32768
+      - run: sysctl kern.maxfiles kern.maxfilesperproc
 
       - run: swift test -c release
         working-directory: ./swift-async
