@@ -115,7 +115,6 @@ public struct EasyRacer {
             
             return dataUTF8
         }()
-//        try? await Task.sleep(nanoseconds: 10_000_000) // 0.01 second
         let secondConnectionCancellable = urlSession.dataTask(with: URLRequest(url: url))
         secondConnectionCancellable.resume()
         try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
