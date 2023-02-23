@@ -12,9 +12,9 @@ public struct EasyRacer {
         self.baseURL = baseURL
     }
     
-    func scenario1() async throws -> String {
+    func scenario1() async -> String? {
         print("Scenario 1")
-        let result: String = await withTaskGroup(of: String?.self) { group in
+        let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("1")
@@ -31,18 +31,18 @@ public struct EasyRacer {
                 
                 return dataUTF8
             }
-            group.addTask(operation: { try? await doHTTPGet() })
-            group.addTask(operation: { try? await doHTTPGet() })
+            group.addTask { try? await doHTTPGet() }
+            group.addTask { try? await doHTTPGet() }
             
-            return await group.first { $0 != nil }.flatMap { $0 } ?? "wrong"
+            return await group.first { $0 != nil }.flatMap { $0 }
         }
         
         return result
     }
     
-    func scenario2() async throws -> String {
+    func scenario2() async -> String? {
         print("Scenario 2")
-        let result: String = try await withThrowingTaskGroup(of: String.self) { group in
+        let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("2")
@@ -59,62 +59,47 @@ public struct EasyRacer {
                 
                 return dataUTF8
             }
-            group.addTask(operation: doHTTPGet)
-            group.addTask(operation: doHTTPGet)
+            group.addTask { try? await doHTTPGet() }
+            group.addTask { try? await doHTTPGet() }
             
-            while let next: Result<String, Error> = await group.nextResult() {
-                switch(next) {
-                case let .success(first):
-                    return first
-                case .failure:
-                    continue
-                }
-            }
-            throw EasyRacerError.error("all requests failed")
+            return await group.first { $0 != nil }.flatMap { $0 }
         }
         
         return result
     }
     
-    func scenario3() async throws -> String {
+    func scenario3() async -> String? {
         print("Scenario 3")
-        let result: String = try await withThrowingTaskGroup(of: String.self) { group in
+        let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("3")
             let urlSessionConf = URLSessionConfiguration.ephemeral
             urlSessionConf.timeoutIntervalForRequest = 900 // Ridiculous 15-minute time out
-            for _ in 1...10_000 {
-                group.addTask {
-                    let urlSession: URLSession = URLSession(configuration: urlSessionConf)
-                    let (data, response) = try await urlSession.data(from: url)
-                    guard
-                        let response = response as? HTTPURLResponse,
-                        (200..<300).contains(response.statusCode),
-                        let dataUTF8: String = String(data: data, encoding: .utf8)
-                    else {
-                        throw EasyRacerError.error("invalid HTTP response")
-                    }
-                    
-                    return dataUTF8
+            @Sendable func doHTTPGet() async throws -> String {
+                let urlSession: URLSession = URLSession(configuration: urlSessionConf)
+                let (data, response) = try await urlSession.data(from: url)
+                guard
+                    let response = response as? HTTPURLResponse,
+                    (200..<300).contains(response.statusCode),
+                    let dataUTF8: String = String(data: data, encoding: .utf8)
+                else {
+                    throw EasyRacerError.error("invalid HTTP response")
                 }
+                
+                return dataUTF8
+            }
+            for _ in 1...10_000 {
+                group.addTask { try? await doHTTPGet() }
             }
             
-            while let next: Result<String, Error> = await group.nextResult() {
-                switch(next) {
-                case let .success(first):
-                    return first
-                case .failure:
-                    continue
-                }
-            }
-            throw EasyRacerError.error("all requests failed")
+            return await group.first { $0 != nil }.flatMap { $0 }
         }
         
         return result
     }
     
-    func scenario4() async throws -> String {
+    func scenario4() async -> String? {
         print("Scenario 4")
         let url: URL = baseURL.appendingPathComponent("4")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
@@ -130,18 +115,18 @@ public struct EasyRacer {
             
             return dataUTF8
         }()
-        try await Task.sleep(nanoseconds: 100_000_000) // TODO new API?
+//        try? await Task.sleep(nanoseconds: 10_000_000) // 0.01 second
         let secondConnectionCancellable = urlSession.dataTask(with: URLRequest(url: url))
         secondConnectionCancellable.resume()
-        try await Task.sleep(nanoseconds: 1_000_000_000) // TODO new API?
+        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
         secondConnectionCancellable.cancel()
         
-        return try await result
+        return try? await result
     }
     
-    func scenario5() async throws -> String {
+    func scenario5() async -> String? {
         print("Scenario 5")
-        let result: String = try await withThrowingTaskGroup(of: String.self) { group in
+        let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("5")
@@ -158,26 +143,18 @@ public struct EasyRacer {
                 
                 return dataUTF8
             }
-            group.addTask(operation: doHTTPGet)
-            group.addTask(operation: doHTTPGet)
+            group.addTask { try? await doHTTPGet() }
+            group.addTask { try? await doHTTPGet() }
             
-            while let next: Result<String, Error> = await group.nextResult() {
-                switch(next) {
-                case let .success(first):
-                    return first
-                case .failure:
-                    continue
-                }
-            }
-            throw EasyRacerError.error("all requests failed")
+            return await group.first { $0 != nil }.flatMap { $0 }
         }
         
         return result
     }
     
-    func scenario6() async throws -> String {
+    func scenario6() async -> String? {
         print("Scenario 6")
-        let result: String = try await withThrowingTaskGroup(of: String.self) { group in
+        let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("6")
@@ -194,27 +171,19 @@ public struct EasyRacer {
                 
                 return dataUTF8
             }
-            group.addTask(operation: doHTTPGet)
-            group.addTask(operation: doHTTPGet)
-            group.addTask(operation: doHTTPGet)
+            group.addTask { try? await doHTTPGet() }
+            group.addTask { try? await doHTTPGet() }
+            group.addTask { try? await doHTTPGet() }
             
-            while let next: Result<String, Error> = await group.nextResult() {
-                switch(next) {
-                case let .success(first):
-                    return first
-                case .failure:
-                    continue
-                }
-            }
-            throw EasyRacerError.error("all requests failed")
+            return await group.first { $0 != nil }.flatMap { $0 }
         }
         
         return result
     }
     
-    func scenario7() async throws -> String {
+    func scenario7() async -> String? {
         print("Scenario 7")
-        let result: String = try await withThrowingTaskGroup(of: String.self) { group in
+        let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("7")
@@ -231,32 +200,24 @@ public struct EasyRacer {
                 
                 return dataUTF8
             }
-            group.addTask(operation: doHTTPGet)
-            try await Task.sleep(nanoseconds: 3_000_000_000) // TODO new API?
-            group.addTask(operation: doHTTPGet)
+            group.addTask { try? await doHTTPGet() }
+            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+            group.addTask { try? await doHTTPGet() }
             
-            while let next: Result<String, Error> = await group.nextResult() {
-                switch(next) {
-                case let .success(first):
-                    return first
-                case .failure:
-                    continue
-                }
-            }
-            throw EasyRacerError.error("all requests failed")
+            return await group.first { $0 != nil }.flatMap { $0 }
         }
         
         return result
     }
     
-    func scenario8() async throws -> String {
+    func scenario8() async -> String? {
         print("Scenario 8")
-        let result: String = try await withThrowingTaskGroup(of: String.self) { group in
+        let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("8")
             let urlSession: URLSession = URLSession(configuration: .ephemeral)
-            @Sendable func openUseAndClose() async throws -> String {
+            @Sendable func doOpenUseAndClose() async throws -> String {
                 guard
                     let urlComps: URLComponents = URLComponents(
                         url: url, resolvingAgainstBaseURL: false
@@ -321,26 +282,18 @@ public struct EasyRacer {
                 }
                 return dataUTF8
             }
-            group.addTask(operation: openUseAndClose)
-            group.addTask(operation: openUseAndClose)
+            group.addTask { try? await doOpenUseAndClose() }
+            group.addTask { try? await doOpenUseAndClose() }
             
-            while let next: Result<String, Error> = await group.nextResult() {
-                switch(next) {
-                case let .success(first):
-                    return first
-                case .failure:
-                    continue
-                }
-            }
-            throw EasyRacerError.error("all requests failed")
+            return await group.first { $0 != nil }.flatMap { $0 }
         }
         
         return result
     }
     
-    func scenario9() async -> String {
+    func scenario9() async -> String? {
         print("Scenario 9")
-        let result: String = await withThrowingTaskGroup(of: String.self) { group in
+        let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("9")
@@ -349,47 +302,42 @@ public struct EasyRacer {
             let urlSession: URLSession = URLSession(
                 configuration: urlSessionConfiguration
             )
-            for _ in 1...10 {
-                group.addTask {
-                    let (data, response) = try await urlSession.data(from: url)
-                    guard
-                        let response = response as? HTTPURLResponse,
-                        (200..<300).contains(response.statusCode),
-                        let dataUTF8: String = String(data: data, encoding: .utf8)
-                    else {
-                        throw EasyRacerError.error("invalid HTTP response")
-                    }
-                    
-                    return dataUTF8
+            @Sendable func doHTTPGet() async throws -> String {
+                let (data, response) = try await urlSession.data(from: url)
+                guard
+                    let response = response as? HTTPURLResponse,
+                    (200..<300).contains(response.statusCode),
+                    let dataUTF8: String = String(data: data, encoding: .utf8)
+                else {
+                    throw EasyRacerError.error("invalid HTTP response")
                 }
+                
+                return dataUTF8
+            }
+            for _ in 1...10 {
+                group.addTask { try? await doHTTPGet() }
             }
             
-            var result: String = ""
-            while let next: Result<String, Error> = await group.nextResult() {
-                switch(next) {
-                case let .success(next):
-                    result += next
-                case .failure:
-                    continue
-                }
-            }
-            return result
+            return await group
+                .compactMap { $0 }
+                .prefix(5)
+                .reduce("") { $0 + $1 }
         }
         
         return result
     }
     
-    public func scenarios() async throws -> [(Int, String)] {
+    public func scenarios() async -> [(Int, String?)] {
         [
-//            (1, try await scenario1()),
-//            (2, try await scenario2()),
-//            (4, try await scenario4()), // TODO look into why 4 has to come before 3
-            (3, try await scenario3()),
-//            (5, try await scenario5()),
-//            (6, try await scenario6()),
-//            (7, try await scenario7()),
-//            (8, try await scenario8()),
-//            (9, await scenario9())
+            (1, await scenario1()),
+            (2, await scenario2()),
+            (4, await scenario4()), // TODO look into why 4 has to come before 3
+            (3, await scenario3()),
+            (5, await scenario5()),
+            (6, await scenario6()),
+            (7, await scenario7()),
+            (8, await scenario8()),
+            (9, await scenario9())
         ]
     }
     
@@ -398,15 +346,8 @@ public struct EasyRacer {
             let baseURL = URL(string: "http://localhost:8080")
         else { return }
         
-        let easyRacer = EasyRacer(baseURL: baseURL)
-        print(try await easyRacer.scenario1())
-        print(try await easyRacer.scenario2())
-        print(try await easyRacer.scenario4())
-        print(try await easyRacer.scenario3())
-        print(try await easyRacer.scenario5())
-        print(try await easyRacer.scenario6())
-        print(try await easyRacer.scenario7())
-        print(try await easyRacer.scenario8())
-        print(await easyRacer.scenario9())
+        for (scenarioNumber, result) in await EasyRacer(baseURL: baseURL).scenarios() {
+            print("Scenario \(scenarioNumber): \(result ?? "error")")
+        }
     }
 }
