@@ -317,13 +317,13 @@ public struct EasyRacer {
         [
             (1, await scenario1()),
             (2, await scenario2()),
-            (4, await scenario4()), // TODO look into why 4 has to come before 3
-            (3, await scenario3()),
+            (4, await scenario4()),
             (5, await scenario5()),
             (6, await scenario6()),
             (7, await scenario7()),
             (8, await scenario8()),
-            (9, await scenario9())
+            (9, await scenario9()),
+            (3, await scenario3()), // Scenario 3 makes Swift tired, resulting in subsequent scenarios failing - run it last
         ]
     }
     
