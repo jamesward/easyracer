@@ -8,12 +8,7 @@ enum EasyRacerError : Error {
 public struct EasyRacer {
     let baseURL: URL
     
-    public init(baseURL: URL) {
-        self.baseURL = baseURL
-    }
-    
     func scenario1() async -> String? {
-        print("Scenario 1")
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
@@ -41,7 +36,6 @@ public struct EasyRacer {
     }
     
     func scenario2() async -> String? {
-        print("Scenario 2")
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
@@ -69,7 +63,6 @@ public struct EasyRacer {
     }
     
     func scenario3() async -> String? {
-        print("Scenario 3")
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
@@ -100,7 +93,6 @@ public struct EasyRacer {
     }
     
     func scenario4() async -> String? {
-        print("Scenario 4")
         let url: URL = baseURL.appendingPathComponent("4")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         async let result: String = {
@@ -124,7 +116,6 @@ public struct EasyRacer {
     }
     
     func scenario5() async -> String? {
-        print("Scenario 5")
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
@@ -152,7 +143,6 @@ public struct EasyRacer {
     }
     
     func scenario6() async -> String? {
-        print("Scenario 6")
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
@@ -181,7 +171,6 @@ public struct EasyRacer {
     }
     
     func scenario7() async -> String? {
-        print("Scenario 7")
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
@@ -210,7 +199,6 @@ public struct EasyRacer {
     }
     
     func scenario8() async -> String? {
-        print("Scenario 8")
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
@@ -291,7 +279,6 @@ public struct EasyRacer {
     }
     
     func scenario9() async -> String? {
-        print("Scenario 9")
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
