@@ -1,7 +1,7 @@
 import DockerClientSwift
-import EasyRacer
 import Logging
 import XCTest
+@testable import EasyRacer
 
 final class EasyRacerTests: XCTestCase {
     func testAllScenarios() async throws {
