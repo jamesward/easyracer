@@ -67,12 +67,15 @@ public struct EasyRacer {
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("3")
-            // Ideally, we'd use a single URLSession configured to handle 10k connections, but this doesn't seem to work
+            // Ideally, we'd use a single URLSession configured to handle 10k connections.
+            // This doesn't seem to work - observed from the scenario server, it'll create
+            // ~110 connections, and then stall.
+            // URLSession is close-sourced, so it's hard to tell what is going on.
 //            let urlSession: URLSession = URLSession(
 //                configuration: {
-//                    let urlSessionConf = URLSessionConfiguration.ephemeral
-//                    urlSessionConf.httpMaximumConnectionsPerHost = 10_000
-//                    return urlSessionConf
+//                    let urlSessionCfg = URLSessionConfiguration.ephemeral
+//                    urlSessionCfg.httpMaximumConnectionsPerHost = 10_000
+//                    return urlSessionCfg
 //                }(),
 //                delegate: nil,
 //                delegateQueue: {
@@ -81,11 +84,11 @@ public struct EasyRacer {
 //                    return opQueue
 //                }()
 //            )
-            let urlSessionConf = URLSessionConfiguration.ephemeral
-            urlSessionConf.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
+            let urlSessionCfg = URLSessionConfiguration.ephemeral
+            urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
             @Sendable func doHTTPGet() async throws -> String {
                 // Using URLSession per connection to get around connection limit
-                let urlSession: URLSession = URLSession(configuration: urlSessionConf)
+                let urlSession: URLSession = URLSession(configuration: urlSessionCfg)
                 let (data, response) = try await urlSession.data(from: url)
                 guard
                     let response = response as? HTTPURLResponse,
@@ -125,9 +128,9 @@ public struct EasyRacer {
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         async let result: String = doHTTPGet(urlSession)
         
-        let urlSessionConfig1SecTimeout: URLSessionConfiguration = .ephemeral
-        urlSessionConfig1SecTimeout.timeoutIntervalForRequest = 1
-        let urlSession1SecTimeout: URLSession = URLSession(configuration: urlSessionConfig1SecTimeout)
+        let urlSessionCfg1SecTimeout: URLSessionConfiguration = .ephemeral
+        urlSessionCfg1SecTimeout.timeoutIntervalForRequest = 1
+        let urlSession1SecTimeout: URLSession = URLSession(configuration: urlSessionCfg1SecTimeout)
         _ = try? await doHTTPGet(urlSession1SecTimeout)
         
         return try? await result
@@ -301,10 +304,10 @@ public struct EasyRacer {
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("9")
-            let urlSessionConfiguration: URLSessionConfiguration = .ephemeral
-            urlSessionConfiguration.httpMaximumConnectionsPerHost = 10
+            let urlSessionCfg: URLSessionConfiguration = .ephemeral
+            urlSessionCfg.httpMaximumConnectionsPerHost = 10
             let urlSession: URLSession = URLSession(
-                configuration: urlSessionConfiguration
+                configuration: urlSessionCfg
             )
             @Sendable func doHTTPGet() async throws -> String {
                 let (data, response) = try await urlSession.data(from: url)
