@@ -1,47 +1,48 @@
+import DockerClientSwift
+import Logging
 import XCTest
-import class Foundation.Bundle
+@testable import EasyRacer
 
 final class EasyRacerTests: XCTestCase {
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-
-        // Some of the APIs that we use below are available in macOS 10.13 and above.
-        guard #available(macOS 10.13, *) else {
-            return
+    func testAllScenarios() throws {
+        // Set up
+        var logger = Logger(label: "docker-client")
+        logger.logLevel = .error
+        let client = DockerClient(logger: logger)
+        let image = try client.images
+            .pullImage(byName: "ghcr.io/jamesward/easyracer", tag: "latest").wait()
+        let container = try client.containers
+            .createContainer(image: image, portBindings: [PortBinding(containerPort: 8080)]).wait()
+        let portBindings = try container.start(on: client).wait()
+        let randomPort = portBindings[0].hostPort
+        let baseURL = URL(string: "http://localhost:\(randomPort)")!
+        // Wait for scenario server to start handling HTTP requests
+        var serverStarted: Bool = false
+        while true {
+            let connectionAttempted: DispatchSemaphore = DispatchSemaphore(value: 0)
+            URLSession.shared.dataTask(with: baseURL) { _, _, error in
+                serverStarted = error == nil
+                connectionAttempted.signal()
+            }.resume()
+            connectionAttempted.wait()
+            if serverStarted {
+                break
+            } else {
+                Thread.sleep(forTimeInterval: 0.01) // 10ms
+            }
         }
-
-        let fooBinary = productsDirectory.appendingPathComponent("EasyRacer")
-
-        let process = Process()
-        process.executableURL = fooBinary
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-
-        try process.run()
-        process.waitUntilExit()
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: data, encoding: .utf8)
-
-        XCTAssertEqual(output, "Hello, world!\n")
-    }
-
-    /// Returns path to the built products directory.
-    var productsDirectory: URL {
-      #if os(macOS)
-        for bundle in Bundle.allBundles where bundle.bundlePath.hasSuffix(".xctest") {
-            return bundle.bundleURL.deletingLastPathComponent()
+        
+        // Tear down
+        defer {
+            _ = try? client.containers.stop(container: container).wait()
+            _ = try? client.containers.prune().wait()
+            try? client.syncShutdown()
         }
-        fatalError("couldn't find the products directory")
-      #else
-        return Bundle.main.bundleURL
-      #endif
+        
+        // Test
+        let easyRacer = EasyRacer(baseURL: baseURL)
+        easyRacer.scenarios { scenarioNum, result in
+            XCTAssertEqual(result, "right", "Scenario \(scenarioNum)")
+        }
     }
-
-    static var allTests = [
-        ("testExample", testExample),
-    ]
 }
