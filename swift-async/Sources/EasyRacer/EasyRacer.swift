@@ -345,7 +345,7 @@ public struct EasyRacer {
             (8, await scenario8()),
             (9, await scenario9()),
             (3, await scenario3()), // Scenario 3 makes Swift tired, resulting in subsequent scenarios failing - run it last
-        ]
+        ].sorted { $0.0 < $1.0 }
     }
     
     public static func main() async throws {
