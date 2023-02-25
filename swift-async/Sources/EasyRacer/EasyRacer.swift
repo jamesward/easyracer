@@ -94,8 +94,7 @@ public struct EasyRacer {
     
     func scenario4() async -> String? {
         let url: URL = baseURL.appendingPathComponent("4")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        async let result: String = {
+        @Sendable func doHTTPGet(_ urlSession: URLSession) async throws -> String {
             let (data, response) = try await urlSession.data(from: url)
             guard
                 let response = response as? HTTPURLResponse,
@@ -106,11 +105,15 @@ public struct EasyRacer {
             }
             
             return dataUTF8
-        }()
-        let secondConnectionCancellable = urlSession.dataTask(with: URLRequest(url: url))
-        secondConnectionCancellable.resume()
-        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-        secondConnectionCancellable.cancel()
+        }
+        
+        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        async let result: String = doHTTPGet(urlSession)
+        
+        let urlSessionConfig1SecTimeout: URLSessionConfiguration = .ephemeral
+        urlSessionConfig1SecTimeout.timeoutIntervalForRequest = 1
+        let urlSession1SecTimeout: URLSession = URLSession(configuration: urlSessionConfig1SecTimeout)
+        _ = try? await doHTTPGet(urlSession1SecTimeout)
         
         return try? await result
     }
