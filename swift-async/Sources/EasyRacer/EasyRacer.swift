@@ -67,9 +67,24 @@ public struct EasyRacer {
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("3")
+            // Ideally, we'd use a single URLSession configured to handle 10k connections, but this doesn't seem to work
+//            let urlSession: URLSession = URLSession(
+//                configuration: {
+//                    let urlSessionConf = URLSessionConfiguration.ephemeral
+//                    urlSessionConf.httpMaximumConnectionsPerHost = 10_000
+//                    return urlSessionConf
+//                }(),
+//                delegate: nil,
+//                delegateQueue: {
+//                    let opQueue: OperationQueue = OperationQueue()
+//                    opQueue.maxConcurrentOperationCount = 10_000
+//                    return opQueue
+//                }()
+//            )
             let urlSessionConf = URLSessionConfiguration.ephemeral
-            urlSessionConf.timeoutIntervalForRequest = 900 // Ridiculous 15-minute time out
+            urlSessionConf.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
             @Sendable func doHTTPGet() async throws -> String {
+                // Using URLSession per connection to get around connection limit
                 let urlSession: URLSession = URLSession(configuration: urlSessionConf)
                 let (data, response) = try await urlSession.data(from: url)
                 guard
