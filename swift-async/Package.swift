@@ -20,7 +20,6 @@ let package = Package(
             dependencies: [
                 "EasyRacer",
                 .product(name: "DockerClientSwift", package: "docker-client-swift")
-            ]
-        ),
+            ]),
     ]
 )
