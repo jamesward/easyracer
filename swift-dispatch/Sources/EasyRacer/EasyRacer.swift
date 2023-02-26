@@ -11,10 +11,11 @@ public struct EasyRacer {
         let scenario: Int = 1
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        let group: DispatchGroup = DispatchGroup()
-        let succeededLock: NSLock = NSLock()
+        let allRequestsGroup: DispatchGroup = DispatchGroup()
         var succeeded: Bool = false
+        let succeededLock: NSLock = NSLock()
         
+        // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...2)
             .map { _ in
                 urlSession.dataTask(with: url) { data, response, error in
@@ -31,14 +32,18 @@ public struct EasyRacer {
                             succeeded = true
                         }
                     }
-                    group.leave()
+                    allRequestsGroup.leave()
                 }
             }
-        dataTasks.forEach { dataTask in
-            group.enter()
+        
+        // Executing requests, adding them to the DispatchGroup
+        for dataTask in dataTasks {
+            allRequestsGroup.enter()
             dataTask.resume()
         }
-        group.notify(queue: .main) {
+        
+        // Notify failure if all requests completed without a single successful response
+        allRequestsGroup.notify(queue: .global()) {
             if !succeeded {
                 scenarioHandler(scenario, nil)
             }
@@ -49,10 +54,11 @@ public struct EasyRacer {
         let scenario: Int = 2
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        let group: DispatchGroup = DispatchGroup()
-        let succeededLock: NSLock = NSLock()
+        let allRequestsGroup: DispatchGroup = DispatchGroup()
         var succeeded: Bool = false
+        let succeededLock: NSLock = NSLock()
         
+        // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...2)
             .map { _ in
                 urlSession.dataTask(with: url) { data, response, error in
@@ -69,14 +75,18 @@ public struct EasyRacer {
                             succeeded = true
                         }
                     }
-                    group.leave()
+                    allRequestsGroup.leave()
                 }
             }
-        dataTasks.forEach { dataTask in
-            group.enter()
+        
+        // Executing requests, adding them to the DispatchGroup
+        for dataTask in dataTasks {
+            allRequestsGroup.enter()
             dataTask.resume()
         }
-        group.notify(queue: .main) {
+        
+        // Notify failure if all requests completed without a single successful response
+        allRequestsGroup.notify(queue: .global()) {
             if !succeeded {
                 scenarioHandler(scenario, nil)
             }
@@ -88,10 +98,11 @@ public struct EasyRacer {
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSessionCfg = URLSessionConfiguration.ephemeral
         urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
-        let group: DispatchGroup = DispatchGroup()
-        let succeededLock: NSLock = NSLock()
+        let allRequestsGroup: DispatchGroup = DispatchGroup()
         var succeeded: Bool = false
+        let succeededLock: NSLock = NSLock()
         
+        // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...10_000)
             .map { _ in
                 URLSession(configuration: urlSessionCfg).dataTask(with: url) { data, response, error in
@@ -108,14 +119,18 @@ public struct EasyRacer {
                             succeeded = true
                         }
                     }
-                    group.leave()
+                    allRequestsGroup.leave()
                 }
             }
-        dataTasks.forEach { dataTask in
-            group.enter()
+        
+        // Executing requests, adding them to the DispatchGroup
+        for dataTask in dataTasks {
+            allRequestsGroup.enter()
             dataTask.resume()
         }
-        group.notify(queue: .main) {
+        
+        // Notify failure if all requests completed without a single successful response
+        allRequestsGroup.notify(queue: .global()) {
             if !succeeded {
                 scenarioHandler(scenario, nil)
             }
@@ -133,10 +148,11 @@ public struct EasyRacer {
                 return configuration
             }()
         )
-        let group: DispatchGroup = DispatchGroup()
-        let succeededLock: NSLock = NSLock()
+        let allRequestsGroup: DispatchGroup = DispatchGroup()
         var succeeded: Bool = false
+        let succeededLock: NSLock = NSLock()
         
+        // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = [urlSession, urlSession1SecTimeout]
             .map { urlSession in
                 urlSession.dataTask(with: url) { data, response, error in
@@ -153,14 +169,18 @@ public struct EasyRacer {
                             succeeded = true
                         }
                     }
-                    group.leave()
+                    allRequestsGroup.leave()
                 }
             }
-        dataTasks.forEach { dataTask in
-            group.enter()
+        
+        // Executing requests, adding them to the DispatchGroup
+        for dataTask in dataTasks {
+            allRequestsGroup.enter()
             dataTask.resume()
         }
-        group.notify(queue: .main) {
+        
+        // Notify failure if all requests completed without a single successful response
+        allRequestsGroup.notify(queue: .global()) {
             if !succeeded {
                 scenarioHandler(scenario, nil)
             }
@@ -171,10 +191,11 @@ public struct EasyRacer {
         let scenario: Int = 5
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        let group: DispatchGroup = DispatchGroup()
-        let succeededLock: NSLock = NSLock()
+        let allRequestsGroup: DispatchGroup = DispatchGroup()
         var succeeded: Bool = false
+        let succeededLock: NSLock = NSLock()
         
+        // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...2)
             .map { _ in
                 urlSession.dataTask(with: url) { data, response, error in
@@ -191,14 +212,18 @@ public struct EasyRacer {
                             succeeded = true
                         }
                     }
-                    group.leave()
+                    allRequestsGroup.leave()
                 }
             }
-        dataTasks.forEach { dataTask in
-            group.enter()
+        
+        // Executing requests, adding them to the DispatchGroup
+        for dataTask in dataTasks {
+            allRequestsGroup.enter()
             dataTask.resume()
         }
-        group.notify(queue: .main) {
+        
+        // Notify failure if all requests completed without a single successful response
+        allRequestsGroup.notify(queue: .global()) {
             if !succeeded {
                 scenarioHandler(scenario, nil)
             }
@@ -209,10 +234,11 @@ public struct EasyRacer {
         let scenario: Int = 6
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        let group: DispatchGroup = DispatchGroup()
-        let succeededLock: NSLock = NSLock()
+        let allRequestsGroup: DispatchGroup = DispatchGroup()
         var succeeded: Bool = false
+        let succeededLock: NSLock = NSLock()
         
+        // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...3)
             .map { _ in
                 urlSession.dataTask(with: url) { data, response, error in
@@ -229,14 +255,17 @@ public struct EasyRacer {
                             succeeded = true
                         }
                     }
-                    group.leave()
+                    allRequestsGroup.leave()
                 }
             }
-        dataTasks.forEach { dataTask in
-            group.enter()
+        
+        // Executing requests, adding them to the DispatchGroup
+        for dataTask in dataTasks {
+            allRequestsGroup.enter()
             dataTask.resume()
         }
-        group.notify(queue: .main) {
+        // Notify failure if all requests completed without a single successful response
+        allRequestsGroup.notify(queue: .global()) {
             if !succeeded {
                 scenarioHandler(scenario, nil)
             }
@@ -248,6 +277,7 @@ public struct EasyRacer {
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         
+        // Execute first HTTP request
         urlSession
             .dataTask(with: url) { data, response, error in
                 if
@@ -261,6 +291,8 @@ public struct EasyRacer {
                 }
             }
             .resume()
+        
+        // Execute second request after 3 seconds
         DispatchQueue.global().asyncAfter(deadline: .now() + 3.0) {
             urlSession.dataTask(with: url).resume()
         }
@@ -270,10 +302,11 @@ public struct EasyRacer {
         let scenario: Int = 8
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        let group: DispatchGroup = DispatchGroup()
-        let succeededLock: NSLock = NSLock()
+        let allRequestsGroup: DispatchGroup = DispatchGroup()
         var succeeded: Bool = false
+        let succeededLock: NSLock = NSLock()
         
+        // Build "open" URL
         guard
             let urlComps: URLComponents = URLComponents(
                 url: url, resolvingAgainstBaseURL: false
@@ -292,6 +325,8 @@ public struct EasyRacer {
             scenarioHandler(scenario, nil)
             return
         }
+        
+        // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...2)
             .map { _ in
                 // Open
@@ -308,7 +343,7 @@ public struct EasyRacer {
                         guard
                             let useURL: URL = useURLComps.url
                         else {
-                            group.leave()
+                            allRequestsGroup.leave()
                             return
                         }
                         urlSession.dataTask(with: useURL) { useData, useResponse, useError in
@@ -332,21 +367,25 @@ public struct EasyRacer {
                             guard
                                 let closeURL: URL = closeURLComps.url
                             else {
-                                group.leave()
+                                allRequestsGroup.leave()
                                 return
                             }
                             urlSession.dataTask(with: closeURL).resume()
                         }.resume()
                     } else {
-                        group.leave()
+                        allRequestsGroup.leave()
                     }
                 }
             }
-        dataTasks.forEach { dataTask in
-            group.enter()
+        
+        // Executing requests, adding them to the DispatchGroup
+        for dataTask in dataTasks {
+            allRequestsGroup.enter()
             dataTask.resume()
         }
-        group.notify(queue: .main) {
+        
+        // Notify failure if all requests completed without a single successful response
+        allRequestsGroup.notify(queue: .global()) {
             if !succeeded {
                 scenarioHandler(scenario, nil)
             }
@@ -363,11 +402,16 @@ public struct EasyRacer {
                 return configuration
             }()
         )
-        let group: DispatchGroup = DispatchGroup()
-        let resultReceived: DispatchSemaphore = DispatchSemaphore(value: 0)
+        let allRequestsGroup: DispatchGroup = DispatchGroup()
+        let expectedRequestsGroup: DispatchGroup = DispatchGroup()
+        var resultRemaining: Int = 5
+        var resultAccum: String = ""
         let resultLock: NSLock = NSLock()
-        var result: String = ""
+        for _ in 1...resultRemaining {
+            expectedRequestsGroup.enter()
+        }
         
+        // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...10)
             .map { _ in
                 urlSession.dataTask(with: url) { data, response, error in
@@ -379,25 +423,31 @@ public struct EasyRacer {
                         resultLock.lock()
                         defer { resultLock.unlock() }
                         
-                        result += text
-                        resultReceived.signal()
+                        resultRemaining -= 1
+                        resultAccum += text
+                        expectedRequestsGroup.leave()
                     }
-                    group.leave()
+                    allRequestsGroup.leave()
                 }
             }
-        dataTasks.forEach { dataTask in
-            group.enter()
+        
+        // Executing requests, adding them to the DispatchGroup
+        for dataTask in dataTasks {
+            allRequestsGroup.enter()
             dataTask.resume()
         }
-        group.notify(queue: .main) {
-            if result.count < 5 {
+        
+        // Expected number of requests completed, notify success
+        expectedRequestsGroup.notify(queue: .global()) {
+            scenarioHandler(scenario, resultAccum)
+        }
+        
+        // Notify failure if all requests completed before expected number of successful requests
+        allRequestsGroup.notify(queue: .global()) {
+            if resultRemaining > 0 {
                 scenarioHandler(scenario, nil)
             }
         }
-        for _ in 1...5 {
-            resultReceived.wait()
-        }
-        scenarioHandler(scenario, result)
     }
     
     // Runs scenarios one by one, blocks until they are all complete
@@ -405,13 +455,13 @@ public struct EasyRacer {
         let scenarios = [
             scenario1,
             scenario2,
-            scenario3,
             scenario4,
             scenario5,
             scenario6,
             scenario7,
             scenario8,
             scenario9,
+            scenario3,
         ]
         let completions: DispatchSemaphore = DispatchSemaphore(value: 0)
         scenarios.reversed().reduce({ () in }) { nextScenarios, currentScenario in
