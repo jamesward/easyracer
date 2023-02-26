@@ -455,13 +455,13 @@ public struct EasyRacer {
         let scenarios = [
             scenario1,
             scenario2,
+            scenario3,
             scenario4,
             scenario5,
             scenario6,
             scenario7,
             scenario8,
             scenario9,
-            scenario3,
         ]
         let completions: DispatchSemaphore = DispatchSemaphore(value: 0)
         scenarios.reversed().reduce({ () in }) { nextScenarios, currentScenario in
