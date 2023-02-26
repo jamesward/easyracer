@@ -128,9 +128,11 @@ public struct EasyRacer {
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         async let result: String = doHTTPGet(urlSession)
         
-        let urlSessionCfg1SecTimeout: URLSessionConfiguration = .ephemeral
-        urlSessionCfg1SecTimeout.timeoutIntervalForRequest = 1
-        let urlSession1SecTimeout: URLSession = URLSession(configuration: urlSessionCfg1SecTimeout)
+        let urlSession1SecTimeout: URLSession = URLSession(configuration: {
+            let configuration: URLSessionConfiguration = .ephemeral
+            configuration.timeoutIntervalForRequest = 1
+            return configuration
+        }())
         _ = try? await doHTTPGet(urlSession1SecTimeout)
         
         return try? await result
@@ -231,7 +233,7 @@ public struct EasyRacer {
                         url: url, resolvingAgainstBaseURL: false
                     )
                 else {
-                    throw EasyRacerError.error("invalid HTTP response")
+                    throw EasyRacerError.error("unable to create URLComponents")
                 }
                 
                 // Open
@@ -304,11 +306,11 @@ public struct EasyRacer {
             defer { group.cancelAll() }
             
             let url: URL = baseURL.appendingPathComponent("9")
-            let urlSessionCfg: URLSessionConfiguration = .ephemeral
-            urlSessionCfg.httpMaximumConnectionsPerHost = 10
-            let urlSession: URLSession = URLSession(
-                configuration: urlSessionCfg
-            )
+            let urlSession: URLSession = URLSession(configuration: {
+                let configuration: URLSessionConfiguration = .ephemeral
+                configuration.httpMaximumConnectionsPerHost = 10
+                return configuration
+            }())
             @Sendable func doHTTPGet() async throws -> String {
                 let (data, response) = try await urlSession.data(from: url)
                 guard
@@ -345,7 +347,7 @@ public struct EasyRacer {
             (8, await scenario8()),
             (9, await scenario9()),
             (3, await scenario3()), // Scenario 3 makes Swift tired, resulting in subsequent scenarios failing - run it last
-        ].sorted { $0.0 < $1.0 }
+        ]
     }
     
     public static func main() async throws {
