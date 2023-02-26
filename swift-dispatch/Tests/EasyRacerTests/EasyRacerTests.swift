@@ -1,6 +1,9 @@
 import DockerClientSwift
 import Logging
 import XCTest
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 @testable import EasyRacer
 
 final class EasyRacerTests: XCTestCase {
