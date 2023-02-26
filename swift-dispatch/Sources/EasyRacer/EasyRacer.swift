@@ -399,41 +399,6 @@ public struct EasyRacer {
         }
         scenarioHandler(scenario, result)
     }
-    //
-    //    func scenario9() async -> String? {
-    //        let result: String? = await withTaskGroup(of: String?.self) { group in
-    //            defer { group.cancelAll() }
-    //
-    //            let url: URL = baseURL.appendingPathComponent("9")
-    //            let urlSessionCfg: URLSessionConfiguration = .ephemeral
-    //            urlSessionCfg.httpMaximumConnectionsPerHost = 10
-    //            let urlSession: URLSession = URLSession(
-    //                configuration: urlSessionCfg
-    //            )
-    //            @Sendable func doHTTPGet() async throws -> String {
-    //                let (data, response) = try await urlSession.data(from: url)
-    //                guard
-    //                    let response = response as? HTTPURLResponse,
-    //                    (200..<300).contains(response.statusCode),
-    //                    let dataUTF8: String = String(data: data, encoding: .utf8)
-    //                else {
-    //                    throw EasyRacerError.error("invalid HTTP response")
-    //                }
-    //
-    //                return dataUTF8
-    //            }
-    //            for _ in 1...10 {
-    //                group.addTask { try? await doHTTPGet() }
-    //            }
-    //
-    //            return await group
-    //                .compactMap { $0 }
-    //                .prefix(5)
-    //                .reduce("") { $0 + $1 }
-    //        }
-    //
-    //        return result
-    //    }
     
     // Runs scenarios one by one, blocks until they are all complete
     public func scenarios(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
