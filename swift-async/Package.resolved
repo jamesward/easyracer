@@ -12,10 +12,10 @@
     {
       "identity" : "docker-client-swift",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/jackgene/docker-client-swift.git",
+      "location" : "https://github.com/alexsteinerde/docker-client-swift.git",
       "state" : {
-        "branch" : "feature/port-forwarding",
-        "revision" : "445a60f9fefbc0eaf66edfd89c88fb7c60c050fe"
+        "revision" : "58d0a76818775bf91266c319efbc9301bcec0c56",
+        "version" : "0.1.2"
       }
     },
     {
