@@ -106,6 +106,11 @@ public struct EasyRacer {
             
             return await group.first { $0 != nil }.flatMap { $0 }
         }
+        // After this scenario runs, subsequent seems more likely to fail
+        // Current theory is that after the tasks in the task group are cancelled
+        // it's taking some time for all 10k HTTP connections to disconnect.
+        // 5 second pause seems to help with this.
+        try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
         
         return result
     }
@@ -340,13 +345,13 @@ public struct EasyRacer {
         [
             (1, await scenario1()),
             (2, await scenario2()),
+            (3, await scenario3()),
             (4, await scenario4()),
             (5, await scenario5()),
             (6, await scenario6()),
             (7, await scenario7()),
             (8, await scenario8()),
             (9, await scenario9()),
-            (3, await scenario3()), // Scenario 3 makes Swift tired, resulting in subsequent scenarios failing - run it last
         ]
     }
     
