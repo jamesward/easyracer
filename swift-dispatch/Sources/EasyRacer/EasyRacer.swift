@@ -450,7 +450,7 @@ public struct EasyRacer {
         }
     }
     
-    // Runs scenarios one by one, blocks until they are all complete
+    // Runs scenarios one by one, blocking until they are all complete
     public func scenarios(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
         let scenarios = [
             scenario1,
