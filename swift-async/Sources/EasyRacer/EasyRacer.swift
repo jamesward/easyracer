@@ -109,8 +109,8 @@ public struct EasyRacer {
         // After this scenario runs, subsequent seems more likely to fail
         // Current theory is that after the tasks in the task group are cancelled
         // it's taking some time for all 10k HTTP connections to disconnect.
-        // 5 second pause seems to help with this.
-        try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+        // 30-second pause seems to help with this.
+        try? await Task.sleep(nanoseconds: 30_000_000_000)
         
         return result
     }
