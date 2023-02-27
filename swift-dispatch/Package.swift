@@ -1,4 +1,4 @@
-// swift-tools-version: 5.7
+// swift-tools-version:5.7
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -6,10 +6,10 @@ import PackageDescription
 let package = Package(
     name: "EasyRacer",
     platforms: [
-        .macOS(.v10_15)
+        .macOS(.v10_14)
     ],
     dependencies: [
-        .package(url: "https://github.com/alexsteinerde/docker-client-swift.git", from: "0.1.2"),
+        .package(url: "https://github.com/jackgene/docker-client-swift.git", branch: "feature/string-ipaddress"),
     ],
     targets: [
         .executableTarget(
@@ -20,6 +20,6 @@ let package = Package(
             dependencies: [
                 "EasyRacer",
                 .product(name: "DockerClientSwift", package: "docker-client-swift")
-            ]),
+            ])
     ]
 )

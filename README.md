@@ -75,4 +75,5 @@ The scenario server has a public container `ghcr.io/jamesward/easyracer` and if 
 | Java + Loom | [java-loom](java-loom) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/java-loom.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | |
 | Python + AIOHTTP | [python-aiohttp](python-aiohttp) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/python-aiohttp.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | Unable to get it working |
 | Go | [go-stdlib](go-stdlib) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/go-stdlib.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) | |
+| Swift + Grand Central Dispatch | [swift-async](swift-dispatch) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/swift-dispatch.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) | |
 | Swift + async/await | [swift-async](swift-async) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/swift-async.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) | |
