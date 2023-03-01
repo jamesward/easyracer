@@ -14,9 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: cachix/install-nix-action@v18
+      - uses: cachix/install-nix-action@v19
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
+          nix_path: nixpkgs=channel:nixos-22.11
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: workflow/nix-shell-action@v3.2.0
         with:
