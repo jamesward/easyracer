@@ -21,5 +21,6 @@ jobs:
 
       - uses: workflow/nix-shell-action@v3.2.0
         with:
+          working-directory: python-httpx-trio
           script: |
             pytest
