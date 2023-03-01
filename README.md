@@ -79,6 +79,8 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 | Kotlin + Arrow | [kotlin-arrow](kotlin-arrow) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-arrow.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | |
 | Java + Loom | [java-loom](java-loom) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/java-loom.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | |
 | Python + AIOHTTP | [python-aiohttp](python-aiohttp) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/python-aiohttp.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | Unable to get it working |
+| Python + HTTPX + asyncio | [python-httpx-asyncio](python-httpx-asyncio) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/python-httpx-asyncio.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | Unable to get it working |
+| Python + HTTPX + Trio | [python-httpx-trio](python-httpx-trio) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/python-httpx-trio.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | Unable to get it working |
 | Go | [go-stdlib](go-stdlib) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/go-stdlib.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) | |
 | Swift + Grand Central Dispatch | [swift-dispatch](swift-dispatch) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/swift-dispatch.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) | |
 | Swift + async/await | [swift-async](swift-async) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/swift-async.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) | |

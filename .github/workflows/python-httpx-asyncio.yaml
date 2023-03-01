@@ -1,0 +1,29 @@
+on:
+  workflow_run:
+    workflows: [scenario-server]
+    types: [completed]
+  push:
+    paths:
+      - python-httpx-asyncio/**
+      - .github/workflows/python-httpx-asyncio.yaml
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version-file: ./python-httpx-asyncio/.python-version
+          cache: 'pip'
+          cache-dependency-path: ./python-httpx-asyncio/requirements.txt
+
+      - working-directory: ./python-httpx-asyncio
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - working-directory: ./python-httpx-asyncio
+        run: pytest
