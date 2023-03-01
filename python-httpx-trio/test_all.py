@@ -21,25 +21,25 @@ async def test_all():
             result2 = await main.scenario2(port)
             assert result2 == "right"
 
-            #result3 = await main.scenario3(port)
-            # result3 == "right"
+            result3 = await main.scenario3(port)
+            assert result3 == "right"
 
-            #result4 = await main.scenario4(port)
-            #assert result4 == "right"
+            result4 = await main.scenario4(port)
+            assert result4 == "right"
 
-            # result5 = await main.scenario5(port)
-            # assert result5 == "right"
-            #
-            # result6 = await main.scenario6(port)
-            # assert result6 == "right"
-            #
-            # result7 = await main.scenario7(port)
-            # assert result7 == "right"
-            #
-            # result8 = await main.scenario8(port)
-            # assert result8 == "right"
-            #
-            # result9 = await main.scenario9(port)
-            # assert result9 == "right"
+            result5 = await main.scenario5(port)
+            assert result5 == "right"
+
+            result6 = await main.scenario6(port)
+            assert result6 == "right"
+
+            result7 = await main.scenario7(port)
+            assert result7 == "right"
+
+            result8 = await main.scenario8(port)
+            assert result8 == "right"
+
+            result9 = await main.scenario9(port)
+            assert result9 == "right"
 
         await connected()
