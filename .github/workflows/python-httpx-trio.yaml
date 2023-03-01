@@ -19,7 +19,5 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: nix-build
-
       - working-directory: ./python-httpx-trio
         run: nix-shell --run "pytest"
