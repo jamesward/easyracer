@@ -2,6 +2,7 @@ import zio.*
 import zio.http.*
 import zio.http.model.{Method, Status}
 import zio.concurrent.ReentrantLock
+import zio.logging.{LogFormat, console}
 
 import java.time.Instant
 
@@ -24,6 +25,7 @@ object EasyRacerServer extends ZIOAppDefault:
       for
         _ <- locker.lock
         numRequests <- numRequestsRef.updateAndGet(_ + 1)
+        _ <- ZIO.log(s"Num concurrent connections = $numRequests")
         raceCoordinator <- raceCoordinatorRef.get
         _ <- locker.unlock
       yield
@@ -33,6 +35,7 @@ object EasyRacerServer extends ZIOAppDefault:
       for
         _ <- locker.lock
         numRequests <- numRequestsRef.updateAndGet(_ - 1)
+        _ <- ZIO.log(s"Num concurrent connections = $numRequests")
         _ <- ZIO.when(numRequests == 0)(Promise.make.flatMap(raceCoordinatorRef.set))
         _ <- locker.unlock
       yield
@@ -94,7 +97,7 @@ object EasyRacerServer extends ZIOAppDefault:
     val r = for
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
-      resp <- if num < 10000 then
+      resp <- if num < 10_000 then
         promise.await *> ZIO.never
       else
         promise.succeed(()).as(Response.text("right"))
@@ -339,15 +342,38 @@ object EasyRacerServer extends ZIOAppDefault:
         i <- scenarioNum.toIntOption
         scenario <- scenarios.unapply(i - 1) //  /1 -> scenarios[0]
       yield
-        scenario(req)
+        ZIO.logAnnotate("scenario", i.toString) {
+          scenario(req)
+        }
 
       maybeScenario.getOrElse(ZIO.succeed(Response.status(Status.NotFound)))
   }
 
   def run =
-    val scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9)
+    val scenarios = Seq(
+      scenario1,
+      scenario2,
+      scenario3,
+      scenario4,
+      scenario5,
+      scenario6,
+      scenario7,
+      scenario8,
+      scenario9,
+    )
+
     for
+      args <- ZIOAppArgs.getArgs
+      isDebug = args.contains("--debug")
+      logger = if (isDebug) Runtime.removeDefaultLoggers >>> console(LogFormat.annotations |-| LogFormat.line) else Runtime.removeDefaultLoggers
       scenariosWithSession <- ZIO.foreach(scenarios) { f => Session.make().map(f(_)) }
-      server <- Server.serve(app(scenariosWithSession)).provide(Server.default)
+      server =
+        for
+          port <- Server.install(app(scenariosWithSession).provideLayer(logger))
+          _ <- Console.printLine(s"Started server on port: $port (debug=$isDebug)")
+          _ <- ZIO.never
+        yield
+          ()
+      _ <- server.provide(Server.default)
     yield
-      server
+      ()

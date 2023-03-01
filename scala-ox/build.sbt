@@ -14,4 +14,4 @@ Test / fork := true
 
 javacOptions += "--enable-preview --add-modules jdk.incubator.concurrent"
 
-javaOptions ++= Seq("--enable-preview", "--add-modules", "jdk.incubator.concurrent")
+javaOptions ++= Seq("--enable-preview", "--add-modules jdk.incubator.concurrent")

@@ -20,8 +20,8 @@ object EasyRacerClient:
 
   def scenario2(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(2)
-    def req = scenarioRequest(url).send(backend).body
-    raceSuccess(req)(req)
+    def req = scenarioRequest(url).send(backend)
+    raceSuccess(req)(req).body
 
   def scenario3(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(3)

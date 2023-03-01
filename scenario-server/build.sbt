@@ -6,11 +6,12 @@ scalaVersion := "3.2.2"
 
 fork := true
 
-val zioVersion = "2.0.7"
+val zioVersion = "2.0.9"
 
 libraryDependencies ++= Seq(
   "dev.zio" %% "zio"              % zioVersion,
   "dev.zio" %% "zio-concurrent"   % zioVersion,
+  "dev.zio" %% "zio-logging"      % "2.1.10",
 
   "dev.zio" %% "zio-http"         % "0.0.3",
 
@@ -54,6 +55,10 @@ if (sys.env.get("TARGETARCH").contains("arm64")) {
     "-H:+StaticExecutableWithDynamicLibC",
     "--initialize-at-run-time=io.netty.incubator.channel.uring.IOUringEventLoopGroup",
     "--initialize-at-run-time=io.netty.incubator.channel.uring.Native",
+  )
+} else if (sys.env.get("NO_STATIC").contains("true")) {
+  graalVMNativeImageOptions ++= Seq(
+    "-H:+StaticExecutableWithDynamicLibC"
   )
 } else {
   graalVMNativeImageOptions ++= Seq(

@@ -65,6 +65,11 @@ right
 
 The scenario server has a public container `ghcr.io/jamesward/easyracer` and if you contribute your client to this repo, use Testcontainers and include automated integration tests.
 
+For local dev you can spin up the server via Docker:
+```
+docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
+```
+
 ## Clients
 | Name | Source | Tests | Author | Notes |
 | ---- | ------ | ----- | ------ | ----- |
