@@ -71,7 +71,15 @@ suspend fun HttpClient.scenario3(url: (Int) -> String): String = coroutineScope 
 
 suspend fun HttpClient.scenario4(url: (Int) -> String): String =
   raceN({
-    ignoreException { withTimeout(1.seconds) { get(url(4)) } }
+    try {
+      get(url(4)) {
+        timeout {
+          requestTimeoutMillis = 1000
+        }
+      }
+    } catch (e: Exception) {
+      awaitCancellation()
+    }
   }, {
     get(url(4))
   }).merge().bodyAsText()
@@ -113,7 +121,7 @@ suspend fun HttpClient.scenario7(url: (Int) -> String): String =
   raceN({
     get(url(7))
   }, {
-    delay(Duration.ofSeconds(3))
+    delay(Duration.ofSeconds(4))
     get(url(7))
   }).merge().bodyAsText()
 
@@ -141,7 +149,7 @@ suspend fun HttpClient.scenario9(url: (Int) -> String): String {
     get(url(9)).takeIf { it.status.isSuccess() }
       ?.let { resp -> Instant.now() to resp.bodyAsText() }
 
-  return (0..10)
+  return (1..10)
     .parMap { req() }
     .filterNotNull()
     .sortedBy { it.first }
@@ -159,7 +167,10 @@ fun HttpClient.scenarios() = listOf(
   ::scenario8,
   ::scenario9
 )
-//val scenarios = listOf(::scenario8)
+
+//fun HttpClient.scenarios() = listOf(
+//  ::scenario7
+//)
 
 suspend fun results(url: (Int) -> String) = resourceScope {
   client().scenarios().parMap { it(url) }
