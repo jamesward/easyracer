@@ -16,7 +16,7 @@ jobs:
 
       - uses: cachix/install-nix-action@v19
         with:
-          nix_path: nixpkgs=channel:nixos-unstable=nixos-unstable
+          nix_path: nixpkgs=channel:nixos-unstable=channel
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - working-directory: ./python-httpx-trio
