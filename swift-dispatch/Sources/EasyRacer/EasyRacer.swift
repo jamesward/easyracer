@@ -12,8 +12,10 @@ public struct EasyRacer {
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let allRequestsGroup: DispatchGroup = DispatchGroup()
-        var succeeded: Bool = false
-        let succeededLock: NSLock = NSLock()
+        let expectedResponsesGroup: DispatchGroup = DispatchGroup()
+        var result: String? = nil
+        let resultLock: NSLock = NSLock()
+        expectedResponsesGroup.enter() // Expecting one response
         
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...2)
@@ -24,12 +26,12 @@ public struct EasyRacer {
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
-                        succeededLock.lock()
-                        defer { succeededLock.unlock() }
+                        resultLock.lock()
+                        defer { resultLock.unlock() }
                         
-                        if !succeeded {
-                            scenarioHandler(scenario, text)
-                            succeeded = true
+                        if result == nil {
+                            result = text
+                            expectedResponsesGroup.leave()
                         }
                     }
                     allRequestsGroup.leave()
@@ -42,11 +44,16 @@ public struct EasyRacer {
             dataTask.resume()
         }
         
-        // Notify failure if all requests completed without a single successful response
-        allRequestsGroup.notify(queue: .global()) {
-            if !succeeded {
-                scenarioHandler(scenario, nil)
+        // Got what we wanted, cancel remaining requests
+        expectedResponsesGroup.notify(queue: .global()) {
+            for dataTask in dataTasks {
+                dataTask.cancel()
             }
+        }
+        
+        // Send result
+        allRequestsGroup.notify(queue: .global()) {
+            scenarioHandler(scenario, result)
         }
     }
     
@@ -55,8 +62,10 @@ public struct EasyRacer {
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let allRequestsGroup: DispatchGroup = DispatchGroup()
-        var succeeded: Bool = false
-        let succeededLock: NSLock = NSLock()
+        let expectedResponsesGroup: DispatchGroup = DispatchGroup()
+        var result: String? = nil
+        let resultLock: NSLock = NSLock()
+        expectedResponsesGroup.enter() // Expecting one response
         
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...2)
@@ -67,12 +76,12 @@ public struct EasyRacer {
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
-                        succeededLock.lock()
-                        defer { succeededLock.unlock() }
+                        resultLock.lock()
+                        defer { resultLock.unlock() }
                         
-                        if !succeeded {
-                            scenarioHandler(scenario, text)
-                            succeeded = true
+                        if result == nil {
+                            result = text
+                            expectedResponsesGroup.leave()
                         }
                     }
                     allRequestsGroup.leave()
@@ -85,11 +94,16 @@ public struct EasyRacer {
             dataTask.resume()
         }
         
-        // Notify failure if all requests completed without a single successful response
-        allRequestsGroup.notify(queue: .global()) {
-            if !succeeded {
-                scenarioHandler(scenario, nil)
+        // Got what we wanted, cancel remaining requests
+        expectedResponsesGroup.notify(queue: .global()) {
+            for dataTask in dataTasks {
+                dataTask.cancel()
             }
+        }
+        
+        // Send result
+        allRequestsGroup.notify(queue: .global()) {
+            scenarioHandler(scenario, result)
         }
     }
     
@@ -99,8 +113,10 @@ public struct EasyRacer {
         let urlSessionCfg = URLSessionConfiguration.ephemeral
         urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
         let allRequestsGroup: DispatchGroup = DispatchGroup()
-        var succeeded: Bool = false
-        let succeededLock: NSLock = NSLock()
+        let expectedResponsesGroup: DispatchGroup = DispatchGroup()
+        var result: String? = nil
+        let resultLock: NSLock = NSLock()
+        expectedResponsesGroup.enter() // Expecting one response
         
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...10_000)
@@ -111,12 +127,12 @@ public struct EasyRacer {
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
-                        succeededLock.lock()
-                        defer { succeededLock.unlock() }
+                        resultLock.lock()
+                        defer { resultLock.unlock() }
                         
-                        if !succeeded {
-                            scenarioHandler(scenario, text)
-                            succeeded = true
+                        if result == nil {
+                            result = text
+                            expectedResponsesGroup.leave()
                         }
                     }
                     allRequestsGroup.leave()
@@ -129,11 +145,16 @@ public struct EasyRacer {
             dataTask.resume()
         }
         
-        // Notify failure if all requests completed without a single successful response
-        allRequestsGroup.notify(queue: .global()) {
-            if !succeeded {
-                scenarioHandler(scenario, nil)
+        // Got what we wanted, cancel remaining requests
+        expectedResponsesGroup.notify(queue: .global()) {
+            for dataTask in dataTasks {
+                dataTask.cancel()
             }
+        }
+        
+        // Send result
+        allRequestsGroup.notify(queue: .global()) {
+            scenarioHandler(scenario, result)
         }
     }
     
@@ -149,9 +170,11 @@ public struct EasyRacer {
             }()
         )
         let allRequestsGroup: DispatchGroup = DispatchGroup()
-        var succeeded: Bool = false
-        let succeededLock: NSLock = NSLock()
-        
+        let expectedResponsesGroup: DispatchGroup = DispatchGroup()
+        var result: String? = nil
+        let resultLock: NSLock = NSLock()
+        expectedResponsesGroup.enter() // Expecting one response
+
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = [urlSession, urlSession1SecTimeout]
             .map { urlSession in
@@ -161,12 +184,12 @@ public struct EasyRacer {
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
-                        succeededLock.lock()
-                        defer { succeededLock.unlock() }
+                        resultLock.lock()
+                        defer { resultLock.unlock() }
                         
-                        if !succeeded {
-                            scenarioHandler(scenario, text)
-                            succeeded = true
+                        if result == nil {
+                            result = text
+                            expectedResponsesGroup.leave()
                         }
                     }
                     allRequestsGroup.leave()
@@ -179,11 +202,16 @@ public struct EasyRacer {
             dataTask.resume()
         }
         
-        // Notify failure if all requests completed without a single successful response
-        allRequestsGroup.notify(queue: .global()) {
-            if !succeeded {
-                scenarioHandler(scenario, nil)
+        // Got what we wanted, cancel remaining requests
+        expectedResponsesGroup.notify(queue: .global()) {
+            for dataTask in dataTasks {
+                dataTask.cancel()
             }
+        }
+        
+        // Send result
+        allRequestsGroup.notify(queue: .global()) {
+            scenarioHandler(scenario, result)
         }
     }
     
@@ -192,8 +220,10 @@ public struct EasyRacer {
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let allRequestsGroup: DispatchGroup = DispatchGroup()
-        var succeeded: Bool = false
-        let succeededLock: NSLock = NSLock()
+        let expectedResponsesGroup: DispatchGroup = DispatchGroup()
+        var result: String? = nil
+        let resultLock: NSLock = NSLock()
+        expectedResponsesGroup.enter() // Expecting one response
         
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...2)
@@ -204,12 +234,12 @@ public struct EasyRacer {
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
-                        succeededLock.lock()
-                        defer { succeededLock.unlock() }
+                        resultLock.lock()
+                        defer { resultLock.unlock() }
                         
-                        if !succeeded {
-                            scenarioHandler(scenario, text)
-                            succeeded = true
+                        if result == nil {
+                            result = text
+                            expectedResponsesGroup.leave()
                         }
                     }
                     allRequestsGroup.leave()
@@ -222,11 +252,16 @@ public struct EasyRacer {
             dataTask.resume()
         }
         
-        // Notify failure if all requests completed without a single successful response
-        allRequestsGroup.notify(queue: .global()) {
-            if !succeeded {
-                scenarioHandler(scenario, nil)
+        // Got what we wanted, cancel remaining requests
+        expectedResponsesGroup.notify(queue: .global()) {
+            for dataTask in dataTasks {
+                dataTask.cancel()
             }
+        }
+        
+        // Send result
+        allRequestsGroup.notify(queue: .global()) {
+            scenarioHandler(scenario, result)
         }
     }
     
@@ -235,8 +270,10 @@ public struct EasyRacer {
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let allRequestsGroup: DispatchGroup = DispatchGroup()
-        var succeeded: Bool = false
-        let succeededLock: NSLock = NSLock()
+        let expectedResponsesGroup: DispatchGroup = DispatchGroup()
+        var result: String? = nil
+        let resultLock: NSLock = NSLock()
+        expectedResponsesGroup.enter() // Expecting one response
         
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...3)
@@ -247,12 +284,12 @@ public struct EasyRacer {
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
-                        succeededLock.lock()
-                        defer { succeededLock.unlock() }
+                        resultLock.lock()
+                        defer { resultLock.unlock() }
                         
-                        if !succeeded {
-                            scenarioHandler(scenario, text)
-                            succeeded = true
+                        if result == nil {
+                            result = text
+                            expectedResponsesGroup.leave()
                         }
                     }
                     allRequestsGroup.leave()
@@ -264,11 +301,17 @@ public struct EasyRacer {
             allRequestsGroup.enter()
             dataTask.resume()
         }
-        // Notify failure if all requests completed without a single successful response
-        allRequestsGroup.notify(queue: .global()) {
-            if !succeeded {
-                scenarioHandler(scenario, nil)
+        
+        // Got what we wanted, cancel remaining requests
+        expectedResponsesGroup.notify(queue: .global()) {
+            for dataTask in dataTasks {
+                dataTask.cancel()
             }
+        }
+        
+        // Send result
+        allRequestsGroup.notify(queue: .global()) {
+            scenarioHandler(scenario, result)
         }
     }
     
@@ -276,6 +319,13 @@ public struct EasyRacer {
         let scenario: Int = 7
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let allRequestsGroup: DispatchGroup = DispatchGroup()
+        allRequestsGroup.enter()
+        var result: String? = nil
+        
+        let secondDataTask: URLSessionDataTask = urlSession.dataTask(with: url) { _, _, _ in
+            allRequestsGroup.leave()
+        }
         
         // Execute first HTTP request
         urlSession
@@ -285,16 +335,20 @@ public struct EasyRacer {
                     let data: Data = data,
                     let text: String = String(data: data, encoding: .utf8)
                 {
-                    scenarioHandler(scenario, text)
-                } else {
-                    scenarioHandler(scenario, nil)
+                    result = text
                 }
+                secondDataTask.cancel()
             }
             .resume()
         
         // Execute second request after 3 seconds
         DispatchQueue.global().asyncAfter(deadline: .now() + 3.0) {
-            urlSession.dataTask(with: url).resume()
+            secondDataTask.resume()
+        }
+        
+        // Send result
+        allRequestsGroup.notify(queue: .global()) {
+            scenarioHandler(scenario, result)
         }
     }
     
@@ -303,9 +357,11 @@ public struct EasyRacer {
         let url: URL = baseURL.appendingPathComponent("\(scenario)")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let allRequestsGroup: DispatchGroup = DispatchGroup()
-        var succeeded: Bool = false
-        let succeededLock: NSLock = NSLock()
-        
+        let expectedResponsesGroup: DispatchGroup = DispatchGroup()
+        var result: String? = nil
+        let resultLock: NSLock = NSLock()
+        expectedResponsesGroup.enter() // Expecting one response
+
         // Build "open" URL
         guard
             let urlComps: URLComponents = URLComponents(
@@ -349,14 +405,15 @@ public struct EasyRacer {
                         urlSession.dataTask(with: useURL) { useData, useResponse, useError in
                             if
                                 useError == nil && (200..<300).contains((useResponse as? HTTPURLResponse)?.statusCode ?? -1),
-                                let useData: Data = useData
+                                let useData: Data = useData,
+                                let text: String = String(data: useData, encoding: .utf8)
                             {
-                                succeededLock.lock()
-                                defer { succeededLock.unlock() }
+                                resultLock.lock()
+                                defer { resultLock.unlock() }
                                 
-                                if !succeeded {
-                                    scenarioHandler(scenario, String(data: useData, encoding: .utf8))
-                                    succeeded = true
+                                if result == nil {
+                                    result = text
+                                    expectedResponsesGroup.leave()
                                 }
                             }
                             
@@ -370,10 +427,10 @@ public struct EasyRacer {
                                 allRequestsGroup.leave()
                                 return
                             }
-                            urlSession.dataTask(with: closeURL).resume()
+                            urlSession.dataTask(with: closeURL) { _, _, _ in
+                                allRequestsGroup.leave()
+                            }.resume()
                         }.resume()
-                    } else {
-                        allRequestsGroup.leave()
                     }
                 }
             }
@@ -384,11 +441,16 @@ public struct EasyRacer {
             dataTask.resume()
         }
         
-        // Notify failure if all requests completed without a single successful response
-        allRequestsGroup.notify(queue: .global()) {
-            if !succeeded {
-                scenarioHandler(scenario, nil)
+        // Got what we wanted, cancel remaining requests
+        expectedResponsesGroup.notify(queue: .global()) {
+            for dataTask in dataTasks {
+                dataTask.cancel()
             }
+        }
+        
+        // Send result
+        allRequestsGroup.notify(queue: .global()) {
+            scenarioHandler(scenario, result)
         }
     }
     
@@ -403,12 +465,12 @@ public struct EasyRacer {
             }()
         )
         let allRequestsGroup: DispatchGroup = DispatchGroup()
-        let expectedRequestsGroup: DispatchGroup = DispatchGroup()
+        let expectedResponsesGroup: DispatchGroup = DispatchGroup()
         var resultRemaining: Int = 5
         var resultAccum: String = ""
         let resultLock: NSLock = NSLock()
         for _ in 1...resultRemaining {
-            expectedRequestsGroup.enter()
+            expectedResponsesGroup.enter()
         }
         
         // Set up HTTP requests without executing
@@ -423,9 +485,11 @@ public struct EasyRacer {
                         resultLock.lock()
                         defer { resultLock.unlock() }
                         
-                        resultRemaining -= 1
-                        resultAccum += text
-                        expectedRequestsGroup.leave()
+                        if resultRemaining > 0 {
+                            resultRemaining -= 1
+                            resultAccum += text
+                            expectedResponsesGroup.leave()
+                        }
                     }
                     allRequestsGroup.leave()
                 }
@@ -437,14 +501,18 @@ public struct EasyRacer {
             dataTask.resume()
         }
         
-        // Expected number of requests completed, notify success
-        expectedRequestsGroup.notify(queue: .global()) {
-            scenarioHandler(scenario, resultAccum)
+        // Got what we wanted, cancel remaining requests
+        expectedResponsesGroup.notify(queue: .global()) {
+            for dataTask in dataTasks {
+                dataTask.cancel()
+            }
         }
         
         // Notify failure if all requests completed before expected number of successful requests
         allRequestsGroup.notify(queue: .global()) {
-            if resultRemaining > 0 {
+            if resultRemaining == 0 {
+                scenarioHandler(scenario, resultAccum)
+            } else {
                 scenarioHandler(scenario, nil)
             }
         }
