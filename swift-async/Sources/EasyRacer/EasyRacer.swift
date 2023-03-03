@@ -19,12 +19,12 @@ public struct EasyRacer {
                 guard
                     let response = response as? HTTPURLResponse,
                     (200..<300).contains(response.statusCode),
-                    let dataUTF8: String = String(data: data, encoding: .utf8)
+                    let text: String = String(data: data, encoding: .utf8)
                 else {
                     throw EasyRacerError.error("invalid HTTP response")
                 }
                 
-                return dataUTF8
+                return text
             }
             group.addTask { try? await doHTTPGet() }
             group.addTask { try? await doHTTPGet() }
@@ -46,12 +46,12 @@ public struct EasyRacer {
                 guard
                     let response = response as? HTTPURLResponse,
                     (200..<300).contains(response.statusCode),
-                    let dataUTF8: String = String(data: data, encoding: .utf8)
+                    let text: String = String(data: data, encoding: .utf8)
                 else {
                     throw EasyRacerError.error("invalid HTTP response")
                 }
                 
-                return dataUTF8
+                return text
             }
             group.addTask { try? await doHTTPGet() }
             group.addTask { try? await doHTTPGet() }
@@ -93,12 +93,12 @@ public struct EasyRacer {
                 guard
                     let response = response as? HTTPURLResponse,
                     (200..<300).contains(response.statusCode),
-                    let dataUTF8: String = String(data: data, encoding: .utf8)
+                    let text: String = String(data: data, encoding: .utf8)
                 else {
                     throw EasyRacerError.error("invalid HTTP response")
                 }
                 
-                return dataUTF8
+                return text
             }
             for _ in 1...10_000 {
                 group.addTask { try? await doHTTPGet() }
@@ -122,12 +122,12 @@ public struct EasyRacer {
             guard
                 let response = response as? HTTPURLResponse,
                 (200..<300).contains(response.statusCode),
-                let dataUTF8: String = String(data: data, encoding: .utf8)
+                let text: String = String(data: data, encoding: .utf8)
             else {
                 throw EasyRacerError.error("invalid HTTP response")
             }
             
-            return dataUTF8
+            return text
         }
         
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
@@ -154,12 +154,12 @@ public struct EasyRacer {
                 guard
                     let response = response as? HTTPURLResponse,
                     (200..<300).contains(response.statusCode),
-                    let dataUTF8: String = String(data: data, encoding: .utf8)
+                    let text: String = String(data: data, encoding: .utf8)
                 else {
                     throw EasyRacerError.error("invalid HTTP response")
                 }
                 
-                return dataUTF8
+                return text
             }
             group.addTask { try? await doHTTPGet() }
             group.addTask { try? await doHTTPGet() }
@@ -181,12 +181,12 @@ public struct EasyRacer {
                 guard
                     let response = response as? HTTPURLResponse,
                     (200..<300).contains(response.statusCode),
-                    let dataUTF8: String = String(data: data, encoding: .utf8)
+                    let text: String = String(data: data, encoding: .utf8)
                 else {
                     throw EasyRacerError.error("invalid HTTP response")
                 }
                 
-                return dataUTF8
+                return text
             }
             group.addTask { try? await doHTTPGet() }
             group.addTask { try? await doHTTPGet() }
@@ -209,12 +209,12 @@ public struct EasyRacer {
                 guard
                     let response = response as? HTTPURLResponse,
                     (200..<300).contains(response.statusCode),
-                    let dataUTF8: String = String(data: data, encoding: .utf8)
+                    let text: String = String(data: data, encoding: .utf8)
                 else {
                     throw EasyRacerError.error("invalid HTTP response")
                 }
                 
-                return dataUTF8
+                return text
             }
             group.addTask { try? await doHTTPGet() }
             try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
@@ -271,14 +271,14 @@ public struct EasyRacer {
                 }
                 let (useData, useResponse) = try await urlSession.data(from: useURL)
                 
-                let dataUTF8: String?
+                let text: String?
                 if
                     let response = useResponse as? HTTPURLResponse,
                     (200..<300).contains(response.statusCode)
                 {
-                    dataUTF8 = String(data: useData, encoding: .utf8)
+                    text = String(data: useData, encoding: .utf8)
                 } else {
-                    dataUTF8 = nil
+                    text = nil
                 }
                 
                 // Close
@@ -292,10 +292,10 @@ public struct EasyRacer {
                 }
                 let _ = try await urlSession.data(from: closeURL)
                 
-                guard let dataUTF8: String = dataUTF8 else {
+                guard let text: String = text else {
                     throw EasyRacerError.error("invalid HTTP response")
                 }
-                return dataUTF8
+                return text
             }
             group.addTask { try? await doOpenUseAndClose() }
             group.addTask { try? await doOpenUseAndClose() }
@@ -321,12 +321,12 @@ public struct EasyRacer {
                 guard
                     let response = response as? HTTPURLResponse,
                     (200..<300).contains(response.statusCode),
-                    let dataUTF8: String = String(data: data, encoding: .utf8)
+                    let text: String = String(data: data, encoding: .utf8)
                 else {
                     throw EasyRacerError.error("invalid HTTP response")
                 }
                 
-                return dataUTF8
+                return text
             }
             for _ in 1...10 {
                 group.addTask { try? await doHTTPGet() }
