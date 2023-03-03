@@ -22,7 +22,9 @@ public struct EasyRacer {
             .map { _ in
                 urlSession.dataTask(with: url) { data, response, error in
                     if
-                        error == nil && (200..<300).contains((response as? HTTPURLResponse)?.statusCode ?? -1),
+                        error == nil,
+                        let response = response as? HTTPURLResponse,
+                        (200..<300).contains(response.statusCode),
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
@@ -72,7 +74,9 @@ public struct EasyRacer {
             .map { _ in
                 urlSession.dataTask(with: url) { data, response, error in
                     if
-                        error == nil && (200..<300).contains((response as? HTTPURLResponse)?.statusCode ?? -1),
+                        error == nil,
+                        let response = response as? HTTPURLResponse,
+                        (200..<300).contains(response.statusCode),
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
@@ -123,7 +127,9 @@ public struct EasyRacer {
             .map { _ in
                 URLSession(configuration: urlSessionCfg).dataTask(with: url) { data, response, error in
                     if
-                        error == nil && (200..<300).contains((response as? HTTPURLResponse)?.statusCode ?? -1),
+                        error == nil,
+                        let response = response as? HTTPURLResponse,
+                        (200..<300).contains(response.statusCode),
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
@@ -180,7 +186,9 @@ public struct EasyRacer {
             .map { urlSession in
                 urlSession.dataTask(with: url) { data, response, error in
                     if
-                        error == nil && (200..<300).contains((response as? HTTPURLResponse)?.statusCode ?? -1),
+                        error == nil,
+                        let response = response as? HTTPURLResponse,
+                        (200..<300).contains(response.statusCode),
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
@@ -230,7 +238,9 @@ public struct EasyRacer {
             .map { _ in
                 urlSession.dataTask(with: url) { data, response, error in
                     if
-                        error == nil && (200..<300).contains((response as? HTTPURLResponse)?.statusCode ?? -1),
+                        error == nil,
+                        let response = response as? HTTPURLResponse,
+                        (200..<300).contains(response.statusCode),
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
@@ -280,7 +290,9 @@ public struct EasyRacer {
             .map { _ in
                 urlSession.dataTask(with: url) { data, response, error in
                     if
-                        error == nil && (200..<300).contains((response as? HTTPURLResponse)?.statusCode ?? -1),
+                        error == nil,
+                        let response = response as? HTTPURLResponse,
+                        (200..<300).contains(response.statusCode),
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
@@ -331,7 +343,9 @@ public struct EasyRacer {
         urlSession
             .dataTask(with: url) { data, response, error in
                 if
-                    error == nil && (200..<300).contains((response as? HTTPURLResponse)?.statusCode ?? -1),
+                    error == nil,
+                    let response = response as? HTTPURLResponse,
+                    (200..<300).contains(response.statusCode),
                     let data: Data = data,
                     let text: String = String(data: data, encoding: .utf8)
                 {
@@ -388,7 +402,9 @@ public struct EasyRacer {
                 // Open
                 urlSession.dataTask(with: openURL) { openData, openResponse, openError in
                     if
-                        openError == nil && (200..<300).contains((openResponse as? HTTPURLResponse)?.statusCode ?? -1),
+                        openError == nil,
+                        let openResponse = openResponse as? HTTPURLResponse,
+                        (200..<300).contains(openResponse.statusCode),
                         let openData: Data = openData,
                         let id: String = String(data: openData, encoding: .utf8)
                     {
@@ -404,7 +420,9 @@ public struct EasyRacer {
                         }
                         urlSession.dataTask(with: useURL) { useData, useResponse, useError in
                             if
-                                useError == nil && (200..<300).contains((useResponse as? HTTPURLResponse)?.statusCode ?? -1),
+                                useError == nil,
+                                let useResponse = useResponse as? HTTPURLResponse,
+                                (200..<300).contains(useResponse.statusCode),
                                 let useData: Data = useData,
                                 let text: String = String(data: useData, encoding: .utf8)
                             {
@@ -478,7 +496,9 @@ public struct EasyRacer {
             .map { _ in
                 urlSession.dataTask(with: url) { data, response, error in
                     if
-                        error == nil && (200..<300).contains((response as? HTTPURLResponse)?.statusCode ?? -1),
+                        error == nil,
+                        let response = response as? HTTPURLResponse,
+                        (200..<300).contains(response.statusCode),
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     {
