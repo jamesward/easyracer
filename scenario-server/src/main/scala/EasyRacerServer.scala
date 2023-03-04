@@ -347,6 +347,17 @@ object EasyRacerServer extends ZIOAppDefault:
     }
   }
 
+  def fibonacci(n: Int): BigInt = {
+    @tailrec
+    def fibonacciTail(n: Int, a: BigInt, b: BigInt): BigInt = {
+      if (n == 0) a
+      else if (n == 1) b
+      else fibonacciTail(n - 1, b, a + b)
+    }
+
+    fibonacciTail(n, 0, 1)
+  }
+
   /*
     Req 1 = Returns a number
     Req 2 = Must send the fibonacci of Req 1's number
@@ -355,17 +366,6 @@ object EasyRacerServer extends ZIOAppDefault:
   def scenario10(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
     val fibMin = 50
     val fibMax = 100
-
-    def fibonacci(n: Int): BigInt = {
-      @tailrec
-      def fibonacciTail(n: Int, a: BigInt, b: BigInt): BigInt = {
-        if (n == 0) a
-        else if (n == 1) b
-        else fibonacciTail(n - 1, b, a + b)
-      }
-
-      fibonacciTail(n, 0, 1)
-    }
 
     if req.url.queryParams.isEmpty then
       for
@@ -397,15 +397,65 @@ object EasyRacerServer extends ZIOAppDefault:
               for
                 actualFirstFib <- doubleFib.firstFib.await
               yield
-                if userFirstFib.asString.toInt == actualFirstFib then Response.text(doubleFib.second.toString) else Response.status(BadRequest)
+                if BigInt(userFirstFib.asString) == actualFirstFib then Response.text(doubleFib.second.toString) else Response.status(BadRequest)
             }.orElse {
               req.url.queryParams.get(doubleFib.second.toString).map { userSecondFib =>
                 for
                   actualSecondFib <- doubleFib.secondFib.await
                 yield
-                  if userSecondFib.asString.toInt == actualSecondFib then Response.text("right") else Response.status(BadRequest)
+                  if BigInt(userSecondFib.asString) == actualSecondFib then Response.text("right") else Response.status(BadRequest)
               }
             }.getOrElse(ZIO.succeed(Response.status(BadRequest)))
+
+          case _ =>
+            throw NotImplementedError("not gonna happen")
+      yield
+        resp
+  }
+
+  /*
+    Req 1 = Returns 2 numbers
+    Req 2 = Send fibonacci for each
+  */
+  def scenario11(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
+    val fibMin = 50
+    val fibMax = 100
+
+    if req.url.queryParams.isEmpty then
+      for
+        promise <- session.clear()
+        num = Random.nextIntBetween(fibMin, fibMax)
+        num1 <- num
+        num2 <- num
+        num1FibPromise <- Promise.make[Nothing, BigInt]
+        num2FibPromise <- Promise.make[Nothing, BigInt]
+        _ <- promise.succeed(DoubleFib(num1, num1FibPromise, num2, num2FibPromise))
+        _ <- ZIO.blocking {
+          val fib = fibonacci(num1)
+          num1FibPromise.succeed(fib)
+        }.forkDaemon
+        _ <- ZIO.blocking {
+          val fib = fibonacci(num2)
+          num2FibPromise.succeed(fib)
+        }.forkDaemon
+      yield
+        Response.text(num1.toString + "," + num2.toString)
+    else
+      for
+        numAndPromise <- session.get()
+        (_, promise) = numAndPromise
+        sessionData <- promise.await
+        resp <- sessionData match
+          case doubleFib: DoubleFib =>
+            for
+              actualFirstFib <- doubleFib.firstFib.await
+              actualSecondFib <- doubleFib.secondFib.await
+            yield
+              if req.url.queryParams.get(doubleFib.first.toString).contains(Chunk(actualFirstFib.toString())) &&
+                req.url.queryParams.get(doubleFib.second.toString).contains(Chunk(actualSecondFib.toString())) then
+                Response.text("right")
+              else
+                Response.status(BadRequest)
 
           case _ =>
             throw NotImplementedError("not gonna happen")
@@ -446,6 +496,7 @@ object EasyRacerServer extends ZIOAppDefault:
       scenario8,
       scenario9,
       scenario10,
+      scenario11,
     )
 
     for

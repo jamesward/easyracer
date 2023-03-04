@@ -1,4 +1,4 @@
-import zio.Runtime
+import zio.{Chunk, Runtime, ZIO}
 import zio.http.{Request, URL}
 import zio.test.*
 import zio.test.Assertion.*
@@ -33,5 +33,22 @@ object EasyRacerServerSpec extends ZIOSpecDefault:
         assertTrue(res1.toInt == num1) &&
           assertTrue(res2.toInt == num2) &&
           assertTrue(res3 == "right")
-    }
+    },
+    test("Scenario11") {
+      val num1 = 6
+      val fib1 = 8
+      val num2 = 7
+      val fib2 = 13
+      for
+        _ <- TestRandom.feedInts(num1, num2)
+        session <- EasyRacerServer.Session.make()
+        req1 <- EasyRacerServer.scenario11(session)(Request.get(URL.empty))
+        res1 <- req1.body.asString
+        Array(numFib1, numFib2) = res1.split(',')
+        url = URL.empty.setQueryParams(numFib1 -> Chunk(fib1.toString), numFib2 -> Chunk(fib2.toString))
+        req2 <- EasyRacerServer.scenario11(session)(Request.get(url))
+        res2 <- req2.body.asString
+      yield
+        assertTrue(res2 == "right")
+    },
   ).provideLayer(Runtime.removeDefaultLoggers)
