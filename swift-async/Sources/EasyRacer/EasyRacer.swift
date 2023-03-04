@@ -336,7 +336,7 @@ public struct EasyRacer {
         return result
     }
     
-    public func scenarios() async -> [(Int, String?)] {
+    public func scenarios() async -> [String?] {
         [
             (1, await scenario1()),
             (2, await scenario2()),
@@ -347,7 +347,7 @@ public struct EasyRacer {
             (8, await scenario8()),
             (9, await scenario9()),
             (3, await scenario3()), // This has to come last, as it frequently causes other scenarios to fail
-        ]
+        ].sorted { $0.0 < $1.0 }.map { $0.1 }
     }
     
     public static func main() async throws {
@@ -355,8 +355,9 @@ public struct EasyRacer {
             let baseURL = URL(string: "http://localhost:8080")
         else { return }
         
-        for (scenarioNumber, result) in await EasyRacer(baseURL: baseURL).scenarios() {
-            print("Scenario \(scenarioNumber): \(result ?? "error")")
+        let results = await EasyRacer(baseURL: baseURL).scenarios()
+        for (idx, result) in results.enumerated() {
+            print("Scenario \(idx + 1): \(result ?? "error")")
         }
     }
 }
