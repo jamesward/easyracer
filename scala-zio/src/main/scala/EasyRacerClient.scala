@@ -4,6 +4,8 @@ import zio.http.*
 import java.util.UUID
 import java.util.concurrent.TimeoutException
 
+import scala.annotation.tailrec
+
 // Note that code is intentionally NOT shared across different scenarios, except for the url / config handling
 object EasyRacerClient extends ZIOAppDefault:
 
@@ -115,9 +117,70 @@ object EasyRacerClient extends ZIOAppDefault:
     }
 
 
-  def scenarios(scenarioUrl: Int => String) = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9).map(_.apply(scenarioUrl))
-  //def scenarios(scenarioUrl: Int => String) = Seq(scenario9).map(_.apply(scenarioUrl))
-  def all(scenarioUrl: Int => String) = ZIO.collectAllPar(scenarios(scenarioUrl))
+  def fibonacci(n: Int): BigInt = {
+    @tailrec
+    def fibonacciTail(n: Int, a: BigInt, b: BigInt): BigInt = {
+      if (n == 0) a
+      else if (n == 1) b
+      else fibonacciTail(n - 1, b, a + b)
+    }
+
+    fibonacciTail(n, 0, 1)
+  }
+
+
+  def scenario10(scenarioUrl: Int => String) =
+    def req(params: Option[String] = None) = for
+      resp <- Client.request(scenarioUrl(10) + params.getOrElse("")).filterOrFail(_.status.isSuccess)(Error())
+      body <- resp.body.asString
+    yield
+      body
+
+    for
+      num1 <- req(None)
+      fib1 = fibonacci(num1.toInt)
+      num2 <- req(Some(s"?$num1=$fib1"))
+      fib2 = fibonacci(num2.toInt)
+      resp <- req(Some(s"?$num2=$fib2"))
+    yield
+      resp
+
+
+  def scenario11(scenarioUrl: Int => String) =
+    def req(params: Option[String] = None) = for
+      resp <- Client.request(scenarioUrl(11) + params.getOrElse(""))
+      body <- resp.body.asString
+    yield
+      body
+
+    for
+      nums <- req(None)
+      Array(num1, num2) = nums.split(',')
+      fibFiber1 <- ZIO.succeedBlocking(fibonacci(num1.toInt)).fork
+      fibFiber2 <- ZIO.succeedBlocking(fibonacci(num2.toInt)).fork
+      fib1 <- fibFiber1.join
+      fib2 <- fibFiber2.join
+      resp <- req(Some(s"?$num1=$fib1&$num2=$fib2"))
+    yield
+      resp
+
+
+  def scenarios(scenarioUrl: Int => String) = Seq(
+    scenario1,
+    scenario2,
+    scenario3,
+    scenario4,
+    scenario5,
+    scenario6,
+    scenario7,
+    scenario8,
+    scenario9,
+    scenario10,
+    scenario11,
+  ).map(_.apply(scenarioUrl))
+
+  //def scenarios(scenarioUrl: Int => String) = Seq(scenario11).map(_.apply(scenarioUrl))
+  def all(scenarioUrl: Int => String) = ZIO.collectAll(scenarios(scenarioUrl))
 
   override val run =
     def scenarioUrl(scenario: Int) = s"http://localhost:8080/$scenario"

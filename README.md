@@ -1,14 +1,14 @@
 Easy Racer
 ----------
 
-This project explores how easy it is to build programs which can "race" two or more concurrent computations while providing:
+A series of obstactle courses as a way to compare how different languages and frameworks handle structured concurrency, including:
  - loser cancellation
  - resource management
  - efficient thread utilization (i.e. reactive, non-blocking)
  - explicit timeouts
  - errors causing a race loss
 
-A scenario server validates the implementations of 9 scenarios:
+A scenario server validates the implementations of 11 scenarios:
 
 1. Race 2 concurrent requests
     ```
@@ -52,9 +52,22 @@ A scenario server validates the implementations of 9 scenarios:
     GET /8?close=<id obtained from open request>
     ```
 
-9. (Bonus fun concurrency scenario, but not race related) Make 10 concurrent requests where 5 return a 200 response with a letter, when assembled in order of when they responded, form the "right" answer
+9. Make 10 concurrent requests where 5 return a 200 response with a letter, when assembled in order of when they responded, form the "right" answer
     ```
     GET /9
+    ```
+
+10. Make a request, get the integer returned in the response body, calculate the Fibonacci and make a second request with the result, get the integer returned in the response body, calculate the Fibonacci for this second number, make a thir request with the second Fibonacci to get the "right" answer.
+    ```
+    GET /10
+    GET /10?<num>=<fib>
+    GET /10?<num>=<fib>
+    ```
+
+11. Make a request, get two numbers comma-separated.  Calculate the Fibonacci for each, send then in a second request to get the "right" answer.
+    ```
+    GET /11
+    GET /11?<num1>=<fib1>&<num2>=<fib2>
     ```
 
 If your implementation is correct, each race will result in a 200 response with a body:
