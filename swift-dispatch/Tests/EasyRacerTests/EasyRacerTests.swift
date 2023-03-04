@@ -44,8 +44,11 @@ final class EasyRacerTests: XCTestCase {
         
         // Test
         let easyRacer = EasyRacer(baseURL: baseURL)
-        easyRacer.scenarios { scenarioNum, result in
-            XCTAssertEqual(result, "right", "Scenario \(scenarioNum)")
+        easyRacer.scenarios { results in
+            XCTAssertEqual(results.count, 9, "Number of Scenarios")
+            for (idx, result) in results.enumerated() {
+                XCTAssertEqual(result, "right", "Scenario \(idx + 1)")
+            }
         }
     }
 }

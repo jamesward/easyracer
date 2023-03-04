@@ -7,9 +7,8 @@ import FoundationNetworking
 public struct EasyRacer {
     let baseURL: URL
     
-    func scenario1(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
-        let scenario: Int = 1
-        let url: URL = baseURL.appendingPathComponent("\(scenario)")
+    func scenario1(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("1")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let allRequestsGroup: DispatchGroup = DispatchGroup()
         let expectedResponsesGroup: DispatchGroup = DispatchGroup()
@@ -55,13 +54,12 @@ public struct EasyRacer {
         
         // Send result
         allRequestsGroup.notify(queue: .global()) {
-            scenarioHandler(scenario, result)
+            scenarioHandler(result)
         }
     }
     
-    func scenario2(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
-        let scenario: Int = 2
-        let url: URL = baseURL.appendingPathComponent("\(scenario)")
+    func scenario2(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("2")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let allRequestsGroup: DispatchGroup = DispatchGroup()
         let expectedResponsesGroup: DispatchGroup = DispatchGroup()
@@ -107,13 +105,12 @@ public struct EasyRacer {
         
         // Send result
         allRequestsGroup.notify(queue: .global()) {
-            scenarioHandler(scenario, result)
+            scenarioHandler(result)
         }
     }
     
-    func scenario3(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
-        let scenario: Int = 3
-        let url: URL = baseURL.appendingPathComponent("\(scenario)")
+    func scenario3(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("3")
         let urlSessionCfg = URLSessionConfiguration.ephemeral
         urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
         let allRequestsGroup: DispatchGroup = DispatchGroup()
@@ -160,13 +157,12 @@ public struct EasyRacer {
         
         // Send result
         allRequestsGroup.notify(queue: .global()) {
-            scenarioHandler(scenario, result)
+            scenarioHandler(result)
         }
     }
     
-    func scenario4(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
-        let scenario: Int = 4
-        let url: URL = baseURL.appendingPathComponent("\(scenario)")
+    func scenario4(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("4")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let urlSession1SecTimeout: URLSession = URLSession(
             configuration: {
@@ -219,13 +215,12 @@ public struct EasyRacer {
         
         // Send result
         allRequestsGroup.notify(queue: .global()) {
-            scenarioHandler(scenario, result)
+            scenarioHandler(result)
         }
     }
     
-    func scenario5(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
-        let scenario: Int = 5
-        let url: URL = baseURL.appendingPathComponent("\(scenario)")
+    func scenario5(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("5")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let allRequestsGroup: DispatchGroup = DispatchGroup()
         let expectedResponsesGroup: DispatchGroup = DispatchGroup()
@@ -271,13 +266,12 @@ public struct EasyRacer {
         
         // Send result
         allRequestsGroup.notify(queue: .global()) {
-            scenarioHandler(scenario, result)
+            scenarioHandler(result)
         }
     }
     
-    func scenario6(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
-        let scenario: Int = 6
-        let url: URL = baseURL.appendingPathComponent("\(scenario)")
+    func scenario6(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("6")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let allRequestsGroup: DispatchGroup = DispatchGroup()
         let expectedResponsesGroup: DispatchGroup = DispatchGroup()
@@ -323,13 +317,12 @@ public struct EasyRacer {
         
         // Send result
         allRequestsGroup.notify(queue: .global()) {
-            scenarioHandler(scenario, result)
+            scenarioHandler(result)
         }
     }
     
-    func scenario7(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
-        let scenario: Int = 7
-        let url: URL = baseURL.appendingPathComponent("\(scenario)")
+    func scenario7(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("7")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let allRequestsGroup: DispatchGroup = DispatchGroup()
         allRequestsGroup.enter()
@@ -362,13 +355,12 @@ public struct EasyRacer {
         
         // Send result
         allRequestsGroup.notify(queue: .global()) {
-            scenarioHandler(scenario, result)
+            scenarioHandler(result)
         }
     }
     
-    func scenario8(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
-        let scenario: Int = 8
-        let url: URL = baseURL.appendingPathComponent("\(scenario)")
+    func scenario8(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("8")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let allRequestsGroup: DispatchGroup = DispatchGroup()
         let expectedResponsesGroup: DispatchGroup = DispatchGroup()
@@ -382,7 +374,7 @@ public struct EasyRacer {
                 url: url, resolvingAgainstBaseURL: false
             )
         else {
-            scenarioHandler(scenario, nil)
+            scenarioHandler(nil)
             return
         }
         
@@ -392,7 +384,7 @@ public struct EasyRacer {
         guard
             let openURL: URL = openURLComps.url
         else {
-            scenarioHandler(scenario, nil)
+            scenarioHandler(nil)
             return
         }
         
@@ -468,13 +460,12 @@ public struct EasyRacer {
         
         // Send result
         allRequestsGroup.notify(queue: .global()) {
-            scenarioHandler(scenario, result)
+            scenarioHandler(result)
         }
     }
     
-    func scenario9(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
-        let scenario: Int = 9
-        let url: URL = baseURL.appendingPathComponent("\(scenario)")
+    func scenario9(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("9")
         let urlSession: URLSession = URLSession(
             configuration: {
                 let configuration: URLSessionConfiguration = .ephemeral
@@ -531,39 +522,40 @@ public struct EasyRacer {
         // Notify failure if all requests completed before expected number of successful requests
         allRequestsGroup.notify(queue: .global()) {
             if resultRemaining == 0 {
-                scenarioHandler(scenario, resultAccum)
+                scenarioHandler(resultAccum)
             } else {
-                scenarioHandler(scenario, nil)
+                scenarioHandler(nil)
             }
         }
     }
     
     // Runs scenarios one by one, blocking until they are all complete
-    public func scenarios(scenarioHandler: @escaping @Sendable (Int, String?) -> Void) {
+    public func scenarios(scenariosHandler: @escaping @Sendable ([String?]) -> Void) {
         let scenarios = [
-            scenario1,
-            scenario2,
-            scenario3,
-            scenario4,
-            scenario5,
-            scenario6,
-            scenario7,
-            scenario8,
-            scenario9,
+            (1, scenario1),
+            (2, scenario2),
+            (3, scenario3),
+            (4, scenario4),
+            (5, scenario5),
+            (6, scenario6),
+            (7, scenario7),
+            (8, scenario8),
+            (9, scenario9),
         ]
         let completions: DispatchSemaphore = DispatchSemaphore(value: 0)
-        scenarios.reversed().reduce({ () in }) { nextScenarios, currentScenario in
-            {
-                currentScenario { scenarioNumber, result in
-                    scenarioHandler(scenarioNumber, result)
-                    completions.signal()
-                    nextScenarios()
+        func sortResultsAndNotify(results: [(Int, String?)]) {
+            scenariosHandler(results.sorted { $0.0 < $1.0 }.map { $0.1 })
+            completions.signal()
+        }
+        scenarios.reversed().reduce(sortResultsAndNotify) { nextScenarios, currentScenario in
+            { resultsAccum in
+                let (scenarioNumber, scenario) = currentScenario
+                scenario { result in
+                    nextScenarios(resultsAccum + [(scenarioNumber, result)])
                 }
             }
-        }()
-        for _ in scenarios {
-            completions.wait()
-        }
+        }([])
+        completions.wait()
     }
     
     public static func main() {
@@ -571,8 +563,10 @@ public struct EasyRacer {
             let baseURL = URL(string: "http://localhost:8080")
         else { return }
         
-        EasyRacer(baseURL: baseURL).scenarios { scenarioNumber, result in
-            print("Scenario \(scenarioNumber): \(result ?? "error")")
+        EasyRacer(baseURL: baseURL).scenarios { results in
+            for (idx, result) in results.enumerated() {
+                print("Scenario \(idx + 1): \(result ?? "error")")
+            }
         }
     }
 }
