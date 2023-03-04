@@ -212,8 +212,10 @@ public struct EasyRacer {
                 return text
             }
             group.addTask { try? await doHTTPGet() }
-            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-            group.addTask { try? await doHTTPGet() }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                return try? await doHTTPGet()
+            }
             
             return await group.first { $0 != nil }.flatMap { $0 }
         }
