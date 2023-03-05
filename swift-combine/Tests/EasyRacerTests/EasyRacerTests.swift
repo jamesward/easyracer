@@ -1,9 +1,7 @@
+import Combine
 import DockerClientSwift
 import Logging
 import XCTest
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
 @testable import EasyRacer
 
 final class EasyRacerTests: XCTestCase {
@@ -34,21 +32,28 @@ final class EasyRacerTests: XCTestCase {
                 Thread.sleep(forTimeInterval: 0.01) // 10ms
             }
         }
-        
+
         // Tear down
         defer {
             _ = try? client.containers.stop(container: container).wait()
             _ = try? client.containers.prune().wait()
             try? client.syncShutdown()
         }
-        
+
         // Test
-        let easyRacer = EasyRacer(baseURL: baseURL)
-        easyRacer.scenarios { results in
-            XCTAssertEqual(results.count, 9, "Number of Scenarios")
-            for (idx, result) in results.enumerated() {
-                XCTAssertEqual(result, "right", "Scenario \(idx + 1)")
-            }
-        }
+        let completed = DispatchSemaphore(value: 0)
+        var disposeBag: Set<AnyCancellable> = Set()
+        EasyRacer(baseURL: baseURL).scenarios()
+            .sink(
+                receiveCompletion: { _ in completed.signal() },
+                receiveValue: { results in
+                    XCTAssertEqual(results.count, 9, "Number of Scenarios")
+                    for (idx, result) in results.enumerated() {
+                        XCTAssertEqual(result, "right", "Scenario \(idx + 1)")
+                    }
+                }
+            )
+            .store(in: &disposeBag)
+        completed.wait()
     }
 }

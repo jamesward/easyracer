@@ -1,7 +1,7 @@
 Swift Grand Central Dispatch (Legacy)
 -------------------------------------
 
-Swift implementation that uses only Swift's Grand Central Dispatch library.
+Swift implementation that uses only Swift's [Grand Central Dispatch](https://developer.apple.com/documentation/DISPATCH) framework.
 Before the introduction of `async`/`await`, this was the recommended way of doing concurrency in Swift,
 and is still the only option for running Swift on Linux, Windows or MacOS 10.14 or earlier.
 

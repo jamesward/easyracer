@@ -1,8 +1,8 @@
-Swift Async/Await
------------------
+Swift Combine
+-------------
 
-Swift implementation that uses only Swift's native [concurrency](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency/) constructs (`async`/`await`, TaskGroups).
-As of 2022, this is the recommended way of doing concurrency in Swift, if you are not using any libraries.
+Swift implementation that uses [Combine](https://developer.apple.com/documentation/combine) - Apple's Function Reactive Programming framework.
+As of 2022, this is an alternative approach to solving concurrency problems (in addition to async/await), especially if you are already using Combine.
 
 Swift's HTTP/concurrency model seems to rely on file descriptors under the hood, in order for scenario 3 to succeed,
 the file descriptors limit must be increased:
