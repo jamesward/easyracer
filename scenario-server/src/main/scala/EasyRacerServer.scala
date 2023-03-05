@@ -463,6 +463,18 @@ object EasyRacerServer extends ZIOAppDefault:
         resp
   }
 
+  /*
+   Make a total of 50 requests in batches of 10.
+   Each batch returns 1 successful response containing a character.
+   When assembled in order, you get the "right" response.
+  */
+  def scenario12(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
+
+
+
+    ???
+  }
+
   // scenarioX
   // retry
   // game prevention: request 6 (randomly chosen number) will be the winner, but we wait for x seconds to

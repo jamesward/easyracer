@@ -57,14 +57,14 @@ A scenario server validates the implementations of 11 scenarios:
     GET /9
     ```
 
-10. Make a request, get the integer returned in the response body, calculate the Fibonacci and make a second request with the result, get the integer returned in the response body, calculate the Fibonacci for this second number, make a thir request with the second Fibonacci to get the "right" answer.
+10. Make a request, get the integer returned in the response body, calculate the Fibonacci and make a second request with the result, get the integer returned in the response body, calculate the Fibonacci for this second number, make a thir request with the second Fibonacci to get the "right" answer. (Note: Not really structured concurrency, but is a easy precursor to Scenario 11.)
     ```
     GET /10
     GET /10?<num>=<fib>
     GET /10?<num>=<fib>
     ```
 
-11. Make a request, get two numbers comma-separated.  Calculate the Fibonacci for each, send then in a second request to get the "right" answer.
+11. Make a request, get two numbers comma-separated.  Calculate the Fibonacci for each in parallel, send then in a second request to get the "right" answer.
     ```
     GET /11
     GET /11?<num1>=<fib1>&<num2>=<fib2>
