@@ -111,6 +111,23 @@ public struct EasyRacer {
     
     func scenario3(scenarioHandler: @escaping @Sendable (String?) -> Void) {
         let url: URL = baseURL.appendingPathComponent("3")
+        // Ideally, we'd use a single URLSession configured to handle 10k connections.
+        // This doesn't seem to work - observed from the scenario server, it'll create
+        // ~110 connections, and then stall.
+        // URLSession is close-sourced, so it's hard to tell what is going on.
+        //            let urlSession: URLSession = URLSession(
+        //                configuration: {
+        //                    let urlSessionCfg = URLSessionConfiguration.ephemeral
+        //                    urlSessionCfg.httpMaximumConnectionsPerHost = 10_000
+        //                    return urlSessionCfg
+        //                }(),
+        //                delegate: nil,
+        //                delegateQueue: {
+        //                    let opQueue: OperationQueue = OperationQueue()
+        //                    opQueue.maxConcurrentOperationCount = 10_000
+        //                    return opQueue
+        //                }()
+        //            )
         let urlSessionCfg = URLSessionConfiguration.ephemeral
         urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
         let allRequestsGroup: DispatchGroup = DispatchGroup()
@@ -176,7 +193,7 @@ public struct EasyRacer {
         var result: String? = nil
         let resultLock: NSLock = NSLock()
         expectedResponsesGroup.enter() // Expecting one response
-
+        
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = [urlSession, urlSession1SecTimeout]
             .map { urlSession in
@@ -367,8 +384,7 @@ public struct EasyRacer {
         var result: String? = nil
         let resultLock: NSLock = NSLock()
         expectedResponsesGroup.enter() // Expecting one response
-
-        // Build "open" URL
+        
         guard
             let urlComps: URLComponents = URLComponents(
                 url: url, resolvingAgainstBaseURL: false
@@ -378,6 +394,7 @@ public struct EasyRacer {
             return
         }
         
+        // Build "open" URL
         var openURLComps = urlComps
         openURLComps.queryItems = [URLQueryItem(name: "open", value: nil)]
         
@@ -469,7 +486,7 @@ public struct EasyRacer {
         let urlSession: URLSession = URLSession(
             configuration: {
                 let configuration: URLSessionConfiguration = .ephemeral
-                configuration.httpMaximumConnectionsPerHost = 10
+                configuration.httpMaximumConnectionsPerHost = 10 // Default is 6
                 return configuration
             }()
         )
