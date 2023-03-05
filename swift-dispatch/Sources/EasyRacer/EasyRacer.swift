@@ -491,13 +491,8 @@ public struct EasyRacer {
             }()
         )
         let allRequestsGroup: DispatchGroup = DispatchGroup()
-        let expectedResponsesGroup: DispatchGroup = DispatchGroup()
-        var resultRemaining: Int = 5
         var resultAccum: String = ""
         let resultLock: NSLock = NSLock()
-        for _ in 1...resultRemaining {
-            expectedResponsesGroup.enter()
-        }
         
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...10)
@@ -513,11 +508,7 @@ public struct EasyRacer {
                         resultLock.lock()
                         defer { resultLock.unlock() }
                         
-                        if resultRemaining > 0 {
-                            resultRemaining -= 1
-                            resultAccum += text
-                            expectedResponsesGroup.leave()
-                        }
+                        resultAccum += text
                     }
                     allRequestsGroup.leave()
                 }
@@ -529,20 +520,9 @@ public struct EasyRacer {
             dataTask.resume()
         }
         
-        // Got what we wanted, cancel remaining requests
-        expectedResponsesGroup.notify(queue: .global()) {
-            for dataTask in dataTasks {
-                dataTask.cancel()
-            }
-        }
-        
         // Notify failure if all requests completed before expected number of successful requests
         allRequestsGroup.notify(queue: .global()) {
-            if resultRemaining == 0 {
-                scenarioHandler(resultAccum)
-            } else {
-                scenarioHandler(nil)
-            }
+            scenarioHandler(resultAccum)
         }
     }
     

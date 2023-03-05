@@ -344,7 +344,6 @@ public struct EasyRacer {
             
             return await group
                 .compactMap { $0 }
-                .prefix(5)
                 .reduce("") { $0 + $1 }
         }
         
