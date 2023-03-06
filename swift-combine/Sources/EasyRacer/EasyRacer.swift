@@ -1,8 +1,25 @@
 import Combine
 import Foundation
 
-enum EasyRacerError : Error {
-    case error(String)
+extension URLSession {
+    func bodyTextTaskPublisher(for url: URL) -> Publishers.TryMap<URLSession.DataTaskPublisher, String> {
+        dataTaskPublisher(for: url).tryMap { data, response in
+            guard
+                let response = response as? HTTPURLResponse,
+                (200..<300).contains(response.statusCode)
+            else {
+                throw URLError(.badServerResponse)
+            }
+            
+            guard
+                let text: String = String(data: data, encoding: .utf8)
+            else {
+                throw URLError(.cannotDecodeContentData)
+            }
+            
+            return text
+        }
+    }
 }
 
 @main
@@ -12,19 +29,8 @@ public struct EasyRacer {
     func scenario1() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("1")
         let publisher = URLSession(configuration: .ephemeral)
-            .dataTaskPublisher(for: url)
-            .tryMap { data, response in
-                guard
-                    let response = response as? HTTPURLResponse,
-                    (200..<300).contains(response.statusCode),
-                    let text = String(data: data, encoding: .utf8)
-                else {
-                    throw EasyRacerError.error("invalid HTTP response")
-                }
-                
-                return text
-            }
-            .replaceError(with: nil)
+            .bodyTextTaskPublisher(for: url)
+            .map { $0 }.replaceError(with: nil)
         
         return publisher.merge(with: publisher)
             .compactMap { $0 }.first()
@@ -34,19 +40,8 @@ public struct EasyRacer {
     func scenario2() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("2")
         let publisher = URLSession(configuration: .ephemeral)
-            .dataTaskPublisher(for: url)
-            .tryMap { data, response in
-                guard
-                    let response = response as? HTTPURLResponse,
-                    (200..<300).contains(response.statusCode),
-                    let text = String(data: data, encoding: .utf8)
-                else {
-                    throw EasyRacerError.error("invalid HTTP response")
-                }
-                
-                return text
-            }
-            .replaceError(with: nil)
+            .bodyTextTaskPublisher(for: url)
+            .map { $0 }.replaceError(with: nil)
         
         return publisher.merge(with: publisher)
             .compactMap { $0 }.first()
@@ -74,22 +69,10 @@ public struct EasyRacer {
         //            )
         let urlSessionCfg = URLSessionConfiguration.ephemeral
         urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
-        func publisher() -> AnyPublisher<String?, Never> {
+        func publisher() -> Publishers.ReplaceError<Publishers.TryMap<URLSession.DataTaskPublisher, String?>> {
             URLSession(configuration: urlSessionCfg)
-                .dataTaskPublisher(for: url)
-                .tryMap { data, response in
-                    guard
-                        let response = response as? HTTPURLResponse,
-                        (200..<300).contains(response.statusCode),
-                        let text: String = String(data: data, encoding: .utf8)
-                    else {
-                        throw EasyRacerError.error("invalid HTTP response")
-                    }
-                    
-                    return text
-                }
-                .replaceError(with: nil)
-                .eraseToAnyPublisher()
+                .bodyTextTaskPublisher(for: url)
+                .map { $0 }.replaceError(with: nil)
         }
         
         return Publishers
@@ -100,31 +83,19 @@ public struct EasyRacer {
     
     func scenario4() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("4")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        let urlSession1SecTimeout: URLSession = URLSession(configuration: {
-            let configuration: URLSessionConfiguration = .ephemeral
-            configuration.timeoutIntervalForRequest = 1
-            return configuration
-        }())
-        func publisher(using urlSession: URLSession) -> AnyPublisher<String?, Never> {
-            urlSession
-                .dataTaskPublisher(for: url)
-                .tryMap { data, response in
-                    guard
-                        let response = response as? HTTPURLResponse,
-                        (200..<300).contains(response.statusCode),
-                        let text = String(data: data, encoding: .utf8)
-                    else {
-                        throw EasyRacerError.error("invalid HTTP response")
-                    }
-                    
-                    return text
-                }
-                .replaceError(with: nil)
-                .eraseToAnyPublisher()
-        }
+        let publisher = URLSession(configuration: .ephemeral)
+            .bodyTextTaskPublisher(for: url)
+            .map { $0 }.replaceError(with: nil)
+        let publisher1SecTimeout = URLSession(
+            configuration: {
+                let configuration: URLSessionConfiguration = .ephemeral
+                configuration.timeoutIntervalForRequest = 1
+                return configuration
+            }())
+            .bodyTextTaskPublisher(for: url)
+            .map { $0 }.replaceError(with: nil)
         
-        return publisher(using: urlSession).merge(with: publisher(using: urlSession1SecTimeout))
+        return publisher.merge(with: publisher1SecTimeout)
             .compactMap { $0 }.first()
             .eraseToAnyPublisher()
     }
@@ -132,19 +103,8 @@ public struct EasyRacer {
     func scenario5() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("5")
         let publisher = URLSession(configuration: .ephemeral)
-            .dataTaskPublisher(for: url)
-            .tryMap { data, response in
-                guard
-                    let response = response as? HTTPURLResponse,
-                    (200..<300).contains(response.statusCode),
-                    let text = String(data: data, encoding: .utf8)
-                else {
-                    throw EasyRacerError.error("invalid HTTP response")
-                }
-                
-                return text
-            }
-            .replaceError(with: nil)
+            .bodyTextTaskPublisher(for: url)
+            .map { $0 }.replaceError(with: nil)
         
         return publisher.merge(with: publisher)
             .compactMap { $0 }.first()
@@ -154,19 +114,8 @@ public struct EasyRacer {
     func scenario6() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("6")
         let publisher = URLSession(configuration: .ephemeral)
-            .dataTaskPublisher(for: url)
-            .tryMap { data, response in
-                guard
-                    let response = response as? HTTPURLResponse,
-                    (200..<300).contains(response.statusCode),
-                    let text = String(data: data, encoding: .utf8)
-                else {
-                    throw EasyRacerError.error("invalid HTTP response")
-                }
-                
-                return text
-            }
-            .replaceError(with: nil)
+            .bodyTextTaskPublisher(for: url)
+            .map { $0 }.replaceError(with: nil)
         
         return publisher.merge(with: publisher, publisher)
             .compactMap { $0 }.first()
@@ -176,19 +125,8 @@ public struct EasyRacer {
     func scenario7() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("7")
         let publisher = URLSession(configuration: .ephemeral)
-            .dataTaskPublisher(for: url)
-            .tryMap { data, response in
-                guard
-                    let response = response as? HTTPURLResponse,
-                    (200..<300).contains(response.statusCode),
-                    let text = String(data: data, encoding: .utf8)
-                else {
-                    throw EasyRacerError.error("invalid HTTP response")
-                }
-                
-                return text
-            }
-            .replaceError(with: nil)
+            .bodyTextTaskPublisher(for: url)
+            .map { $0 }.replaceError(with: nil)
         let delayedPublisher = Just(())
             .delay(for: .seconds(3), scheduler: DispatchQueue.global())
             .flatMap { _ in return publisher }
@@ -222,18 +160,7 @@ public struct EasyRacer {
         
         // Open
         let publisher = urlSession
-            .dataTaskPublisher(for: openURL)
-            .tryMap { openData, openResponse in
-                guard
-                    let openResponse = openResponse as? HTTPURLResponse,
-                    (200..<300).contains(openResponse.statusCode),
-                    let id = String(data: openData, encoding: .utf8)
-                else {
-                    throw EasyRacerError.error("invalid HTTP response")
-                }
-                
-                return id
-            }
+            .bodyTextTaskPublisher(for: openURL)
             .flatMap { id in
                 // Use
                 var useURLComps = urlComps
@@ -242,24 +169,13 @@ public struct EasyRacer {
                 guard
                     let useURL: URL = useURLComps.url
                 else {
-                    return Fail<String?, any Error>(error: EasyRacerError.error("bad use URL"))
+                    return Fail<String?, any Error>(error: URLError(.badURL))
                         .eraseToAnyPublisher()
                 }
                 
                 return urlSession
-                    .dataTaskPublisher(for: useURL)
-                    .tryMap { useData, useResponse in
-                        guard
-                            let useResponse = useResponse as? HTTPURLResponse,
-                            (200..<300).contains(useResponse.statusCode),
-                            let text = String(data: useData, encoding: .utf8)
-                        else {
-                            throw EasyRacerError.error("invalid HTTP response")
-                        }
-                        
-                        return text
-                    }
-                    .replaceError(with: nil) // so that we close even if use call errored
+                    .bodyTextTaskPublisher(for: useURL)
+                    .map { $0 }.replaceError(with: nil) // so that we close even if use call errored
                     .flatMap { text in
                         // Close
                         var closeURLComps = urlComps
@@ -268,23 +184,13 @@ public struct EasyRacer {
                         guard
                             let closeURL: URL = closeURLComps.url
                         else {
-                            return Fail<String?, any Error>(error: EasyRacerError.error("bad close URL"))
+                            return Fail<String?, any Error>(error: URLError(.badURL))
                                 .eraseToAnyPublisher()
                         }
                         
                         return urlSession
-                            .dataTaskPublisher(for: closeURL)
-                            .tryMap { closeData, closeResponse in
-                                guard
-                                    let closeResponse = closeResponse as? HTTPURLResponse,
-                                    (200..<300).contains(closeResponse.statusCode),
-                                    let _ = String(data: closeData, encoding: .utf8)
-                                else {
-                                    throw EasyRacerError.error("invalid HTTP response")
-                                }
-                                
-                                return text
-                            }
+                            .bodyTextTaskPublisher(for: closeURL)
+                            .map { _ in  text }
                             .eraseToAnyPublisher()
                     }
                     .eraseToAnyPublisher()
@@ -298,25 +204,14 @@ public struct EasyRacer {
     
     func scenario9() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("9")
-        let urlSession: URLSession = URLSession(configuration: {
-            let configuration: URLSessionConfiguration = .ephemeral
-            configuration.httpMaximumConnectionsPerHost = 10 // Default is 6
-            return configuration
-        }())
-        let publisher = urlSession
-            .dataTaskPublisher(for: url)
-            .tryMap { data, response in
-                guard
-                    let response = response as? HTTPURLResponse,
-                    (200..<300).contains(response.statusCode),
-                    let text = String(data: data, encoding: .utf8)
-                else {
-                    throw EasyRacerError.error("invalid HTTP response")
-                }
-                
-                return text
-            }
-            .replaceError(with: nil)
+        let publisher = URLSession(
+            configuration: {
+                let configuration: URLSessionConfiguration = .ephemeral
+                configuration.httpMaximumConnectionsPerHost = 10 // Default is 6
+                return configuration
+            }())
+            .bodyTextTaskPublisher(for: url)
+            .map { $0 }.replaceError(with: nil)
         
         return Publishers.MergeMany(Array(repeating: publisher, count: 10))
             .compactMap { $0 }
