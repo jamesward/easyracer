@@ -4,6 +4,27 @@ enum EasyRacerError : Error {
     case error(String)
 }
 
+extension URLSession {
+    func bodyText(from url: URL) async throws -> String {
+        let (data, response) = try await data(from: url)
+        
+        guard
+            let response = response as? HTTPURLResponse,
+            (200..<300).contains(response.statusCode)
+        else {
+            throw URLError(.badServerResponse)
+        }
+        
+        guard
+            let text: String = String(data: data, encoding: .utf8)
+        else {
+            throw URLError(.cannotDecodeContentData)
+        }
+        
+        return text
+    }
+}
+
 @main
 public struct EasyRacer {
     let baseURL: URL
@@ -11,24 +32,12 @@ public struct EasyRacer {
     func scenario1() async -> String? {
         let url: URL = baseURL.appendingPathComponent("1")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        @Sendable func doHTTPGet() async throws -> String {
-            let (data, response) = try await urlSession.data(from: url)
-            guard
-                let response = response as? HTTPURLResponse,
-                (200..<300).contains(response.statusCode),
-                let text: String = String(data: data, encoding: .utf8)
-            else {
-                throw EasyRacerError.error("invalid HTTP response")
-            }
-            
-            return text
-        }
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
-            group.addTask { try? await doHTTPGet() }
-            group.addTask { try? await doHTTPGet() }
+            group.addTask { try? await urlSession.bodyText(from: url) }
+            group.addTask { try? await urlSession.bodyText(from: url) }
             
             return await group.first { $0 != nil }.flatMap { $0 }
         }
@@ -39,24 +48,12 @@ public struct EasyRacer {
     func scenario2() async -> String? {
         let url: URL = baseURL.appendingPathComponent("2")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        @Sendable func doHTTPGet() async throws -> String {
-            let (data, response) = try await urlSession.data(from: url)
-            guard
-                let response = response as? HTTPURLResponse,
-                (200..<300).contains(response.statusCode),
-                let text: String = String(data: data, encoding: .utf8)
-            else {
-                throw EasyRacerError.error("invalid HTTP response")
-            }
-            
-            return text
-        }
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
-            group.addTask { try? await doHTTPGet() }
-            group.addTask { try? await doHTTPGet() }
+            group.addTask { try? await urlSession.bodyText(from: url) }
+            group.addTask { try? await urlSession.bodyText(from: url) }
             
             return await group.first { $0 != nil }.flatMap { $0 }
         }
@@ -85,26 +82,14 @@ public struct EasyRacer {
 //            )
         let urlSessionCfg = URLSessionConfiguration.ephemeral
         urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
-        @Sendable func doHTTPGet() async throws -> String {
-            // Using URLSession per connection to get around connection limit
-            let urlSession: URLSession = URLSession(configuration: urlSessionCfg)
-            let (data, response) = try await urlSession.data(from: url)
-            guard
-                let response = response as? HTTPURLResponse,
-                (200..<300).contains(response.statusCode),
-                let text: String = String(data: data, encoding: .utf8)
-            else {
-                throw EasyRacerError.error("invalid HTTP response")
-            }
-            
-            return text
-        }
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             for _ in 1...10_000 {
-                group.addTask { try? await doHTTPGet() }
+                group.addTask {
+                    try? await URLSession(configuration: urlSessionCfg).bodyText(from: url)
+                }
             }
             
             return await group.first { $0 != nil }.flatMap { $0 }
@@ -121,24 +106,12 @@ public struct EasyRacer {
             configuration.timeoutIntervalForRequest = 1
             return configuration
         }())
-        @Sendable func doHTTPGet(_ urlSession: URLSession) async throws -> String {
-            let (data, response) = try await urlSession.data(from: url)
-            guard
-                let response = response as? HTTPURLResponse,
-                (200..<300).contains(response.statusCode),
-                let text: String = String(data: data, encoding: .utf8)
-            else {
-                throw EasyRacerError.error("invalid HTTP response")
-            }
-            
-            return text
-        }
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
-            group.addTask { try? await doHTTPGet(urlSession) }
-            group.addTask { try? await doHTTPGet(urlSession1SecTimeout) }
+            group.addTask { try? await urlSession.bodyText(from: url) }
+            group.addTask { try? await urlSession1SecTimeout.bodyText(from: url) }
             
             return await group.first { $0 != nil }.flatMap { $0 }
         }
@@ -149,24 +122,12 @@ public struct EasyRacer {
     func scenario5() async -> String? {
         let url: URL = baseURL.appendingPathComponent("5")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        @Sendable func doHTTPGet() async throws -> String {
-            let (data, response) = try await urlSession.data(from: url)
-            guard
-                let response = response as? HTTPURLResponse,
-                (200..<300).contains(response.statusCode),
-                let text: String = String(data: data, encoding: .utf8)
-            else {
-                throw EasyRacerError.error("invalid HTTP response")
-            }
-            
-            return text
-        }
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
-            group.addTask { try? await doHTTPGet() }
-            group.addTask { try? await doHTTPGet() }
+            group.addTask { try? await urlSession.bodyText(from: url) }
+            group.addTask { try? await urlSession.bodyText(from: url) }
             
             return await group.first { $0 != nil }.flatMap { $0 }
         }
@@ -177,25 +138,13 @@ public struct EasyRacer {
     func scenario6() async -> String? {
         let url: URL = baseURL.appendingPathComponent("6")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        @Sendable func doHTTPGet() async throws -> String {
-            let (data, response) = try await urlSession.data(from: url)
-            guard
-                let response = response as? HTTPURLResponse,
-                (200..<300).contains(response.statusCode),
-                let text: String = String(data: data, encoding: .utf8)
-            else {
-                throw EasyRacerError.error("invalid HTTP response")
-            }
-            
-            return text
-        }
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
-            group.addTask { try? await doHTTPGet() }
-            group.addTask { try? await doHTTPGet() }
-            group.addTask { try? await doHTTPGet() }
+            group.addTask { try? await urlSession.bodyText(from: url) }
+            group.addTask { try? await urlSession.bodyText(from: url) }
+            group.addTask { try? await urlSession.bodyText(from: url) }
             
             return await group.first { $0 != nil }.flatMap { $0 }
         }
@@ -206,26 +155,14 @@ public struct EasyRacer {
     func scenario7() async -> String? {
         let url: URL = baseURL.appendingPathComponent("7")
         let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        @Sendable func doHTTPGet() async throws -> String {
-            let (data, response) = try await urlSession.data(from: url)
-            guard
-                let response = response as? HTTPURLResponse,
-                (200..<300).contains(response.statusCode),
-                let text: String = String(data: data, encoding: .utf8)
-            else {
-                throw EasyRacerError.error("invalid HTTP response")
-            }
-            
-            return text
-        }
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
-            group.addTask { try? await doHTTPGet() }
+            group.addTask { try? await urlSession.bodyText(from: url) }
             group.addTask {
                 try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-                return try? await doHTTPGet()
+                return try? await urlSession.bodyText(from: url)
             }
             
             return await group.first { $0 != nil }.flatMap { $0 }
@@ -255,15 +192,7 @@ public struct EasyRacer {
             else {
                 throw EasyRacerError.error("bad open URL")
             }
-            let (openData, openResponse) = try await urlSession.data(from: openURL)
-            
-            guard
-                let response = openResponse as? HTTPURLResponse,
-                (200..<300).contains(response.statusCode),
-                let id: String = String(data: openData, encoding: .utf8)
-            else {
-                throw EasyRacerError.error("invalid HTTP response")
-            }
+            let id = try await urlSession.bodyText(from: openURL)
             
             // Use
             var useURLComps = urlComps
@@ -274,17 +203,7 @@ public struct EasyRacer {
             else {
                 throw EasyRacerError.error("bad use URL")
             }
-            let (useData, useResponse) = try await urlSession.data(from: useURL)
-            
-            let text: String?
-            if
-                let response = useResponse as? HTTPURLResponse,
-                (200..<300).contains(response.statusCode)
-            {
-                text = String(data: useData, encoding: .utf8)
-            } else {
-                text = nil
-            }
+            let text: String? = try? await urlSession.bodyText(from: useURL)
             
             // Close
             var closeURLComps = urlComps
@@ -322,24 +241,12 @@ public struct EasyRacer {
             configuration.httpMaximumConnectionsPerHost = 10 // Default is 6
             return configuration
         }())
-        @Sendable func doHTTPGet() async throws -> String {
-            let (data, response) = try await urlSession.data(from: url)
-            guard
-                let response = response as? HTTPURLResponse,
-                (200..<300).contains(response.statusCode),
-                let text: String = String(data: data, encoding: .utf8)
-            else {
-                throw EasyRacerError.error("invalid HTTP response")
-            }
-            
-            return text
-        }
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             for _ in 1...10 {
-                group.addTask { try? await doHTTPGet() }
+                group.addTask { try? await urlSession.bodyText(from: url) }
             }
             
             return await group
