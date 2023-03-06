@@ -3,6 +3,37 @@ import Foundation
 import FoundationNetworking
 #endif
 
+extension URLSession {
+    func bodyTextTask(
+        with url: URL, completionHandler: @escaping (Result<String, Error>) -> Void
+    ) -> URLSessionDataTask {
+        dataTask(with: url) { data, response, error in
+            if let error = error {
+                completionHandler(.failure(error))
+                return
+            }
+            
+            guard
+                let response: HTTPURLResponse = response as? HTTPURLResponse,
+                (200..<300).contains(response.statusCode)
+            else {
+                completionHandler(.failure(URLError(.badServerResponse)))
+                return
+            }
+            
+            guard
+                let data: Data = data,
+                let text: String = String(data: data, encoding: .utf8)
+            else {
+                completionHandler(.failure(URLError(.cannotDecodeContentData)))
+                return
+            }
+            
+            completionHandler(.success(text))
+        }
+    }
+}
+
 @main
 public struct EasyRacer {
     let baseURL: URL
@@ -19,14 +50,8 @@ public struct EasyRacer {
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...2)
             .map { _ in
-                urlSession.dataTask(with: url) { data, response, error in
-                    if
-                        error == nil,
-                        let response = response as? HTTPURLResponse,
-                        (200..<300).contains(response.statusCode),
-                        let data: Data = data,
-                        let text: String = String(data: data, encoding: .utf8)
-                    {
+                urlSession.bodyTextTask(with: url) { bodyText in
+                    if case let .success(text) = bodyText {
                         resultLock.lock()
                         defer { resultLock.unlock() }
                         
@@ -70,14 +95,8 @@ public struct EasyRacer {
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...2)
             .map { _ in
-                urlSession.dataTask(with: url) { data, response, error in
-                    if
-                        error == nil,
-                        let response = response as? HTTPURLResponse,
-                        (200..<300).contains(response.statusCode),
-                        let data: Data = data,
-                        let text: String = String(data: data, encoding: .utf8)
-                    {
+                urlSession.bodyTextTask(with: url) { bodyText in
+                    if case let .success(text) = bodyText {
                         resultLock.lock()
                         defer { resultLock.unlock() }
                         
@@ -139,14 +158,8 @@ public struct EasyRacer {
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...10_000)
             .map { _ in
-                URLSession(configuration: urlSessionCfg).dataTask(with: url) { data, response, error in
-                    if
-                        error == nil,
-                        let response = response as? HTTPURLResponse,
-                        (200..<300).contains(response.statusCode),
-                        let data: Data = data,
-                        let text: String = String(data: data, encoding: .utf8)
-                    {
+                URLSession(configuration: urlSessionCfg).bodyTextTask(with: url) { bodyText in
+                    if case let .success(text) = bodyText {
                         resultLock.lock()
                         defer { resultLock.unlock() }
                         
@@ -197,14 +210,8 @@ public struct EasyRacer {
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = [urlSession, urlSession1SecTimeout]
             .map { urlSession in
-                urlSession.dataTask(with: url) { data, response, error in
-                    if
-                        error == nil,
-                        let response = response as? HTTPURLResponse,
-                        (200..<300).contains(response.statusCode),
-                        let data: Data = data,
-                        let text: String = String(data: data, encoding: .utf8)
-                    {
+                urlSession.bodyTextTask(with: url) { bodyText in
+                    if case let .success(text) = bodyText {
                         resultLock.lock()
                         defer { resultLock.unlock() }
                         
@@ -248,14 +255,8 @@ public struct EasyRacer {
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...2)
             .map { _ in
-                urlSession.dataTask(with: url) { data, response, error in
-                    if
-                        error == nil,
-                        let response = response as? HTTPURLResponse,
-                        (200..<300).contains(response.statusCode),
-                        let data: Data = data,
-                        let text: String = String(data: data, encoding: .utf8)
-                    {
+                urlSession.bodyTextTask(with: url) { bodyText in
+                    if case let .success(text) = bodyText {
                         resultLock.lock()
                         defer { resultLock.unlock() }
                         
@@ -299,14 +300,8 @@ public struct EasyRacer {
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...3)
             .map { _ in
-                urlSession.dataTask(with: url) { data, response, error in
-                    if
-                        error == nil,
-                        let response = response as? HTTPURLResponse,
-                        (200..<300).contains(response.statusCode),
-                        let data: Data = data,
-                        let text: String = String(data: data, encoding: .utf8)
-                    {
+                urlSession.bodyTextTask(with: url) { bodyText in
+                    if case let .success(text) = bodyText {
                         resultLock.lock()
                         defer { resultLock.unlock() }
                         
@@ -345,20 +340,14 @@ public struct EasyRacer {
         allRequestsGroup.enter()
         var result: String? = nil
         
-        let secondDataTask: URLSessionDataTask = urlSession.dataTask(with: url) { _, _, _ in
+        let secondDataTask: URLSessionDataTask = urlSession.bodyTextTask(with: url) { _ in
             allRequestsGroup.leave()
         }
         
         // Execute first HTTP request
         urlSession
-            .dataTask(with: url) { data, response, error in
-                if
-                    error == nil,
-                    let response = response as? HTTPURLResponse,
-                    (200..<300).contains(response.statusCode),
-                    let data: Data = data,
-                    let text: String = String(data: data, encoding: .utf8)
-                {
+            .bodyTextTask(with: url) { bodyText in
+                if case let .success(text) = bodyText {
                     result = text
                 }
                 secondDataTask.cancel()
@@ -409,14 +398,8 @@ public struct EasyRacer {
         let dataTasks: [URLSessionDataTask] = (1...2)
             .map { _ in
                 // Open
-                urlSession.dataTask(with: openURL) { openData, openResponse, openError in
-                    if
-                        openError == nil,
-                        let openResponse = openResponse as? HTTPURLResponse,
-                        (200..<300).contains(openResponse.statusCode),
-                        let openData: Data = openData,
-                        let id: String = String(data: openData, encoding: .utf8)
-                    {
+                urlSession.bodyTextTask(with: openURL) { openBodyText in
+                    if case let .success(id) = openBodyText {
                         // Use
                         var useURLComps = urlComps
                         useURLComps.queryItems = [URLQueryItem(name: "use", value: id)]
@@ -427,14 +410,8 @@ public struct EasyRacer {
                             allRequestsGroup.leave()
                             return
                         }
-                        urlSession.dataTask(with: useURL) { useData, useResponse, useError in
-                            if
-                                useError == nil,
-                                let useResponse = useResponse as? HTTPURLResponse,
-                                (200..<300).contains(useResponse.statusCode),
-                                let useData: Data = useData,
-                                let text: String = String(data: useData, encoding: .utf8)
-                            {
+                        urlSession.bodyTextTask(with: useURL) { useBodyText in
+                            if case let .success(text) = useBodyText {
                                 resultLock.lock()
                                 defer { resultLock.unlock() }
                                 
@@ -454,7 +431,7 @@ public struct EasyRacer {
                                 allRequestsGroup.leave()
                                 return
                             }
-                            urlSession.dataTask(with: closeURL) { _, _, _ in
+                            urlSession.bodyTextTask(with: closeURL) { _ in
                                 allRequestsGroup.leave()
                             }.resume()
                         }.resume()
@@ -497,14 +474,8 @@ public struct EasyRacer {
         // Set up HTTP requests without executing
         let dataTasks: [URLSessionDataTask] = (1...10)
             .map { _ in
-                urlSession.dataTask(with: url) { data, response, error in
-                    if
-                        error == nil,
-                        let response = response as? HTTPURLResponse,
-                        (200..<300).contains(response.statusCode),
-                        let data: Data = data,
-                        let text: String = String(data: data, encoding: .utf8)
-                    {
+                urlSession.bodyTextTask(with: url) { bodyText in
+                    if case let .success(text) = bodyText {
                         resultLock.lock()
                         defer { resultLock.unlock() }
                         
