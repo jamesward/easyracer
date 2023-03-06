@@ -54,19 +54,19 @@ public struct EasyRacer {
         // This doesn't seem to work - observed from the scenario server, it'll create
         // ~110 connections, and then stall.
         // URLSession is close-sourced, so it's hard to tell what is going on.
-        //            let urlSession: URLSession = URLSession(
-        //                configuration: {
-        //                    let urlSessionCfg = URLSessionConfiguration.ephemeral
-        //                    urlSessionCfg.httpMaximumConnectionsPerHost = 10_000
-        //                    return urlSessionCfg
-        //                }(),
-        //                delegate: nil,
-        //                delegateQueue: {
-        //                    let opQueue: OperationQueue = OperationQueue()
-        //                    opQueue.maxConcurrentOperationCount = 10_000
-        //                    return opQueue
-        //                }()
-        //            )
+//        let urlSession: URLSession = URLSession(
+//            configuration: {
+//                let urlSessionCfg = URLSessionConfiguration.ephemeral
+//                urlSessionCfg.httpMaximumConnectionsPerHost = 10_000
+//                return urlSessionCfg
+//            }(),
+//            delegate: nil,
+//            delegateQueue: {
+//                let opQueue: OperationQueue = OperationQueue()
+//                opQueue.maxConcurrentOperationCount = 10_000
+//                return opQueue
+//            }()
+//        )
         let urlSessionCfg = URLSessionConfiguration.ephemeral
         urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
         func publisher() -> Publishers.ReplaceError<Publishers.TryMap<URLSession.DataTaskPublisher, String?>> {
