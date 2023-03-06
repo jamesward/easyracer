@@ -1,9 +1,5 @@
 import Foundation
 
-enum EasyRacerError : Error {
-    case error(String)
-}
-
 extension URLSession {
     func bodyText(from url: URL) async throws -> String {
         let (data, response) = try await data(from: url)
@@ -180,7 +176,7 @@ public struct EasyRacer {
                     url: url, resolvingAgainstBaseURL: false
                 )
             else {
-                throw EasyRacerError.error("unable to create URLComponents")
+                throw URLError(.badURL)
             }
             
             // Open
@@ -190,7 +186,7 @@ public struct EasyRacer {
             guard
                 let openURL: URL = openURLComps.url
             else {
-                throw EasyRacerError.error("bad open URL")
+                throw URLError(.badURL)
             }
             let id = try await urlSession.bodyText(from: openURL)
             
@@ -201,7 +197,7 @@ public struct EasyRacer {
             guard
                 let useURL: URL = useURLComps.url
             else {
-                throw EasyRacerError.error("bad use URL")
+                throw URLError(.badURL)
             }
             let text: String? = try? await urlSession.bodyText(from: useURL)
             
@@ -212,12 +208,12 @@ public struct EasyRacer {
             guard
                 let closeURL: URL = closeURLComps.url
             else {
-                throw EasyRacerError.error("bad close URL")
+                throw URLError(.badURL)
             }
             let _ = try await urlSession.data(from: closeURL)
             
             guard let text: String = text else {
-                throw EasyRacerError.error("invalid HTTP response")
+                throw URLError(.badServerResponse)
             }
             return text
         }

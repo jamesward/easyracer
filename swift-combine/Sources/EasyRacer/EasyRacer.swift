@@ -1,10 +1,6 @@
 import Combine
 import Foundation
 
-enum EasyRacerError : Error {
-    case error(String)
-}
-
 extension URLSession {
     func bodyTextTaskPublisher(for url: URL) -> Publishers.TryMap<URLSession.DataTaskPublisher, String> {
         dataTaskPublisher(for: url).tryMap { data, response in
@@ -173,7 +169,7 @@ public struct EasyRacer {
                 guard
                     let useURL: URL = useURLComps.url
                 else {
-                    return Fail<String?, any Error>(error: EasyRacerError.error("bad use URL"))
+                    return Fail<String?, any Error>(error: URLError(.badURL))
                         .eraseToAnyPublisher()
                 }
                 
@@ -188,7 +184,7 @@ public struct EasyRacer {
                         guard
                             let closeURL: URL = closeURLComps.url
                         else {
-                            return Fail<String?, any Error>(error: EasyRacerError.error("bad close URL"))
+                            return Fail<String?, any Error>(error: URLError(.badURL))
                                 .eraseToAnyPublisher()
                         }
                         
