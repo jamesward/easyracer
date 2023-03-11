@@ -25,7 +25,7 @@ describe("EasyRacer", () => {
         this.ports.sendResult.subscribe(handle);
       });
     };
-  }, 60_000);
+  }, 300_000);
 
   afterAll(async () => {
     await container.stop();
