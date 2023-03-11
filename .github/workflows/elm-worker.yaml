@@ -18,5 +18,8 @@ jobs:
         with:
           elm-version: 0.19.1
 
-      - run: elm make --optimize --output=app/EasyRacer.js src/EasyRacer.elm
+      - run: |
+          elm make --optimize --output=app/EasyRacer.js src/EasyRacer.elm
+          npm install testcontainers
+          npm jest
         working-directory: ./elm-worker
