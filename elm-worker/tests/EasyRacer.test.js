@@ -1,5 +1,5 @@
 const { Elm } = require("../app/EasyRacer");
-const { GenericContainer } = require("testcontainers");
+const { GenericContainer, AlwaysPullPolicy } = require("testcontainers");
 
 describe("EasyRacer", () => {
   let container;
