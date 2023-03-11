@@ -1,4 +1,4 @@
-const { Elm } = require("../EasyRacer");
+const { Elm } = require("../app/EasyRacer");
 const { GenericContainer } = require("testcontainers");
 
 describe("EasyRacer", () => {
