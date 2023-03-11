@@ -6,14 +6,14 @@ describe("EasyRacer", () => {
   let easyRacer;
 
   beforeAll(async () => {
-    container = await new GenericContainer("ghcr.io/jamesward/easyracer")
-      .withExposedPorts(8080)
+    container = await new GenericContainer("nginxdemos/hello:plain-text")
+      .withExposedPorts(80)
       .withPullPolicy(new AlwaysPullPolicy())
       .start();
 
     easyRacer = Elm.EasyRacer.init({
       "host": container.getHost(),
-      "portNumber": container.getMappedPort(8080)
+      "portNumber": container.getMappedPort(80)
     });
     easyRacer.runScenario = function(scenarioNumber) {
       this.ports.nextScenario.send(scenarioNumber);
