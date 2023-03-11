@@ -20,6 +20,6 @@ jobs:
 
       - run: |
           elm make --optimize --output=app/EasyRacer.js src/EasyRacer.elm
-          npm install -g --no-fund jest testcontainers
+          npm install -g --save-dev --no-fund jest testcontainers
           npm test
         working-directory: ./elm-worker
