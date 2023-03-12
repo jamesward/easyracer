@@ -12,8 +12,10 @@ describe("EasyRacer", () => {
       .start();
 
     easyRacer = Elm.EasyRacer.init({
-      host: container.getHost(),
-      portNumber: container.getMappedPort(80)
+      flags: {
+        host: container.getHost(),
+        portNumber: container.getMappedPort(80)
+      }
     });
     easyRacer.runScenario = function(scenarioNumber) {
       this.ports.nextScenario.send(scenarioNumber);
