@@ -1,4 +1,4 @@
-port module EasyRacer.Scenario1 exposing (main)
+port module EasyRacer.Scenario4 exposing (main)
 
 import Platform exposing (Program)
 

@@ -19,7 +19,9 @@ jobs:
           elm-version: 0.19.1
 
       - run: |
-          elm make --optimize --output=app/EasyRacer/Scenario1.js src/EasyRacer/Scenario1.elm
+          for num in {1..9}; do
+            elm make --optimize --output=app/EasyRacer/Scenario$num.js src/EasyRacer/Scenario$num.elm
+          done
           npm install --no-fund xhr2
           npm install -g --save-dev --no-fund jest
           npm install --save-dev --no-fund testcontainers
