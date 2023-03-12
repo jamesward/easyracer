@@ -31,21 +31,9 @@ type Msg
 init : Flags -> ( Model, Cmd Msg )
 init baseUrl =
     let
-        requestTrackers : List String
         requestTrackers =
             [ "first", "second" ]
 
-        httpRequest :
-            String
-            ->
-                { method : String
-                , headers : List Http.Header
-                , url : String
-                , body : Http.Body
-                , expect : Http.Expect Msg
-                , timeout : Maybe Float
-                , tracker : Maybe String
-                }
         httpRequest tracker =
             { method = "GET"
             , headers = []
@@ -59,10 +47,9 @@ init baseUrl =
     ( { result = Nothing
       , inflightTrackers = Set.fromList requestTrackers
       }
-    , Cmd.batch
-        (requestTrackers
-            |> List.map (Http.request << httpRequest)
-        )
+    , requestTrackers
+        |> List.map (Http.request << httpRequest)
+        |> Cmd.batch
     )
 
 
@@ -103,7 +90,21 @@ update msg model =
                 | result = result
                 , inflightTrackers = remainingTrackers
               }
-            , result |> Result.fromMaybe "no successful response" |> sendResult
+            , if not <| Set.isEmpty remainingTrackers then
+                case responseResult of
+                    Just _ ->
+                        remainingTrackers
+                            |> Set.toList
+                            |> List.map Http.cancel
+                            |> Cmd.batch
+
+                    Nothing ->
+                        Cmd.none
+
+              else
+                result
+                    |> Result.fromMaybe "all HTTP requests completed without a single successful response"
+                    |> sendResult
             )
 
 
