@@ -9,7 +9,9 @@ type alias ScenarioNumber =
 
 
 type alias ScenarioResult =
-    String
+    { isError : Bool
+    , value : String
+    }
 
 
 port nextScenario : (ScenarioNumber -> msg) -> Sub msg
@@ -22,18 +24,26 @@ type alias Flags =
     { host : String, portNumber : Int }
 
 
+type State
+    = Idle
+
+
 type alias Model =
-    { baseUrl : String }
+    { baseUrl : String
+    , currentState : State
+    }
 
 
 type Msg
-    = ScenarioRequest ScenarioNumber
-    | ScenarioResponse (Result Http.Error ScenarioResult)
+    = ExternalRequest ScenarioNumber
+    | HttpResponse (Result Http.Error String)
 
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { baseUrl = "http://" ++ flags.host ++ ":" ++ String.fromInt flags.portNumber }
+    ( { baseUrl = "http://" ++ flags.host ++ ":" ++ String.fromInt flags.portNumber
+      , currentState = Idle
+      }
     , Cmd.none
     )
 
@@ -41,24 +51,24 @@ init flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ScenarioRequest _ ->
+        ExternalRequest _ ->
             ( model
             , Http.get
                 { url = model.baseUrl
-                , expect = Http.expectString ScenarioResponse
+                , expect = Http.expectString HttpResponse
                 }
             )
 
-        ScenarioResponse (Ok scenarioResult) ->
-            ( model, sendResult scenarioResult )
+        HttpResponse (Ok bodyText) ->
+            ( model, sendResult { isError = False, value = bodyText } )
 
-        ScenarioResponse (Err _) ->
-            ( model, sendResult "oops" )
+        HttpResponse (Err _) ->
+            ( model, sendResult { isError = True, value = "HTTP error" } )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    nextScenario ScenarioRequest
+    nextScenario ExternalRequest
 
 
 main : Program Flags Model Msg
