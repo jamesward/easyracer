@@ -11,7 +11,7 @@ import (
 func TestScenarios(t *testing.T) {
 	ctx := context.Background()
 	req := testcontainers.ContainerRequest{
-		Image:        "ghcr.io/jackgene/easyracer",
+		Image:        "ghcr.io/jamesward/easyracer",
 		ExposedPorts: []string{"8080/tcp"},
 		WaitingFor:   wait.ForHTTP("/").WithPort("8080"),
 	}
