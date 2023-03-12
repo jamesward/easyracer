@@ -26,7 +26,7 @@ type alias Msg =
 
 init : Flags -> ( Model, Cmd Msg )
 init _ =
-    ( (), sendResult { isError = True, value = "not implemented yet" } )
+    ( (), sendResult_ { isError = True, value = "not implemented yet" } )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
