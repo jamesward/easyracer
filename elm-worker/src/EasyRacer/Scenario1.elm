@@ -19,8 +19,7 @@ type alias Flags =
 
 
 type alias Model =
-    { result : Maybe String
-    , inflightTrackers : Set String
+    { inflightTrackers : Set String
     }
 
 
@@ -44,8 +43,7 @@ init baseUrl =
             , tracker = Just tracker
             }
     in
-    ( { result = Nothing
-      , inflightTrackers = Set.fromList requestTrackers
+    ( { inflightTrackers = Set.fromList requestTrackers
       }
     , requestTrackers
         |> List.map (Http.request << httpRequest)
@@ -72,39 +70,29 @@ update msg model =
                 remainingTrackers : Set String
                 remainingTrackers =
                     model.inflightTrackers |> Set.remove tracker
-
-                responseResult : Maybe String
-                responseResult =
-                    Result.toMaybe httpResult
-
-                result : Maybe String
-                result =
-                    case model.result of
-                        Nothing ->
-                            responseResult
-
-                        existingResult ->
-                            existingResult
             in
-            ( { model
-                | result = result
-                , inflightTrackers = remainingTrackers
-              }
-            , if not <| Set.isEmpty remainingTrackers then
-                case responseResult of
-                    Just _ ->
-                        remainingTrackers
-                            |> Set.toList
-                            |> List.map Http.cancel
-                            |> Cmd.batch
+            ( { model | inflightTrackers = remainingTrackers }
+            , case httpResult of
+                Ok bodyText ->
+                    let
+                        cancellations : List (Cmd Msg)
+                        cancellations =
+                            remainingTrackers
+                                |> Set.toList
+                                |> List.map Http.cancel
 
-                    Nothing ->
+                        returnResult : Cmd Msg
+                        returnResult =
+                            Ok bodyText |> sendResult
+                    in
+                    returnResult :: cancellations |> Cmd.batch
+
+                Err _ ->
+                    if not <| Set.isEmpty remainingTrackers then
                         Cmd.none
 
-              else
-                result
-                    |> Result.fromMaybe "all HTTP requests completed without a single successful response"
-                    |> sendResult
+                    else
+                        Err "all requests completed without a single success response" |> sendResult
             )
 
 
