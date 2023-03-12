@@ -19,7 +19,8 @@ jobs:
           elm-version: 0.19.1
 
       - run: |
-          elm make --debug --output=app/EasyRacer.js src/EasyRacer.elm
+          elm make --optimized --output=app/EasyRacer.js src/EasyRacer.elm
+          npm install --no-fund xhr2
           npm install -g --save-dev --no-fund jest
           npm install --save-dev --no-fund testcontainers
           npm test
