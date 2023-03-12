@@ -66,7 +66,7 @@ init baseUrl =
     )
 
 
-port sendResult : Result String String -> Cmd Msg
+port sendResult : Result String String -> Cmd msg
 --sendResult result =
 --    sendResult_ <|
 --        case result of
