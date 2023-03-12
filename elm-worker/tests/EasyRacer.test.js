@@ -25,7 +25,8 @@ describe("EasyRacer", () => {
         flags: `http://${container.getHost()}:${container.getMappedPort(8080)}`
       });
       let resultPromise = new Promise((resolve, reject) => {
-        scenario.ports.sendResult.subscribe(function(scenarioResult) {
+        scenario.ports.sendResult_.subscribe(function(scenarioResult) {
+          console.log(JSON.stringify(scenarioResult));
           if (scenarioResult.isError) {
             reject(new Error(scenarioResult.value));
           } else {
