@@ -19,13 +19,13 @@ describe("EasyRacer", () => {
       }
     });
     easyRacer.runScenario = function(scenarioNumber) {
-      this.ports.nextScenario.send(scenarioNumber);
+      easyRacer.ports.nextScenario.send(scenarioNumber);
       return new Promise((resolve) => {
         let handle = function(scenarioResult) {
           resolve(scenarioResult);
-          this.ports.sendResult.unsubscribe(handle);
+          easyRacer.ports.sendResult.unsubscribe(handle);
         }
-        this.ports.sendResult.subscribe(handle);
+        easyRacer.ports.sendResult.subscribe(handle);
       });
     };
   }, 300_000);
