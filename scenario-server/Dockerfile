@@ -65,3 +65,5 @@ WORKDIR /tmp
 COPY --from=builder /app/target/graalvm-native-image/easyracer-server /easyracer-server
 
 ENTRYPOINT ["/easyracer-server"]
+
+EXPOSE 8080
