@@ -10,6 +10,7 @@ describe("EasyRacer", () => {
     container = await new GenericContainer("ghcr.io/jackgene/easyracer")
       .withExposedPorts(8080)
       .withPullPolicy(new AlwaysPullPolicy())
+      .withWaitStrategy(Wait.forHttp("/", 8080))
       .start();
 
     easyRacer = Elm.EasyRacer.init({
