@@ -3,8 +3,8 @@ const { Elm } = require("../app/EasyRacer");
 const { GenericContainer, AlwaysPullPolicy, Wait } = require("testcontainers");
 
 describe("EasyRacer", () => {
-  const container;
-  const easyRacer;
+  let container;
+  let easyRacer;
 
   beforeAll(async () => {
     container = await new GenericContainer("ghcr.io/jackgene/easyracer")
