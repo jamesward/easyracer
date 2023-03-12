@@ -1,3 +1,4 @@
+global.XMLHttpRequest = require('xhr2');
 const { Elm } = require("../app/EasyRacer");
 const { GenericContainer, AlwaysPullPolicy } = require("testcontainers");
 
