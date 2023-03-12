@@ -22,7 +22,7 @@ describe("EasyRacer", () => {
       const name = "Scenario" + scenarioNum
       const { Elm } = require("../app/EasyRacer/" + name);
       const scenario = Elm.EasyRacer[name].init({
-        flags: "http://" + container.getHost() + ":" container.getMappedPort(8080)
+        flags: `http://${container.getHost()}:${container.getMappedPort(8080)}`
       });
       let resultPromise
       scenario.ports.sendResult.subscribe(function(scenarioResult) {
