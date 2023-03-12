@@ -27,6 +27,11 @@ type Msg
     = HttpResponse String (Result Http.Error String)
 
 
+scenarioPath : String
+scenarioPath =
+    "/2"
+
+
 init : Flags -> ( Model, Cmd Msg )
 init baseUrl =
     let
@@ -36,7 +41,7 @@ init baseUrl =
         httpRequest tracker =
             { method = "GET"
             , headers = []
-            , url = baseUrl ++ "/2"
+            , url = baseUrl ++ scenarioPath
             , body = Http.emptyBody
             , expect = Http.expectString (HttpResponse tracker)
             , timeout = Nothing
