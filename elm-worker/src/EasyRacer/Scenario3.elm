@@ -9,7 +9,7 @@ type alias ScenarioResult =
     }
 
 
-port sendResult : ScenarioResult -> Cmd msg
+port sendResult_ : ScenarioResult -> Cmd msg
 
 
 type alias Flags =
