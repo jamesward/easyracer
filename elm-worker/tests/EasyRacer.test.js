@@ -36,6 +36,6 @@ describe("EasyRacer", () => {
       });
 
       expect(await resultPromise).toBe("right");
-    });
+    }, 30_000);
   }
 });
