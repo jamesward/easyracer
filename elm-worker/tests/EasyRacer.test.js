@@ -37,7 +37,7 @@ describe("EasyRacer", () => {
         });
       });
     };
-  });
+  }, 30_000);
 
   afterAll(async () => {
     await container.stop();
