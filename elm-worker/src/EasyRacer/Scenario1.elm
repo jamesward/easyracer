@@ -11,7 +11,7 @@ type alias ScenarioResult =
     }
 
 
---port sendResult_ : ScenarioResult -> Cmd msg
+port sendResult_ : ScenarioResult -> Cmd msg
 
 
 type alias Flags =
@@ -66,15 +66,15 @@ init baseUrl =
     )
 
 
-port sendResult : Result String String -> Cmd msg
---sendResult result =
---    sendResult_ <|
---        case result of
---            Ok value ->
---                { isError = False, value = value }
---
---            Err error ->
---                { isError = True, value = error }
+sendResult : Result String String -> Cmd Msg
+sendResult result =
+    sendResult_ <|
+        case result of
+            Ok value ->
+                { isError = False, value = value }
+
+            Err error ->
+                { isError = True, value = error }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
