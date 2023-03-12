@@ -32,7 +32,7 @@ describe("EasyRacer", () => {
           } else {
             resolve(scenarioResult.value);
           }
-        }
+        });
       });
 
       expect(await resultPromise).toBe("right");
