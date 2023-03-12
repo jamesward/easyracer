@@ -10,7 +10,12 @@ describe("EasyRacer", () => {
     container = await new GenericContainer("ghcr.io/jamesward/easyracer")
       .withExposedPorts(8080)
       .withPullPolicy(new AlwaysPullPolicy())
+      .withCommand(["--debug"])
       .start();
+    (await container.logs())
+      .on("data", line => console.log(line))
+      .on("err", line => console.error(line))
+      .on("end", () => console.log("Stream closed"));
 
     easyRacer = Elm.EasyRacer.init({
       flags: {
