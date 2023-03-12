@@ -103,11 +103,7 @@ update msg model =
                 | result = result
                 , inflightTrackers = remainingTrackers
               }
-            , if not <| Set.isEmpty remainingTrackers then
-                Cmd.none
-
-              else
-                sendResult <| Result.fromMaybe "no successful response" result
+            , result |> Result.fromMaybe "no successful response" |> sendResult
             )
 
 
