@@ -24,9 +24,8 @@ describe("EasyRacer", () => {
       const scenario = Elm.EasyRacer[name].init({
         flags: `http://${container.getHost()}:${container.getMappedPort(8080)}`
       });
-      let resultPromise
-      scenario.ports.sendResult.subscribe(function(scenarioResult) {
-        resultPromise = new Promise((resolve, reject) => {
+      let resultPromise = new Promise((resolve, reject) => {
+        scenario.ports.sendResult.subscribe(function(scenarioResult) {
           if (scenarioResult.isError) {
             reject(new Error(scenarioResult.value));
           } else {
