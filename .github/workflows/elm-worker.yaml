@@ -25,6 +25,5 @@ jobs:
           done
           npm install --no-fund
           npm install -g --save-dev --no-fund jest
-          export DOCKER_HOST=unix:///var/run/docker.sock
           npm test
         working-directory: ./elm-worker
