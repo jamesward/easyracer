@@ -20,6 +20,7 @@ jobs:
 
       - run: |
           echo Compiling Elm sources...
+          docker system info
           for num in {1..9}; do
             elm make --optimize --output=app/EasyRacer/Scenario$num.js src/EasyRacer/Scenario$num.elm
           done
