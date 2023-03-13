@@ -6,6 +6,6 @@
     "testcontainers": "9.0.1"
   },
   "scripts": {
-    "test": "jest --verbose"
+    "test": "jest"
   }
 }
