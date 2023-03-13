@@ -1,5 +1,5 @@
 global.XMLHttpRequest = require('xhr2');
-const { GenericContainer, AlwaysPullPolicy, Wait } = require("testcontainers");
+const { GenericContainer, Wait } = require("testcontainers");
 
 describe("EasyRacer", () => {
   let container;
@@ -7,7 +7,6 @@ describe("EasyRacer", () => {
   beforeAll(async () => {
     container = await new GenericContainer("ghcr.io/jamesward/easyracer")
       .withExposedPorts(8080)
-      .withPullPolicy(new AlwaysPullPolicy())
       .withWaitStrategy(Wait.forHttp("/", 8080))
       .start();
   }, 30_000);
