@@ -7,7 +7,7 @@ describe("EasyRacer", () => {
   beforeAll(async () => {
     container = await new GenericContainer("ghcr.io/jackgene/easyracer")
       .withExposedPorts(8080)
-//      .withWaitStrategy(Wait.forHttp("/", 8080))
+      .withWaitStrategy(Wait.forHttp("/", 8080))
       .start();
   }, 30_000);
 
