@@ -98,3 +98,4 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 | Swift + Grand Central Dispatch | [swift-dispatch](swift-dispatch) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/swift-dispatch.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) | |
 | Swift + async/await | [swift-async](swift-async) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/swift-async.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) | |
 | Swift + Combine | [swift-combine](swift-combine) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/swift-combine.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) | |
+| Elm | [elm-worker](elm-worker) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/elm-worker.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) | |
