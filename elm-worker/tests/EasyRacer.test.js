@@ -5,7 +5,7 @@ describe("EasyRacer", () => {
   let container;
 
   beforeAll(async () => {
-    container = await new GenericContainer("ghcr.io/jackgene/easyracer")
+    container = await new GenericContainer("ghcr.io/jamesward/easyracer")
       .withExposedPorts(8080)
       .withWaitStrategy(Wait.forHttp("/", 8080))
       .start();
