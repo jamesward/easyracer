@@ -19,12 +19,12 @@ jobs:
           elm-version: 0.19.1
 
       - run: |
-          ls /var/run
-          export DOCKER_HOST=/var/run/docker.sock
+          echo Compiling Elm sources...
           for num in {1..9}; do
             elm make --optimize --output=app/EasyRacer/Scenario$num.js src/EasyRacer/Scenario$num.elm
           done
           npm install --no-fund
           npm install -g --save-dev --no-fund jest
+          export DOCKER_HOST=unix:///var/run/docker.sock
           npm test
         working-directory: ./elm-worker
