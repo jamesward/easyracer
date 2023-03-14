@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "xhr2": "0.2.1"
+  },
+  "devDependencies": {
+    "testcontainers": "9.1.3"
+  },
+  "scripts": {
+    "test": "jest"
+  }
+}
