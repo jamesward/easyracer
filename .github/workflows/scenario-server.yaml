@@ -21,6 +21,7 @@ jobs:
           cache: 'sbt'
 
       - name: Run tests
+        working-directory: ./scenario-server
         run: ./sbt test
 
   build-and-push-amd64:
