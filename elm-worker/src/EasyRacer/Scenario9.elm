@@ -1,17 +1,9 @@
-port module EasyRacer.Scenario9 exposing (main)
+module EasyRacer.Scenario9 exposing (main)
 
+import EasyRacer.Ports as Ports
 import Http
 import Platform exposing (Program)
 import Set exposing (Set)
-
-
-type alias ScenarioResult =
-    { isError : Bool
-    , value : String
-    }
-
-
-port sendResult_ : ScenarioResult -> Cmd msg
 
 
 type alias Flags =
@@ -59,17 +51,6 @@ init baseUrl =
     )
 
 
-sendResult : Result String String -> Cmd Msg
-sendResult result =
-    sendResult_ <|
-        case result of
-            Ok value ->
-                { isError = False, value = value }
-
-            Err error ->
-                { isError = True, value = error }
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -91,7 +72,7 @@ update msg model =
                 Cmd.none
 
               else
-                Ok result |> sendResult
+                Ok result |> Ports.sendResult
             )
 
 

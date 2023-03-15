@@ -1,19 +1,11 @@
-port module EasyRacer.Scenario7 exposing (main)
+module EasyRacer.Scenario7 exposing (main)
 
+import EasyRacer.Ports as Ports
 import Http
 import Platform exposing (Program)
 import Process
 import Set exposing (Set)
 import Task
-
-
-type alias ScenarioResult =
-    { isError : Bool
-    , value : String
-    }
-
-
-port sendResult_ : ScenarioResult -> Cmd msg
 
 
 type alias Flags =
@@ -75,17 +67,6 @@ init baseUrl =
     )
 
 
-sendResult : Result String String -> Cmd Msg
-sendResult result =
-    sendResult_ <|
-        case result of
-            Ok value ->
-                { isError = False, value = value }
-
-            Err error ->
-                { isError = True, value = error }
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -107,7 +88,7 @@ update msg model =
 
                         returnResult : Cmd Msg
                         returnResult =
-                            Ok bodyText |> sendResult
+                            Ok bodyText |> Ports.sendResult
                     in
                     returnResult :: cancellations |> Cmd.batch
 
@@ -116,7 +97,7 @@ update msg model =
                         Cmd.none
 
                     else
-                        Err "all requests completed without a single success response" |> sendResult
+                        Err "all requests completed without a single success response" |> Ports.sendResult
             )
 
         Perform cmd ->
