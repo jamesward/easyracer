@@ -1,0 +1,9 @@
+[package]
+name = "rust-something"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+futures = "0.3.28"
+reqwest = "0.11.18"
+tokio = {"version"= "1.28.2", features=["rt-multi-thread", "macros"]}
