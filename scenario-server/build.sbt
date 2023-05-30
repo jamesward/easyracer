@@ -2,24 +2,24 @@ enablePlugins(GraalVMNativeImagePlugin)
 
 name := "easyracer-server"
 
-scalaVersion := "3.2.2"
+scalaVersion := "3.3.0"
 
 fork := true
 
-val zioVersion = "2.0.10"
+val zioVersion = "2.0.13"
 
 libraryDependencies ++= Seq(
   "dev.zio" %% "zio"              % zioVersion,
   "dev.zio" %% "zio-concurrent"   % zioVersion,
   "dev.zio" %% "zio-logging"      % "2.1.10",
 
-  "dev.zio" %% "zio-http"         % "0.0.5",
+  "dev.zio" %% "zio-http"         % "3.0.0-RC2",
 
   "dev.zio" %% "zio-test"         % zioVersion % Test,
 
   "dev.zio" %% "zio-test-sbt"     % zioVersion % Test,
 
-  "dev.zio" %% "zio-http-testkit" % "0.0.5"    % Test,
+  "dev.zio" %% "zio-http-testkit" % "3.0.0-RC2"    % Test,
 )
 
 testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")

@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/graalvm-ce:22.3.0 as builder
+FROM ghcr.io/graalvm/graalvm-ce:22.3.2 as builder
 ARG TARGETARCH
 
 WORKDIR /app

@@ -25,14 +25,12 @@ object EasyRacerServerSpec extends ZIOSpecDefault:
         session <- EasyRacerServer.Session.make()
         req1 <- EasyRacerServer.scenario10(session)(Request.get(URL.empty))
         res1 <- req1.body.asString
-        req2 <- EasyRacerServer.scenario10(session)(Request.get(URL.empty.setQueryParams(s"$num1=$fib1")))
+        req2 <- EasyRacerServer.scenario10(session)(Request.get(URL.empty.withQueryParams(s"$num1=$fib1")))
         res2 <- req2.body.asString
-        req3 <- EasyRacerServer.scenario10(session)(Request.get(URL.empty.setQueryParams(s"$num2=$fib2")))
+        req3 <- EasyRacerServer.scenario10(session)(Request.get(URL.empty.withQueryParams(s"$num2=$fib2")))
         res3 <- req3.body.asString
       yield
-        assertTrue(res1.toInt == num1) &&
-          assertTrue(res2.toInt == num2) &&
-          assertTrue(res3 == "right")
+        assertTrue(res1.toInt == num1, res2.toInt == num2, res3 == "right")
     },
     test("Scenario11") {
       val num1 = 6
@@ -45,7 +43,7 @@ object EasyRacerServerSpec extends ZIOSpecDefault:
         req1 <- EasyRacerServer.scenario11(session)(Request.get(URL.empty))
         res1 <- req1.body.asString
         Array(numFib1, numFib2) = res1.split(',')
-        url = URL.empty.setQueryParams(numFib1 -> Chunk(fib1.toString), numFib2 -> Chunk(fib2.toString))
+        url = URL.empty.withQueryParams(numFib1 -> Chunk(fib1.toString), numFib2 -> Chunk(fib2.toString))
         req2 <- EasyRacerServer.scenario11(session)(Request.get(url))
         res2 <- req2.body.asString
       yield

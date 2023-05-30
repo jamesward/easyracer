@@ -1,8 +1,6 @@
 import zio.*
 import zio.http.*
-import zio.http.model.{Method, Status}
 import zio.concurrent.ReentrantLock
-import zio.http.model.Status.BadRequest
 import zio.logging.{LogFormat, console}
 
 import java.time.Instant
@@ -397,15 +395,15 @@ object EasyRacerServer extends ZIOAppDefault:
               for
                 actualFirstFib <- doubleFib.firstFib.await
               yield
-                if BigInt(userFirstFib.asString) == actualFirstFib then Response.text(doubleFib.second.toString) else Response.status(BadRequest)
+                if BigInt(userFirstFib.asString) == actualFirstFib then Response.text(doubleFib.second.toString) else Response.status(Status.BadRequest)
             }.orElse {
               req.url.queryParams.get(doubleFib.second.toString).map { userSecondFib =>
                 for
                   actualSecondFib <- doubleFib.secondFib.await
                 yield
-                  if BigInt(userSecondFib.asString) == actualSecondFib then Response.text("right") else Response.status(BadRequest)
+                  if BigInt(userSecondFib.asString) == actualSecondFib then Response.text("right") else Response.status(Status.BadRequest)
               }
-            }.getOrElse(ZIO.succeed(Response.status(BadRequest)))
+            }.getOrElse(ZIO.succeed(Response.status(Status.BadRequest)))
 
           case _ =>
             throw NotImplementedError("not gonna happen")
@@ -455,7 +453,7 @@ object EasyRacerServer extends ZIOAppDefault:
                 req.url.queryParams.get(doubleFib.second.toString).contains(Chunk(actualSecondFib.toString())) then
                 Response.text("right")
               else
-                Response.status(BadRequest)
+                Response.status(Status.BadRequest)
 
           case _ =>
             throw NotImplementedError("not gonna happen")
