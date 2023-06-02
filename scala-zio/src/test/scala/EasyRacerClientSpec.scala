@@ -1,6 +1,5 @@
 import zio.*
 import zio.http.*
-import zio.http.model.Method
 import zio.test.*
 import zio.test.Annotations.*
 import zio.test.Assertion.*

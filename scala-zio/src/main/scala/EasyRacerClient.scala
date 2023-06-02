@@ -1,97 +1,80 @@
 import zio.*
+import zio.concurrent.ConcurrentSet
 import zio.http.*
+import zio.direct.*
+import zio.http.netty.NettyConfig
 
 import java.util.UUID
 import java.util.concurrent.TimeoutException
-
+import scala.collection.immutable.SortedMap
 import scala.annotation.tailrec
 
 // Note that code is intentionally NOT shared across different scenarios, except for the url / config handling
 object EasyRacerClient extends ZIOAppDefault:
 
   def scenario1(scenarioUrl: Int => String) =
-    val url = scenarioUrl(1)
-    val req = for
-      resp <- Client.request(url)
-      body <- resp.body.asString
-    yield
-      body
+    defer:
+      val url = scenarioUrl(1)
+      val req = Client.request(url)
+      val winner = req.race(req).run
+      winner.body.asString.run
 
-    req.race(req)
 
   def scenario2(scenarioUrl: Int => String) =
-    val url = scenarioUrl(2)
-    val req = for
-      resp <- Client.request(url)
-      body <- resp.body.asString
-    yield
-      body
-
-    req.race(req)
+    defer:
+      val url = scenarioUrl(2)
+      val req = Client.request(url)
+      val winner = req.race(req).run
+      winner.body.asString.run
 
 
   def scenario3(scenarioUrl: Int => String) =
-    val url = scenarioUrl(3)
-    val reqs = Seq.fill(10000)(Client.request(url))
-    for
-      winner <- ZIO.raceAll(reqs.head, reqs.tail)
-      body <- winner.body.asString
-    yield
-      body
+    defer:
+      val url = scenarioUrl(3)
+      val reqs = Seq.fill(10000)(Client.request(url))
+      val winner = ZIO.raceAll(reqs.head, reqs.tail).run
+      winner.body.asString.run
 
 
   def scenario4(scenarioUrl: Int => String) =
-    val url = scenarioUrl(4)
-    val req = for
-      resp <- Client.request(url)
-      body <- resp.body.asString
-    yield
-      body
-
-    req.timeoutFail(TimeoutException())(1.seconds).race(req)
+    defer:
+      val url = scenarioUrl(4)
+      val req = Client.request(url)
+      val winner = req.timeoutFail(TimeoutException())(1.seconds).race(req).run
+      winner.body.asString.run
 
 
   def scenario5(scenarioUrl: Int => String) =
-    val url = scenarioUrl(5)
-    val req = for
-      resp <- Client.request(url).filterOrFail(_.status.isSuccess)(Error())
-      body <- resp.body.asString
-    yield
-      body
-
-    req.race(req)
+    defer:
+      val url = scenarioUrl(5)
+      val req = Client.request(url).filterOrFail(_.status.isSuccess)(Error())
+      val winner = req.race(req).run
+      winner.body.asString.run
 
 
   def scenario6(scenarioUrl: Int => String) =
-    val url = scenarioUrl(6)
-    val req = for
-      resp <- Client.request(url).filterOrFail(_.status.isSuccess)(Error())
-      body <- resp.body.asString
-    yield
-      body
-
-    ZIO.raceAll(req, Seq(req, req))
+    defer:
+      val url = scenarioUrl(6)
+      val req = Client.request(url).filterOrFail(_.status.isSuccess)(Error())
+      val winner = ZIO.raceAll(req, Seq(req, req)).run
+      winner.body.asString.run
 
 
   def scenario7(scenarioUrl: Int => String) =
-    val url = scenarioUrl(7)
-    val req = for
-      resp <- Client.request(url)
-      body <- resp.body.asString
-    yield
-      body
-
-    // todo: sometimes the first req can take a second or 2 to start which can break the hedge check which verifies the second request starts 2 seconds after the first one
-    //   but it isn't clear how to resolve that as there isn't a way to know when the req is connected, then send the second one
-    req.race(ZIO.sleep(4.seconds) *> req)
+    defer:
+      val url = scenarioUrl(7)
+      val req = Client.request(url)
+      // todo: sometimes the first req can take a second or 2 to start which can break the hedge check which verifies the second request starts 2 seconds after the first one
+      //   but it isn't clear how to resolve that as there isn't a way to know when the req is connected, then send the second one
+      val winner = req.race(req.delay(4.seconds)).run
+      winner.body.asString.run
 
 
   def scenario8(scenarioUrl: Int => String) =
-    def req(url: String) = for
-      resp <- Client.request(url).filterOrFail(_.status.isSuccess)(Error())
-      body <- resp.body.asString
-    yield
-      body
+    def req(url: String) =
+      defer:
+        val resp = Client.request(url).filterOrFail(_.status.isSuccess)(Error()).run
+        resp.body.asString.run
 
     val open = req(scenarioUrl(8) + "?open")
     def use(id: String) = req(scenarioUrl(8) + s"?use=$id")
@@ -103,19 +86,25 @@ object EasyRacerClient extends ZIOAppDefault:
 
 
   def scenario9(scenarioUrl: Int => String) =
-    val req = for
-      resp <- Client.request(scenarioUrl(9)).filterOrFail(_.status.isSuccess)(Error())
-      body <- resp.body.asString
-      now <- Clock.nanoTime
-    yield
-      now -> body
+    val req =
+      defer:
+        val url = scenarioUrl(9)
+        val resp = Client.request(url).filterOrFail(_.status.isSuccess)(Error()).run
+        val body = resp.body.asString.run
+        val now = Clock.nanoTime.run
+        now -> body
 
-    ZIO.withParallelism(10) {
-      ZIO.collectAllSuccessesPar(Seq.fill(10)(req)).map { resp =>
-        resp.sortBy(_._1).map(_._2).mkString
-      }
-    }
+    defer(Use.withParallelEval):
+      val responses = Queue.unbounded[(Long, String)].run
+      for _ <- 1 to 10 do
+        req.option.run match
+          case Some(resp) => responses.offer(resp).run
+          case None => ()
 
+      responses.takeAll.run.to(SortedMap).values.mkString
+
+
+  // in-progress below here
 
   def fibonacci(n: Int): BigInt = {
     @tailrec
@@ -175,13 +164,20 @@ object EasyRacerClient extends ZIOAppDefault:
     scenario7,
     scenario8,
     scenario9,
-    scenario10,
-    scenario11,
+    //scenario10,
+    //scenario11,
   ).map(_.apply(scenarioUrl))
 
-  //def scenarios(scenarioUrl: Int => String) = Seq(scenario11).map(_.apply(scenarioUrl))
+  //def scenarios(scenarioUrl: Int => String) = Seq(scenario9).map(_.apply(scenarioUrl))
   def all(scenarioUrl: Int => String) = ZIO.collectAll(scenarios(scenarioUrl))
+
+  val clientConfig: ZClient.Config = Client.Config.default.withDisabledConnectionPool //.withFixedConnectionPool(10000)
 
   override val run =
     def scenarioUrl(scenario: Int) = s"http://localhost:8080/$scenario"
-    all(scenarioUrl).debug.filterOrDie(_.forall(_ == "right"))(Error("not all right")).provide(Client.default)
+    all(scenarioUrl).debug.filterOrDie(_.forall(_ == "right"))(Error("not all right")).provide(
+      ZLayer.succeed(clientConfig),
+      Client.live,
+      ZLayer.succeed(NettyConfig.default),
+      DnsResolver.default,
+    )
