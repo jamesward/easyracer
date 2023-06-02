@@ -1,5 +1,5 @@
 import zio.http.netty.NettyConfig
-import zio.{Chunk, Console, Promise, Runtime, Scope, ZIO, ZLayer}
+import zio.*
 import zio.http.{Client, DnsResolver, Driver, Handler, Http, Request, Server, URL}
 import zio.test.*
 import zio.test.Assertion.*
@@ -29,14 +29,11 @@ object EasyRacerServerSpec extends ZIOSpecDefault:
         assertTrue(body == "right")
     }.provide(
       Server.defaultWithPort(0),
-      ZLayer.succeed(Client.Config.default.withDisabledConnectionPool),
-      Client.live,
-      ZLayer.succeed(NettyConfig.default),
-      DnsResolver.default,
+      Client.default,
       Scope.default,
     ),
 
-    test("Scenario3") {
+    test("Scenario3 - Actual Server") {
       for
         session <- EasyRacerServer.Session.make()
         _ <- Server.serve(Handler.fromFunctionZIO(EasyRacerServer.scenario3(session)).toHttp).forkScoped
@@ -44,7 +41,7 @@ object EasyRacerServerSpec extends ZIOSpecDefault:
         reqs = Seq.fill(10000)(Client.request(s"http://localhost:${server.port}/3"))
         winner <- ZIO.raceAll(reqs.head, reqs.tail)
         body <- winner.body.asString
-        _ <- Console.printLine("Scenario3 - Got a winner")
+        _ <- TestClock.adjust(1.minute) // todo: Something with DnsResolver seems to be hanging this test unless we move the clock forward
       yield
         assertTrue(body == "right")
     }.provide(
