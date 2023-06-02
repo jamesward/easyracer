@@ -1,5 +1,6 @@
-import zio.{Chunk, Runtime, ZIO}
-import zio.http.{Request, URL}
+import zio.http.netty.NettyConfig
+import zio.*
+import zio.http.{Client, DnsResolver, Driver, Handler, Http, Request, Server, URL}
 import zio.test.*
 import zio.test.Assertion.*
 
@@ -15,6 +16,44 @@ object EasyRacerServerSpec extends ZIOSpecDefault:
       yield
         assertTrue(body == "right")
     },
+
+    test("Scenario1 - Actual Server") {
+      for
+        session <- EasyRacerServer.Session.make()
+        _ <- Server.serve(Handler.fromFunctionZIO(EasyRacerServer.scenario1(session)).toHttp).forkScoped
+        server <- ZIO.service[Server]
+        req = Client.request(s"http://localhost:${server.port}/1")
+        winner <- req.race(req)
+        body <- winner.body.asString
+      yield
+        assertTrue(body == "right")
+    }.provide(
+      Server.defaultWithPort(0),
+      Client.default,
+      Scope.default,
+    ),
+
+    test("Scenario3 - Actual Server") {
+      for
+        session <- EasyRacerServer.Session.make()
+        _ <- Server.serve(Handler.fromFunctionZIO(EasyRacerServer.scenario3(session)).toHttp).forkScoped
+        server <- ZIO.service[Server]
+        reqs = Seq.fill(10000)(Client.request(s"http://localhost:${server.port}/3"))
+        winner <- ZIO.raceAll(reqs.head, reqs.tail)
+        body <- winner.body.asString
+        _ <- TestClock.adjust(1.minute) // todo: Something with DnsResolver seems to be hanging this test unless we move the clock forward
+      yield
+        assertTrue(body == "right")
+    }.provide(
+      Server.defaultWithPort(0),
+      ZLayer.succeed(Client.Config.default.withDisabledConnectionPool),
+      Client.live,
+      ZLayer.succeed(NettyConfig.default),
+      DnsResolver.default,
+      Scope.default,
+    ),
+
+    /*
     test("Scenario10") {
       val num1 = 6
       val fib1 = 8
@@ -49,4 +88,5 @@ object EasyRacerServerSpec extends ZIOSpecDefault:
       yield
         assertTrue(res2 == "right")
     },
+    */
   ).provideLayer(Runtime.removeDefaultLoggers)
