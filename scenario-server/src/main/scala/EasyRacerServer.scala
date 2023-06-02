@@ -1,7 +1,8 @@
 import zio.*
+import zio.direct.*
 import zio.http.*
 import zio.concurrent.ReentrantLock
-import zio.logging.{LogFormat, console}
+import zio.logging.{ConsoleLoggerConfig, LogFilter, LogFormat, consoleLogger}
 
 import java.time.Instant
 import scala.annotation.tailrec
@@ -103,7 +104,7 @@ object EasyRacerServer extends ZIOAppDefault:
       resp
 
     r.onExit { _ =>
-      session.remove()
+        session.remove()
     }
   }
 
@@ -112,6 +113,7 @@ object EasyRacerServer extends ZIOAppDefault:
   */
   def scenario3(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
     val r = for
+      _ <- ZIO.unit
       numAndPromise <- session.add()
       (num, promise) = numAndPromise
       resp <- if num < 10_000 then
@@ -512,7 +514,11 @@ object EasyRacerServer extends ZIOAppDefault:
     for
       args <- ZIOAppArgs.getArgs
       isDebug = args.contains("--debug")
-      logger = if (isDebug) Runtime.removeDefaultLoggers >>> console(LogFormat.annotations |-| LogFormat.line) else Runtime.removeDefaultLoggers
+      logger = if isDebug then
+        val loggingConfig = ConsoleLoggerConfig(LogFormat.annotations |-| LogFormat.line, LogFilter.acceptAll)
+        Runtime.removeDefaultLoggers >>> consoleLogger(loggingConfig)
+      else
+        Runtime.removeDefaultLoggers
       scenariosWithSession <- ZIO.foreach(scenarios) { f => Session.make().map(f(_)) }
       server =
         for
