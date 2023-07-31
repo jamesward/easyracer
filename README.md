@@ -75,6 +75,7 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 | ---- | ------ | ----- | ------ | ----- |
 | Scala 3 + ZIO | [scala-zio](scala-zio) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/scala-zio.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | |
 | Scala 3 + ox | [scala-ox](scala-ox) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/scala-ox.yaml/badge.svg) | [Adam Warski](https://github.com/adamw) | |
+| Kotlin + Coroutines | [kotlin-coroutines](kotlin-coroutines) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-coroutines.yaml/badge.svg) | [Jack Leow](https://github.com/jackgene) | |
 | Kotlin + Splitties | [kotlin-splitties](kotlin-splitties) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-splitties.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | |
 | Kotlin + Arrow | [kotlin-arrow](kotlin-arrow) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/kotlin-arrow.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | |
 | Java + Loom | [java-loom](java-loom) | ![tests](https://github.com/jamesward/easyracer/actions/workflows/java-loom.yaml/badge.svg) | [James Ward](https://github.com/jamesward) | |
