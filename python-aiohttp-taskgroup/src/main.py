@@ -65,7 +65,7 @@ async def scenario2(port: int):
 
 # note: requires increasing max number of open files `ulimit -n 16000`
 async def scenario3(port: int):
-    connector = aiohttp.TCPConnector(limit=10_001)
+    connector = aiohttp.TCPConnector(limit=10_000)
     async with aiohttp.ClientSession(connector=connector) as session:
         async def req():
             async with session.get(url(port, 3)) as response:
