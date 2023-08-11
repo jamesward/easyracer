@@ -20,5 +20,5 @@ jobs:
           chmod +x /tmp/rye
           export PATH=~/.rye/shims:$PATH
           /tmp/rye sync
-          unlimit -n 16000
+          ulimit -n 16000
           /tmp/rye run pytest
