@@ -1,11 +1,15 @@
+from typing import Optional
+
 import aiohttp
 import asyncio
 
-def url(port: int, scenario: int):
-    return f'http://localhost:{port}/{scenario}'
 
+def url(port: int, scenario: int, param: Optional[str] = None):
+    base_url = f'http://localhost:{port}/{scenario}'
+    if param:
+        return base_url + f'?{param}'
+    return base_url
 
-# Note: Request creation code is intentionally not shared across scenarios
 
 class FirstCompletedTaskGroup(asyncio.TaskGroup):
     def __init__(self):
@@ -139,10 +143,36 @@ async def scenario7(port: int):
         return group.result()
 
 
-# currently not working
 async def scenario8(port: int):
     async with aiohttp.ClientSession() as session:
-        raise NotImplementedError
+        async def req(param: str):
+            response = await session.get(url(port, 8, param))
+            if response.status != 200:
+                raise asyncio.CancelledError
+            return await response.text()
+
+        async def open_req():
+            return await req("open")
+
+        async def use_req(my_id: str):
+            return await req(f'use={my_id}')
+
+        async def close_req(my_id: str):
+            return await req(f'close={my_id}')
+
+        async def closeable_req():
+            my_id = await open_req()
+            try:
+                resp = await use_req(my_id)
+            finally:
+                await close_req(my_id)
+            return resp
+
+        async with FirstCompletedTaskGroup() as group:
+            group.create_task(closeable_req())
+            group.create_task(closeable_req())
+
+        return group.result()
 
 
 async def scenario9(port: int):

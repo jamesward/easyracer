@@ -1,0 +1,23 @@
+on:
+  workflow_run:
+    workflows: [scenario-server]
+    types: [completed]
+  push:
+    paths:
+      - python-aiohttp-taskgroup/**
+      - .github/workflows/python-aiohttp-taskgroup.yaml
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - working-directory: ./python-aiohttp
+        run: |
+          curl -o https://github.com/mitsuhiko/rye/releases/latest/download/rye-x86_64-linux.gz | gunzip > /tmp/rye
+          chmod +x /tmp/rye
+          export PATH=~/.rye/shims:$PATH
+          /tmp/rye sync
+          /tmp/rye run pytest
