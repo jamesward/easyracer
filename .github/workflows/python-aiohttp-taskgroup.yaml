@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - working-directory: ./python-aiohttp
+      - working-directory: ./python-aiohttp-taskgroup
         run: |
           curl -L -o - https://github.com/mitsuhiko/rye/releases/latest/download/rye-x86_64-linux.gz | gunzip > /tmp/rye
           chmod +x /tmp/rye
