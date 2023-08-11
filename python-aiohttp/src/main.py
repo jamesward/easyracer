@@ -172,7 +172,7 @@ async def scenario9(port: int):
 async def main():
     result1 = await scenario1(8080)
     print(result1)
-   
+
     result2 = await scenario2(8080)
     print(result2)
 
@@ -196,7 +196,6 @@ async def main():
 
     result9 = await scenario9(8080)
     print(result9)
-
 
 if __name__ == "__main__":
     asyncio.run(main())

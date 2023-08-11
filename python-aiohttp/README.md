@@ -9,24 +9,16 @@ Too many open files
 
 Not sure why or what to do.
 
-
-```
-git clone https://github.com/pyenv/pyenv.git .pyenv
-export PYENV_ROOT=.pyenv
-.pyenv/bin/pyenv install
-eval "$(.pyenv/bin/pyenv init --path)"
-python -m venv venv
-source venv/bin/activate
-pip install -U pip
-pip install -r requirements.txt
-```
+Setup:
+1. Install rye
+2. `rye sync`
 
 Run against local server:
 ```
-python main.py
+python src/main.py
 ```
 
 Test with EasyRacer Container:
 ```
-pytest
+rye run pytest
 ```
