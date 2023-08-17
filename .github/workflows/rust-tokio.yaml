@@ -1,0 +1,18 @@
+on:
+  workflow_run:
+    workflows: [scenario-server]
+    types: [completed]
+  push:
+    paths:
+      - rust-tokio/**
+      - .github/workflows/rust-tokio.yaml
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: cargo test
+        working-directory: ./rust-tokio

@@ -1,9 +1,9 @@
 [package]
-name = "rust-tokio"
+name = "rust_tokio"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 reqwest = "0.11.18"
+testcontainers = { version = "0.14.0", features = ["tokio"] }
 tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros"] }
-tokio-stream = "0.1.14"
