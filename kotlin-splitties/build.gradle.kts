@@ -18,7 +18,7 @@ application {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("io.ktor:ktor-client-core:2.2.4")
     implementation("io.ktor:ktor-client-java:2.2.4")
     implementation("com.louiscad.splitties:splitties-coroutines:3.0.0")
