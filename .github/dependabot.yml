@@ -1,6 +1,42 @@
 version: 2
 updates:
+  - package-ecosystem: "elm"
+    directory: "/elm-worker"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/go-stdlib"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/java-loom"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/kotlin-arrow"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/kotlin-coroutines"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/kotlin-splitties"
+    schedule:
+      interval: "weekly"
   - package-ecosystem: "cargo"
     directory: "/rust-tokio"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "swift"
+    directory: "/swift-async"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "swift"
+    directory: "/swift-combine"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "swift"
+    directory: "/swift-dispatch"
     schedule:
       interval: "weekly"
