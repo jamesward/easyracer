@@ -19,9 +19,9 @@ ARG TOOLCHAIN_DIR="${RESULT_LIB}/x86_64-linux-musl-native"
 ARG CC="${TOOLCHAIN_DIR}/bin/gcc"
 
 RUN cd ${RESULT_LIB} && \
-    curl -L -s -o zlib.tar.gz https://zlib.net/zlib-1.2.13.tar.gz && \
+    curl -L -s -o zlib.tar.gz https://zlib.net/zlib-1.3.tar.gz && \
     tar -xzf zlib.tar.gz && \
-    cd zlib-1.2.13 && \
+    cd zlib-1.3 && \
     ./configure --static --prefix=${TOOLCHAIN_DIR} &>/dev/null && \
     make -s && make install -s
 #END PRE-REQUISITES FOR STATIC NATIVE IMAGES FOR GRAAL
