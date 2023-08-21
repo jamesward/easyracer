@@ -20,7 +20,7 @@ application {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("io.ktor:ktor-client-core:2.2.4")
-    implementation("io.ktor:ktor-client-java:2.2.4")
+    implementation("io.ktor:ktor-client-java:2.3.3")
     implementation("io.arrow-kt:arrow-fx-coroutines:1.1.6-alpha.28")
 
     testImplementation("io.kotest:kotest-runner-junit5:5.6.2")
