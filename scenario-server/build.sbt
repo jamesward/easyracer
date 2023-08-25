@@ -8,18 +8,16 @@ fork := true
 
 reStartArgs := Seq("--debug")
 
-val zioVersion = "2.0.15"
+val zioVersion = "2.0.16"
 
 libraryDependencies ++= Seq(
-  "dev.zio" %% "zio"              % zioVersion,
-  "dev.zio" %% "zio-concurrent"   % zioVersion,
-  "dev.zio" %% "zio-direct"       % "1.0.0-RC7",
-  "dev.zio" %% "zio-logging"      % "2.1.14",
-
-  "dev.zio" %% "zio-http"         % "3.0.0-RC2",
-
-  "dev.zio" %% "zio-test"         % zioVersion % Test,
-  "dev.zio" %% "zio-test-sbt"     % zioVersion % Test,
+  "dev.zio" %% "zio" % zioVersion,
+  "dev.zio" %% "zio-concurrent" % zioVersion,
+  "dev.zio" %% "zio-direct" % "1.0.0-RC7",
+  "dev.zio" %% "zio-logging" % "2.1.14",
+  "dev.zio" %% "zio-http" % "3.0.0-RC2",
+  "dev.zio" %% "zio-test" % zioVersion % Test,
+  "dev.zio" %% "zio-test-sbt" % zioVersion % Test
 )
 
 testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
@@ -31,7 +29,6 @@ Compile / doc / sources := Seq.empty
 graalVMNativeImageOptions ++= Seq(
   "--no-fallback",
   "--install-exit-handlers",
-
   "--initialize-at-run-time=io.netty.channel.DefaultFileRegion",
   "--initialize-at-run-time=io.netty.channel.epoll.Native",
   "--initialize-at-run-time=io.netty.channel.epoll.Epoll",
@@ -46,15 +43,14 @@ graalVMNativeImageOptions ++= Seq(
   "--initialize-at-run-time=io.netty.channel.unix.IovArray",
   "--initialize-at-run-time=io.netty.handler.codec.compression.ZstdOptions",
   "--initialize-at-run-time=io.netty.handler.ssl.BouncyCastleAlpnSslUtils",
-
-  "-H:+ReportExceptionStackTraces",
+  "-H:+ReportExceptionStackTraces"
 )
 
 if (sys.env.get("TARGETARCH").contains("arm64")) {
   graalVMNativeImageOptions ++= Seq(
     "-H:+StaticExecutableWithDynamicLibC",
     "--initialize-at-run-time=io.netty.incubator.channel.uring.IOUringEventLoopGroup",
-    "--initialize-at-run-time=io.netty.incubator.channel.uring.Native",
+    "--initialize-at-run-time=io.netty.incubator.channel.uring.Native"
   )
 } else if (sys.env.get("NO_STATIC").contains("true")) {
   graalVMNativeImageOptions ++= Seq(
@@ -63,7 +59,7 @@ if (sys.env.get("TARGETARCH").contains("arm64")) {
 } else {
   graalVMNativeImageOptions ++= Seq(
     "--static",
-    "--libc=musl",
+    "--libc=musl"
   )
 }
 
