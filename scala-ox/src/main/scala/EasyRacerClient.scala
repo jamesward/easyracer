@@ -2,11 +2,8 @@ import scala.concurrent.duration.*
 import sttp.client3.*
 import sttp.model.Uri
 
-import java.util.UUID
-import java.util.concurrent.TimeoutException
 import ox.*
 
-import java.util.concurrent.atomic.AtomicInteger
 
 object EasyRacerClient:
   private val backend = HttpClientSyncBackend()
