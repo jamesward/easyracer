@@ -2,7 +2,7 @@ scalaVersion := "3.3.0"
 
 fork := true
 
-val zioVersion = "2.0.14"
+val zioVersion = "2.0.16"
 
 libraryDependencies ++= Seq(
   "dev.zio" %% "zio" % zioVersion,

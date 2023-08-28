@@ -1,19 +1,17 @@
 import com.dimafeng.testcontainers.GenericContainer
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.images.PullPolicy
 import sttp.client3.UriContext
 
-import java.io.IOException
-
 class EasyRacerClientSpec extends AnyFlatSpec with Matchers with BeforeAndAfterAll:
 
   val scenarios = List(
     1 -> EasyRacerClient.scenario1,
     2 -> EasyRacerClient.scenario2,
-    3 -> EasyRacerClient.scenario3, // works for 100 connections, above that requests fail with "connection reset by peer"
+    3 -> EasyRacerClient.scenario3,
     4 -> EasyRacerClient.scenario4,
     5 -> EasyRacerClient.scenario5,
     6 -> EasyRacerClient.scenario6,

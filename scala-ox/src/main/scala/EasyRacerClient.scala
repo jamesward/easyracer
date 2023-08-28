@@ -4,7 +4,7 @@ import sttp.model.Uri
 
 import java.util.UUID
 import java.util.concurrent.TimeoutException
-import ox.Ox.*
+import ox.*
 
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -72,15 +72,15 @@ object EasyRacerClient:
       now -> body
 
     scoped {
-      val forks = Seq.fill(10)(forkHold(req))
+      val forks = Seq.fill(10)(fork(req))
       forks.map(_.joinEither()).collect { case Right(v) => v }.sortBy(_._1).map(_._2).mkString
     }
 
 @main def run(): Unit =
   import EasyRacerClient.*
   def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
-  // def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9)
-  def scenarios: Seq[(Int => Uri) => String] = Seq(scenario3)
+  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9)
+  // def scenarios: Seq[(Int => Uri) => String] = Seq(scenario3)
   scenarios.foreach { s =>
     println(s(scenarioUrl))
   }
