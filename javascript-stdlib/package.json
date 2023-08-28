@@ -1,0 +1,14 @@
+{
+  "name": "easyracer-javascript-stdlib",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "node node_modules/nodemon/bin/nodemon.js main.js"
+  },
+  "engines": {
+    "node": "20.5.1"
+  },
+  "devDependencies": {
+    "nodemon": "latest"
+  }
+}
