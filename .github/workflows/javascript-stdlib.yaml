@@ -23,4 +23,4 @@ jobs:
       - working-directory: ./javascript-stdlib
         run: |
           npm ci
-          npm test
+          DEBUG=testcontainers* npm test
