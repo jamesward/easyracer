@@ -23,6 +23,7 @@ async function raceWithCancellation(racers) {
                 racer.controller.abort()
             }
         })
+        // wait for all the promises to settle before completing the winner
         return Promise.allSettled(racerPromises).then(() => winner)
     })
 }
