@@ -26,16 +26,39 @@ describe("all work", () => {
         await container.stop()
     })
 
-    it("works", async () => {
-        const httpPort = container.getFirstMappedPort()
-        expect(await scenario1(httpPort)).toBe("right")
-        expect(await scenario2(httpPort)).toBe("right")
-        expect(await scenario3(httpPort)).toBe("right")
-        expect(await scenario4(httpPort)).toBe("right")
-        expect(await scenario5(httpPort)).toBe("right")
-        expect(await scenario6(httpPort)).toBe("right")
-        expect(await scenario7(httpPort)).toBe("right")
-        expect(await scenario8(httpPort)).toBe("right")
-        expect(await scenario9(httpPort)).toBe("right")
-    }, 600000)
+    it("scenario1", async () => {
+        expect(await scenario1(container.getFirstMappedPort())).toBe("right")
+    }, 5000)
+
+    it("scenario2", async () => {
+        expect(await scenario2(container.getFirstMappedPort())).toBe("right")
+    }, 5000)
+
+    it("scenario3", async () => {
+        expect(await scenario3(container.getFirstMappedPort())).toBe("right")
+    }, 10000)
+
+    it("scenario4", async () => {
+        expect(await scenario4(container.getFirstMappedPort())).toBe("right")
+    }, 5000)
+
+    it("scenario5", async () => {
+        expect(await scenario5(container.getFirstMappedPort())).toBe("right")
+    }, 5000)
+
+    it("scenario6", async () => {
+        expect(await scenario6(container.getFirstMappedPort())).toBe("right")
+    }, 5000)
+
+    it("scenario7", async () => {
+        expect(await scenario7(container.getFirstMappedPort())).toBe("right")
+    }, 5000)
+
+    it("scenario8", async () => {
+        expect(await scenario8(container.getFirstMappedPort())).toBe("right")
+    }, 5000)
+
+    it("scenario9", async () => {
+        expect(await scenario9(container.getFirstMappedPort())).toBe("right")
+    }, 5000)
 })
