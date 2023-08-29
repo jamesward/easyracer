@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon main.js",
-    "test": "node --experimental-vm-modules --max-old-space-size=2048 node_modules/jest/bin/jest.js --debug"
+    "test": "node --experimental-vm-modules --max-old-space-size=2048 node_modules/jest/bin/jest.js --maxWorkers=8"
   },
   "engines": {
     "node": "20.5.1"
