@@ -18,12 +18,15 @@ async function raceWithCancellation(racers) {
 
     const racerPromises = racersAndSignals.map(racer => racer.promise)
     return Promise.any(racerPromises).then((winner) =>  {
+        console.debug("canceling losers")
         racersAndSignals.forEach((racer) => {
             if (racer.controller.isFinished === undefined) {
                 racer.controller.abort()
             }
         })
-        return winner
+        console.debug(racerPromises)
+        console.debug("losers canceled")
+        return Promise.allSettled(racerPromises).then(() => winner)
     })
 }
 
@@ -55,6 +58,7 @@ export async function scenario3(port) {
 }
 
 export async function scenario4(port) {
+    console.debug("starting 4")
     const req = async () => {
         console.debug("making req")
         const resp = await fetch(url(port, 4))
