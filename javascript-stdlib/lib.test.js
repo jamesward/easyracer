@@ -19,7 +19,7 @@ describe("all work", () => {
             .withExposedPorts(8080)
             .withWaitStrategy(Wait.forHttp("/", 8080))
             .start()
-    });
+    }, 15000);
 
     afterAll(async () => {
         await container.stop()
