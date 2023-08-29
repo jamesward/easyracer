@@ -18,7 +18,6 @@ describe("all work", () => {
         container = await new GenericContainer("ghcr.io/jamesward/easyracer")
             .withExposedPorts(8080)
             .withWaitStrategy(Wait.forHttp("/", 8080))
-            .withCommand(["--debug"])
             .start()
     }, 15000);
 
