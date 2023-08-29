@@ -18,11 +18,13 @@ async function raceWithCancellation(racers) {
 
     const racerPromises = racersAndSignals.map(racer => racer.promise)
     return Promise.any(racerPromises).then((winner) =>  {
+        console.debug("canceling losers")
         racersAndSignals.forEach((racer) => {
             if (racer.controller.isFinished === undefined) {
                 racer.controller.abort()
             }
         })
+        console.debug("losers canceled")
         // wait for all the promises to settle before completing the winner
         return Promise.allSettled(racerPromises).then(() => winner)
     })
