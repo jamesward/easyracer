@@ -1,0 +1,16 @@
+{
+  "tasks": {
+    "test": "deno test --allow-net --v8-flags=--max-old-space-size=8192",
+    "test:node": "npx tsx --test *.test.ts"
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["prefer-const", "require-yield"]
+    }
+  },
+  "imports": {
+    "effection": "https://deno.land/x/effection@3.0.0-alpha.13/mod.ts",
+    "expect": "https://deno.land/x/expect@v0.3.0/mod.ts",
+    "node:test": "https://deno.land/std@0.200.0/testing/bdd.ts"
+  }
+}
