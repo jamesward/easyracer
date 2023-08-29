@@ -73,7 +73,7 @@ export async function scenario4(port) {
                 reject(new Error("Request timed out"))
             }, 1000)
         })
-        return await Promise.race([timeoutPromise, requestWithSignal])
+        return Promise.race([requestWithSignal, timeoutPromise])
     }
 
     return Promise.any([req(), reqWithTimeout()])
