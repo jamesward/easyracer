@@ -58,8 +58,11 @@ export async function scenario3(port) {
 }
 
 export async function scenario4(port) {
+    console.debug("starting 4")
     const req = async () => {
+        console.debug("making req")
         const resp = await fetch(url(port, 4))
+        console.debug("got resp")
         return resp.text()
     }
 
@@ -67,11 +70,13 @@ export async function scenario4(port) {
         const controller = new AbortController()
         const signal = controller.signal
 
+        console.debug("making timeout req")
         const requestWithSignal = fetch(url(port, 4) , { signal })
             .then((resp) => resp.text())
 
         const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => {
+                console.debug("hit timeout")
                 controller.abort()
                 reject(new Error("Request timed out"))
             }, 1000)
