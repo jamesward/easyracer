@@ -26,7 +26,6 @@ describe("all work", () => {
         await container.stop()
     })
 
-    /*
     it("scenario1", async () => {
         expect(await scenario1(container.getFirstMappedPort())).toBe("right")
     }, 20000)
@@ -38,13 +37,11 @@ describe("all work", () => {
     it("scenario3", async () => {
         expect(await scenario3(container.getFirstMappedPort())).toBe("right")
     }, 20000)
-    */
 
     it("scenario4", async () => {
         expect(await scenario4(container.getFirstMappedPort())).toBe("right")
     }, 20000)
 
-    /*
     it("scenario5", async () => {
         expect(await scenario5(container.getFirstMappedPort())).toBe("right")
     }, 20000)
@@ -64,5 +61,4 @@ describe("all work", () => {
     it("scenario9", async () => {
         expect(await scenario9(container.getFirstMappedPort())).toBe("right")
     }, 20000)
-     */
 })
