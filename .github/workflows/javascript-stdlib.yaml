@@ -13,10 +13,14 @@ jobs:
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
         with:
           node-version: 20
           cache: 'npm'
           cache-dependency-path: javascript-stdlib/package-lock.json
-      - run: npm test
-        working-directory: ./javascript-stdlib
+
+      - working-directory: ./javascript-stdlib
+        run: |
+          npm ci
+          npm test
