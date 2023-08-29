@@ -3,12 +3,18 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "node node_modules/nodemon/bin/nodemon.js main.js"
+    "dev": "nodemon main.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "engines": {
     "node": "20.5.1"
   },
   "devDependencies": {
-    "nodemon": "latest"
+    "jest": "latest",
+    "nodemon": "latest",
+    "testcontainers": "latest"
+  },
+  "jest": {
+    "transform": {}
   }
 }
