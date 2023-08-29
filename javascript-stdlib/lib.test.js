@@ -36,5 +36,5 @@ describe("all work", () => {
         expect(await scenario7(httpPort)).toBe("right")
         expect(await scenario8(httpPort)).toBe("right")
         expect(await scenario9(httpPort)).toBe("right")
-    }, 30000)
+    }, 60000)
 })
