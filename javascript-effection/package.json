@@ -1,0 +1,16 @@
+{
+  "name": "easyracer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "effection": "3.0.0-alpha.13",
+    "expect": "*"
+  },
+  "scripts": {
+    "test": "npx tsx --test easyracer.test.ts"
+  },
+  "volta": {
+    "node": "20.5.1"
+  }
+}
