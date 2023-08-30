@@ -1,3 +1,5 @@
+import * as net from "net";
+
 function url(port, scenario) {
     return `http://localhost:${port}/${scenario}`
 }
@@ -67,21 +69,20 @@ export async function scenario4(port) {
     }
 
     const reqWithTimeout = async () => {
-        const controller = new AbortController()
-        const signal = controller.signal
-
         console.debug("making timeout req")
-        const requestWithSignal = fetch(url(port, 4) , { signal })
-            .then((resp) => resp.text())
+        const client = net.createConnection({ port }, () => {
+            console.debug("connected")
+            client.write('GET /4 HTTP/1.1\n\n');
+        })
 
-        const timeoutPromise = new Promise((_, reject) => {
+        // don't worry about this request returning a result, cause it will always be the loser
+        return new Promise((_, reject) => {
             setTimeout(() => {
                 console.debug("hit timeout")
-                controller.abort()
+                client.end()
                 reject(new Error("Request timed out"))
             }, 1000)
         })
-        return Promise.race([requestWithSignal, timeoutPromise])
     }
 
     return Promise.any([req(), reqWithTimeout()])
