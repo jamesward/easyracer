@@ -59,6 +59,13 @@ export async function scenario3(port) {
     return raceWithCancellation(reqs)
 }
 
+/*
+On slow machines this one can't use fetch for the timeout'd request because:
+scenario3 finishes and the connections are still being closed (there doesn't seem to be a way to wait until they are all closed to continue)
+Then when scenario4 runs, fetch doesn't immediately make a connection.
+This causes the timeout to stop making the second connection before it actually makes the connection.
+So instead of using a fetch for the timeout'd request, use a Socket and do not start the timeout until the request connects.
+ */
 export async function scenario4(port) {
     console.debug("starting 4")
     const req = async () => {
@@ -68,7 +75,7 @@ export async function scenario4(port) {
         return resp.text()
     }
 
-    const reqWithTimeout = async () => {
+    const reqWithTimeout = () => {
         console.debug("making timeout req")
         const client = net.createConnection({ port }, () => {
             console.debug("connected")
@@ -77,11 +84,13 @@ export async function scenario4(port) {
 
         // don't worry about this request returning a result, cause it will always be the loser
         return new Promise((_, reject) => {
-            setTimeout(() => {
-                console.debug("hit timeout")
-                client.end()
-                reject(new Error("Request timed out"))
-            }, 1000)
+            client.on("connect", () => {
+                setTimeout(() => {
+                    console.debug("hit timeout")
+                    client.end()
+                    reject(new Error("Request timed out"))
+                }, 1000)
+            })
         })
     }
 
