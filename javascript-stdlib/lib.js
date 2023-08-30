@@ -20,14 +20,13 @@ async function raceWithCancellation(racers) {
 
     const racerPromises = racersAndSignals.map(racer => racer.promise)
     return Promise.any(racerPromises).then((winner) =>  {
-        console.debug("canceling losers")
         racersAndSignals.forEach((racer) => {
             if (racer.controller.isFinished === undefined) {
                 racer.controller.abort()
             }
         })
-        console.debug("losers canceled")
         // wait for all the promises to settle before completing the winner
+        // note that this doesn't actually wait for all the loser connections to close
         return Promise.allSettled(racerPromises).then(() => winner)
     })
 }
@@ -61,24 +60,19 @@ export async function scenario3(port) {
 
 /*
 On slow machines this one can't use fetch for the timeout'd request because:
-scenario3 finishes and the connections are still being closed (there doesn't seem to be a way to wait until they are all closed to continue)
-Then when scenario4 runs, fetch doesn't immediately make a connection.
+scenario3 finishes and the connections are still being closed (there doesn't seem to be a way to wait until they are all closed to continue).
+Then when scenario4 runs, fetch doesn't immediately make a connection (because the libuv thread pool is exhausted).
 This causes the timeout to stop making the second connection before it actually makes the connection.
 So instead of using a fetch for the timeout'd request, use a Socket and do not start the timeout until the request connects.
  */
 export async function scenario4(port) {
-    console.debug("starting 4")
     const req = async () => {
-        console.debug("making req")
         const resp = await fetch(url(port, 4))
-        console.debug("got resp")
         return resp.text()
     }
 
     const reqWithTimeout = () => {
-        console.debug("making timeout req")
         const client = net.createConnection({ port }, () => {
-            console.debug("connected")
             client.write('GET /4 HTTP/1.1\n\n');
         })
 
@@ -86,7 +80,6 @@ export async function scenario4(port) {
         return new Promise((_, reject) => {
             client.on("connect", () => {
                 setTimeout(() => {
-                    console.debug("hit timeout")
                     client.end()
                     reject(new Error("Request timed out"))
                 }, 1000)
