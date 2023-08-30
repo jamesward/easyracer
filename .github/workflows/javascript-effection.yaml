@@ -4,7 +4,7 @@ on:
     types: [completed]
   push:
     paths:
-      - javascript-stdlib/**
+      - javascript-effection/**
       - .github/workflows/javascript-effection.yaml
 
 jobs:
