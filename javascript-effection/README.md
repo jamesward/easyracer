@@ -18,7 +18,7 @@ $ deno task test
 You will need [Node](https://nodejs.org) >= 18 installed. If you are using,
 [Volta](https://volta.sh) this will be configured for you automatically.
 
-``` shellsession
+```shellsession
 $ npm install
 $ npx tsx --test easyracer.test.ts
 ```

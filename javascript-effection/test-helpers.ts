@@ -57,9 +57,12 @@ export function rightOrNot(ops: Operation<unknown>[]): Operation<string> {
       });
       tasks.push(task);
     }
-    let last: unknown = null;
+    let last = "";
     for (let task of tasks) {
-      last = yield* task;
+      let result = yield* task;
+      if (result) {
+        last = String(result);
+      }
     }
     // not!
     resolve(String(last));
