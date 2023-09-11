@@ -20,7 +20,7 @@ dependencies {
     implementation("io.ktor:ktor-client-core:2.3.4")
     implementation("io.ktor:ktor-client-java:2.3.4")
 
-    testImplementation("io.kotest:kotest-runner-junit5:5.7.1")
+    testImplementation("io.kotest:kotest-runner-junit5:5.7.2")
     testImplementation("io.kotest:kotest-assertions-core:5.7.1")
     testImplementation("io.kotest.extensions:kotest-extensions-testcontainers:2.0.2")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.9")
