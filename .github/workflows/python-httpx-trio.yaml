@@ -6,6 +6,10 @@ on:
     paths:
       - python-httpx-trio/**
       - .github/workflows/python-httpx-trio.yaml
+  pull_request:
+    paths:
+      - python-httpx-trio/**
+      - .github/workflows/python-httpx-trio.yaml
 
 jobs:
   test:

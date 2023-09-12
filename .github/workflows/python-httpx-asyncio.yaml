@@ -6,6 +6,10 @@ on:
     paths:
       - python-httpx-asyncio/**
       - .github/workflows/python-httpx-asyncio.yaml
+  pull_request:
+    paths:
+      - python-httpx-asyncio/**
+      - .github/workflows/python-httpx-asyncio.yaml
 
 jobs:
   test:

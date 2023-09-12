@@ -6,6 +6,10 @@ on:
     paths:
       - scala-zio/**
       - .github/workflows/scala-zio.yaml
+  pull_request:
+    paths:
+      - scala-zio/**
+      - .github/workflows/scala-zio.yaml
 
 jobs:
   test:

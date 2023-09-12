@@ -5,6 +5,10 @@ on:
     paths:
       - scenario-server/**
       - .github/workflows/scenario-server.yaml
+  pull_request:
+    paths:
+      - scenario-server/**
+      - .github/workflows/scenario-server.yaml
 
 jobs:
   test:

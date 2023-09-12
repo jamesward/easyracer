@@ -6,6 +6,10 @@ on:
     paths:
       - kotlin-coroutines/**
       - .github/workflows/kotlin-coroutines.yaml
+  pull_request:
+    paths:
+      - kotlin-coroutines/**
+      - .github/workflows/kotlin-coroutines.yaml
 
 jobs:
   test:

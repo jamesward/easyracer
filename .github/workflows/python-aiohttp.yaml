@@ -6,6 +6,10 @@ on:
     paths:
       - python-aiohttp/**
       - .github/workflows/python-aiohttp.yaml
+  pull_request:
+    paths:
+      - python-aiohttp/**
+      - .github/workflows/python-aiohttp.yaml
 
 jobs:
   test:

@@ -6,6 +6,10 @@ on:
     paths:
       - kotlin-splitties/**
       - .github/workflows/kotlin-splitties.yaml
+  pull_request:
+    paths:
+      - kotlin-splitties/**
+      - .github/workflows/kotlin-splitties.yaml
 
 jobs:
   test:

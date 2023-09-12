@@ -6,6 +6,10 @@ on:
     paths:
       - go-stdlib/**
       - .github/workflows/go-stdlib.yaml
+  pull_request:
+    paths:
+      - go-stdlib/**
+      - .github/workflows/go-stdlib.yaml
 
 jobs:
   test:

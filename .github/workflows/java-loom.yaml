@@ -6,6 +6,10 @@ on:
     paths:
       - java-loom/**
       - .github/workflows/java-loom.yaml
+  pull_request:
+    paths:
+      - java-loom/**
+      - .github/workflows/java-loom.yaml
 
 jobs:
   test:

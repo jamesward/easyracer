@@ -6,6 +6,10 @@ on:
     paths:
       - rust-tokio/**
       - .github/workflows/rust-tokio.yaml
+  pull_request:
+    paths:
+      - rust-tokio/**
+      - .github/workflows/rust-tokio.yaml
 
 jobs:
   test:

@@ -6,6 +6,10 @@ on:
     paths:
       - scala-ox/**
       - .github/workflows/scala-ox.yaml
+  pull_request:
+    paths:
+      - scala-ox/**
+      - .github/workflows/scala-ox.yaml
 
 jobs:
   test:

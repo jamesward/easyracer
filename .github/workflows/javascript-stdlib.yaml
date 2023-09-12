@@ -6,6 +6,10 @@ on:
     paths:
       - javascript-stdlib/**
       - .github/workflows/javascript-stdlib.yaml
+  pull_request:
+    paths:
+      - javascript-stdlib/**
+      - .github/workflows/javascript-stdlib.yaml
 
 jobs:
   test:

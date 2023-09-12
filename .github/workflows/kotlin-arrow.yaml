@@ -6,6 +6,10 @@ on:
     paths:
       - kotlin-arrow/**
       - .github/workflows/kotlin-arrow.yaml
+  pull_request:
+    paths:
+      - kotlin-arrow/**
+      - .github/workflows/kotlin-arrow.yaml
 
 jobs:
   test:

@@ -6,6 +6,10 @@ on:
     paths:
       - swift-dispatch/**
       - .github/workflows/swift-dispatch.yaml
+  pull_request:
+    paths:
+      - swift-dispatch/**
+      - .github/workflows/swift-dispatch.yaml
 
 jobs:
   test:

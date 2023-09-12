@@ -6,6 +6,10 @@ on:
     paths:
       - swift-combine/**
       - .github/workflows/swift-combine.yaml
+  pull_request:
+    paths:
+      - swift-combine/**
+      - .github/workflows/swift-combine.yaml
 
 jobs:
   test:
