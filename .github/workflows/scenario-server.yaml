@@ -59,7 +59,7 @@ jobs:
           platforms: linux/amd64
           context: ./scenario-server
           file: ./scenario-server/Dockerfile-amd64
-          push: true
+          push: ${{ github.actor == github.repository_owner }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -97,12 +97,13 @@ jobs:
           platforms: linux/arm64/v8
           context: ./scenario-server
           file: ./scenario-server/Dockerfile-aarch64
-          push: true
+          push: ${{ github.actor == github.repository_owner }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
   create-manifests:
     runs-on: ubuntu-latest
+    if: ${{ github.actor == github.repository_owner }}
     needs: [build-and-push-amd64, build-and-push-aarch64]
 
     steps:
