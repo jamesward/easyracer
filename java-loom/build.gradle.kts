@@ -4,7 +4,7 @@ plugins {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(19))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 
@@ -24,16 +24,16 @@ application {
 }
 
 tasks.withType<JavaCompile> {
-    options.compilerArgs.addAll(listOf("--enable-preview", "--add-modules", "jdk.incubator.concurrent"))
+    options.compilerArgs.addAll(listOf("--enable-preview"))
 }
 
 tasks.withType<JavaExec> {
-    jvmArgs("--enable-preview", "--add-modules", "jdk.incubator.concurrent")
+    jvmArgs("--enable-preview")
 }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
-    jvmArgs("--enable-preview", "--add-modules", "jdk.incubator.concurrent")
+    jvmArgs("--enable-preview")
 
     testLogging {
         showStandardStreams = true

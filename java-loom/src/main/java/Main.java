@@ -1,5 +1,3 @@
-import jdk.incubator.concurrent.StructuredTaskScope;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -12,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.IntStream;
+import java.util.concurrent.StructuredTaskScope;
 
 // Note: Intentionally, code is not shared across scenarios
 public class Main {
@@ -208,17 +207,14 @@ public class Main {
 
                 scope.join();
 
-                return futures.stream().map(f -> {
-                    try {
-                        return f.get();
-                    } catch (ExecutionException | InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                }).filter(r -> r.response.statusCode() == 200).sorted(Comparator.comparing(TimedResponse::instant)).collect(
-                        StringBuilder::new,
-                        (acc, timedResponse) -> acc.append(timedResponse.response.body()),
-                        StringBuilder::append
-                ).toString();
+                return futures.stream()
+                        .map(StructuredTaskScope.Subtask::get)
+                        .filter(r -> r.response.statusCode() == 200)
+                        .sorted(Comparator.comparing(TimedResponse::instant)).collect(
+                            StringBuilder::new,
+                            (acc, timedResponse) -> acc.append(timedResponse.response.body()),
+                            StringBuilder::append
+                        ).toString();
             }
         }
 
@@ -228,8 +224,7 @@ public class Main {
         }
     }
 
-
-    public static void main(String[] args) throws URISyntaxException, ExecutionException, InterruptedException {
+    void main() throws URISyntaxException, ExecutionException, InterruptedException {
         var scenarios = new Scenarios(new URI("http://localhost:8080"));
         scenarios.results().forEach(System.out::println);
     }
