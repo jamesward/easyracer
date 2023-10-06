@@ -105,6 +105,7 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 | [Swift + Combine](swift-combine)                         | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
 | [Elm](elm-worker)                                        | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
 | [JavaScript](javascript-stdlib)                          | 9/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenario 10 Impl      |
+| [Scala + Cats Effects 3](scala-ce3)                      | 9/10              | [Paul Snively](https://github.com/paul-snively)                                           | Needs Scenario 10 Impl      |
 | [Python + HTTPX + Trio](python-httpx-trio)               | 8/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenarios 3, 10       |
 | [Python + AIOHTTP](python-aiohttp)                       | 6/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenarios 3, 4, 8, 10 |
 | [Python + HTTPX + asyncio](python-httpx-asyncio)         | 2/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenarios 3-10        |
