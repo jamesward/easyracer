@@ -6,7 +6,7 @@ import cats.data.Chain
 import cats.effect._, cats.effect.implicits._
 import cats.effect.std.CountDownLatch
 
-import org.http4s._, org.http4s.implicits._
+import org.http4s._
 import org.http4s.Method._
 
 import org.http4s.client.Client
@@ -24,7 +24,7 @@ object EasyRacerClient extends IOApp.Simple {
 
   // Questionable semantics: throws away errors!
   implicit class RaceSuccess[A](left: IO[A]) {
-    private def cascade[A](outcome: OutcomeIO[A], fiber: FiberIO[A]): IO[A] = {
+    private def cascade(outcome: OutcomeIO[A], fiber: FiberIO[A]): IO[A] = {
       outcome match {
         case Succeeded(fa) => fiber.cancel *> fa
         case _             => fiber.join.flatMap(_.embed(
@@ -57,7 +57,7 @@ object EasyRacerClient extends IOApp.Simple {
     F uncancelable { poll =>
       for {
         complete <- CountDownLatch[F](permits)
-        
+
         success <- F.deferred[A]
         errors <- F.ref[Chain[E]](Chain.nil)
 
@@ -65,12 +65,12 @@ object EasyRacerClient extends IOApp.Simple {
           val staged = fa guaranteeCase { oc =>
             complete.release *> (oc match {
               case Outcome.Succeeded(ifa) =>
-                ifa.flatMap(success.complete(_)).void
+                ifa.flatMap(success.complete).void
 
-              case Outcome.Errored(e) => 
+              case Outcome.Errored(e) =>
                 errors.update(_ :+ e)
 
-              case Outcome.Canceled() => 
+              case Outcome.Canceled() =>
                 F.unit
             })
           }
@@ -109,21 +109,21 @@ object EasyRacerClient extends IOApp.Simple {
   def scenario1(client: Client[IO], scenarioUrl: Int => Uri) = {
     val url = scenarioUrl(1)
     val req = client.expect[String](GET(url))
- 
+
     req.raceSuccess(req)
   }
 
   def scenario2(client: Client[IO], scenarioUrl: Int => Uri) = {
     val url = scenarioUrl(2)
     val req = client.expect[String](GET(url))
- 
+
     req.raceSuccess(req)
   }
 
   def scenario3(client: Client[IO], scenarioUrl: Int => Uri) = {
     val url = scenarioUrl(3)
     val reqs = List.fill(10000)(client.expect[String](GET(url)))
-    
+
     multiRace(reqs)
   }
 
@@ -174,7 +174,7 @@ object EasyRacerClient extends IOApp.Simple {
     def use(id: String) = req(client, scenarioUrl(8) +? ("use" -> id))
     def close(id: String) = req(client, scenarioUrl(8) +? ("close" -> id))
 
-    val reqRes = Resource.make(open)(close(_).void).use(use(_))
+    val reqRes = Resource.make(open)(close(_).void).use(use)
 
     reqRes.raceSuccess(reqRes)
   }
@@ -209,15 +209,16 @@ object EasyRacerClient extends IOApp.Simple {
   }
 
   def all(client: Client[IO], scenarioUrl: Int => Uri) =
-    List((scenario1 _), 
-      (scenario2 _),
-      (scenario3 _),
-      (scenario4 _),
-      (scenario5 _),
-      (scenario6 _),
-      (scenario7 _),
-      (scenario8 _),
-      (scenario9 _)
+    List(
+      scenario1 _,
+      scenario2 _,
+      scenario3 _,
+      scenario4 _,
+      scenario5 _,
+      scenario6 _,
+      scenario7 _,
+      scenario8 _,
+      scenario9 _,
     ).parTraverse { f =>
       f(client, scenarioUrl)
     }

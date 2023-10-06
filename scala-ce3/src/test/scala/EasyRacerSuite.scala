@@ -1,7 +1,5 @@
 import weaver._
 
-import scala.concurrent.duration._
-
 import cats.implicits._
 
 import cats.effect._
