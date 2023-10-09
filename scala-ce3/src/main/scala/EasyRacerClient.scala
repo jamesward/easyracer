@@ -178,26 +178,10 @@ object EasyRacerClient extends IOApp.Simple {
     reqRes.raceSuccess(reqRes)
   }
 
-/*
-  def scenario9(client: Client[IO], scenarioUrl: Int => Uri) = {
-    val req = for
-      resp <- Client.request(scenarioUrl(9)).filterOrFail(_.status.isSuccess)(Error())
-      body <- resp.body.asString
-      now <- Clock.nanoTime
-    yield
-      now -> body
-
-    ZIO.withParallelism(10) {
-      ZIO.collectAllSuccessesPar(Seq.fill(10)(req)).map { resp =>
-        resp.sortBy(_._1).map(_._2).mkString
-      }
-    }
-  }
-*/
-
   def scenario9(client: Client[IO], scenarioUrl: Int => Uri) = {
     val req = for {
       body <- client.expect[String](scenarioUrl(9))
+      _ = println(body)
       now <- Clock[IO].realTimeInstant
     } yield
       now -> body
