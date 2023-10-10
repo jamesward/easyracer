@@ -204,7 +204,7 @@ object EasyRacerClient extends IOApp.Simple {
       now -> body
 
     List.fill(10)(req)
-      .parTraverseFilter(_.attempt.map(_.toOption))
+      .parTraverseFilter(_.option)
       .map(_.sortBy(_._1).map(_._2).mkString)
   }
 
