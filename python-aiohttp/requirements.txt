@@ -1,4 +1,4 @@
-aiohttp==3.8.6
+aiohttp==3.9.0
 testcontainers==3.7.1
 
 pytest
