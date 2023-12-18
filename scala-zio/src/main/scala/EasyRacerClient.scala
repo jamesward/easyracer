@@ -1,10 +1,8 @@
 import zio.*
-import zio.concurrent.ConcurrentSet
 import zio.http.*
 import zio.direct.*
 import zio.http.netty.NettyConfig
 
-import java.util.UUID
 import java.util.concurrent.TimeoutException
 import scala.collection.immutable.SortedMap
 import scala.annotation.tailrec
@@ -15,7 +13,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario1(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(1)
-      val req = Client.request(url)
+      val req = Client.request(Request.get(url))
       val winner = req.race(req).run
       winner.body.asString.run
 
@@ -23,7 +21,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario2(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(2)
-      val req = Client.request(url)
+      val req = Client.request(Request.get(url))
       val winner = req.race(req).run
       winner.body.asString.run
 
@@ -31,7 +29,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario3(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(3)
-      val reqs = Seq.fill(10000)(Client.request(url))
+      val reqs = Seq.fill(10000)(Client.request(Request.get(url)))
       val winner = ZIO.raceAll(reqs.head, reqs.tail).run
       winner.body.asString.run
 
@@ -39,7 +37,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario4(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(4)
-      val req = Client.request(url)
+      val req = Client.request(Request.get(url))
       val winner = req.timeoutFail(TimeoutException())(1.seconds).race(req).run
       winner.body.asString.run
 
@@ -47,7 +45,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario5(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(5)
-      val req = Client.request(url).filterOrFail(_.status.isSuccess)(Error())
+      val req = Client.request(Request.get(url)).filterOrFail(_.status.isSuccess)(Error())
       val winner = req.race(req).run
       winner.body.asString.run
 
@@ -55,7 +53,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario6(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(6)
-      val req = Client.request(url).filterOrFail(_.status.isSuccess)(Error())
+      val req = Client.request(Request.get(url)).filterOrFail(_.status.isSuccess)(Error())
       val winner = ZIO.raceAll(req, Seq(req, req)).run
       winner.body.asString.run
 
@@ -63,7 +61,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario7(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(7)
-      val req = Client.request(url)
+      val req = Client.request(Request.get(url))
       // todo: sometimes the first req can take a second or 2 to start which can break the hedge check which verifies the second request starts 2 seconds after the first one
       //   but it isn't clear how to resolve that as there isn't a way to know when the req is connected, then send the second one
       val winner = req.race(req.delay(4.seconds)).run
@@ -73,7 +71,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario8(scenarioUrl: Int => String) =
     def req(url: String) =
       defer:
-        val resp = Client.request(url).filterOrFail(_.status.isSuccess)(Error()).run
+        val resp = Client.request(Request.get(url)).filterOrFail(_.status.isSuccess)(Error()).run
         resp.body.asString.run
 
     val open = req(scenarioUrl(8) + "?open")
@@ -89,7 +87,7 @@ object EasyRacerClient extends ZIOAppDefault:
     val req =
       defer:
         val url = scenarioUrl(9)
-        val resp = Client.request(url).filterOrFail(_.status.isSuccess)(Error()).run
+        val resp = Client.request(Request.get(url)).filterOrFail(_.status.isSuccess)(Error()).run
         val body = resp.body.asString.run
         val now = Clock.nanoTime.run
         now -> body
@@ -120,7 +118,7 @@ object EasyRacerClient extends ZIOAppDefault:
 
   def scenario10(scenarioUrl: Int => String) =
     def req(params: Option[String] = None) = for
-      resp <- Client.request(scenarioUrl(10) + params.getOrElse("")).filterOrFail(_.status.isSuccess)(Error())
+      resp <- Client.request(Request.get(scenarioUrl(10) + params.getOrElse(""))).filterOrFail(_.status.isSuccess)(Error())
       body <- resp.body.asString
     yield
       body
@@ -137,7 +135,7 @@ object EasyRacerClient extends ZIOAppDefault:
 
   def scenario11(scenarioUrl: Int => String) =
     def req(params: Option[String] = None) = for
-      resp <- Client.request(scenarioUrl(11) + params.getOrElse(""))
+      resp <- Client.request(Request.get(scenarioUrl(11) + params.getOrElse("")))
       body <- resp.body.asString
     yield
       body
@@ -171,13 +169,14 @@ object EasyRacerClient extends ZIOAppDefault:
   //def scenarios(scenarioUrl: Int => String) = Seq(scenario9).map(_.apply(scenarioUrl))
   def all(scenarioUrl: Int => String) = ZIO.collectAll(scenarios(scenarioUrl))
 
-  val clientConfig: ZClient.Config = Client.Config.default.withDisabledConnectionPool //.withFixedConnectionPool(10000)
+  val clientConfig = Client.Config.default.disabledConnectionPool
 
   override val run =
     def scenarioUrl(scenario: Int) = s"http://localhost:8080/$scenario"
     all(scenarioUrl).debug.filterOrDie(_.forall(_ == "right"))(Error("not all right")).provide(
       ZLayer.succeed(clientConfig),
-      Client.live,
       ZLayer.succeed(NettyConfig.default),
       DnsResolver.default,
+      Client.live,
+      Scope.default,
     )

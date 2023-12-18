@@ -2,13 +2,11 @@ import zio.*
 import zio.http.*
 import zio.test.*
 import zio.test.Annotations.*
-import zio.test.Assertion.*
 import com.dimafeng.testcontainers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.images.PullPolicy
 import zio.http.netty.NettyConfig
 
-import java.io.IOException
 
 object EasyRacerClientSpec extends ZIOSpecDefault:
 
@@ -25,7 +23,7 @@ object EasyRacerClientSpec extends ZIOSpecDefault:
   }
 
   val containerLayer = ZLayer.scoped(container)
-  val clientConfig = Client.Config.default.withDisabledConnectionPool
+  val clientConfig = Client.Config.default.disabledConnectionPool
 
   def spec = suite("easyracer")(
     test("all") {
@@ -37,6 +35,7 @@ object EasyRacerClientSpec extends ZIOSpecDefault:
           Client.live,
           ZLayer.succeed(NettyConfig.default),
           DnsResolver.default,
+          Scope.default,
         )
       yield
         assertTrue(results.forall(_ == "right"))
