@@ -4,7 +4,7 @@ libraryDependencies ++= Seq(
   "com.softwaremill.ox" %% "core" % "0.0.16",
   "com.softwaremill.sttp.client3" %% "core" % "3.9.1",
   "org.scalatest" %% "scalatest" % "3.2.17" % Test,
-  "org.slf4j" % "slf4j-simple" % "2.0.9" % Test,
+  "org.slf4j" % "slf4j-simple" % "2.0.11" % Test,
   "com.dimafeng" %% "testcontainers-scala-core" % "0.41.0" % Test
 )
 
