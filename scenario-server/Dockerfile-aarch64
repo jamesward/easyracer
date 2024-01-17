@@ -1,10 +1,8 @@
-FROM ghcr.io/graalvm/graalvm-ce:22.3.0 as builder
+FROM ghcr.io/graalvm/native-image-community:21 as builder
 ARG TARGETARCH
 
 WORKDIR /app
 COPY . /app
-
-RUN gu install native-image
 
 RUN cd /app && ./sbt clean GraalVMNativeImage/packageBin
 

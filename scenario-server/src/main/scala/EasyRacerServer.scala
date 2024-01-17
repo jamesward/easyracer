@@ -5,237 +5,179 @@ import zio.concurrent.ReentrantLock
 import zio.logging.{ConsoleLoggerConfig, LogFilter, LogFormat, consoleLogger}
 
 import java.time.Instant
-import scala.annotation.tailrec
+import scala.annotation.unused
 
 object EasyRacerServer extends ZIOAppDefault:
 
-  private val wrong = Response(status = Status.InternalServerError, body = Body.fromString("wrong"))
+  private val wrong = Response.internalServerError("wrong")
 
-  case class DoubleFib(first: Int, firstFib: Promise[Nothing, BigInt], second: Int, secondFib: Promise[Nothing, BigInt])
+  private type SessionPromise[T] = Promise[Nothing, T]
 
-  private type SessionData = Unit | Instant | Promise[Nothing, String] | Queue[Option[(Char, Int)]] | DoubleFib
-  private type SessionPromise = Promise[Nothing, SessionData]
-  private object SessionPromise:
-    // nicer?
-    def make: UIO[SessionPromise] = Promise.make[Nothing, SessionData]
-
-  case class Session(private val locker: ReentrantLock, private val numRequestsRef: Ref[Int], private val raceCoordinatorRef: Ref[SessionPromise]):
-    def get(): ZIO[Any, Nothing, (Int, SessionPromise)] =
-      for
-        _ <- locker.lock
-        numRequests <- numRequestsRef.get
-        raceCoordinator <- raceCoordinatorRef.get
-        _ <- locker.unlock
-      yield
+  case class Session[T](private val locker: ReentrantLock, private val numRequestsRef: Ref[Int], private val raceCoordinatorRef: Ref[SessionPromise[T]]):
+    def get(): ZIO[Any, Nothing, (Int, SessionPromise[T])] =
+      defer:
+        locker.lock.run
+        val numRequests = numRequestsRef.get.run
+        val raceCoordinator = raceCoordinatorRef.get.run
+        locker.unlock.run
         (numRequests, raceCoordinator)
 
-    def add(): ZIO[Any, Nothing, (Int, SessionPromise)] =
-      for
-        _ <- locker.lock
-        numRequests <- numRequestsRef.updateAndGet(_ + 1)
-        _ <- ZIO.log(s"Num concurrent connections = $numRequests")
-        raceCoordinator <- raceCoordinatorRef.get
-        _ <- locker.unlock
-      yield
+    def add(): ZIO[Any, Nothing, (Int, SessionPromise[T])] =
+      defer:
+        locker.lock.run
+        val numRequests = numRequestsRef.updateAndGet(_ + 1).run
+        ZIO.log(s"Num concurrent connections = $numRequests").run
+        val raceCoordinator = raceCoordinatorRef.get.run
+        locker.unlock.run
         (numRequests, raceCoordinator)
 
     def remove(): ZIO[Any, Nothing, Unit] =
-      for
-        _ <- locker.lock
-        numRequests <- numRequestsRef.updateAndGet(_ - 1)
-        _ <- ZIO.log(s"Num concurrent connections = $numRequests")
-        _ <- ZIO.when(numRequests == 0)(SessionPromise.make.flatMap(raceCoordinatorRef.set))
-        _ <- locker.unlock
-      yield
-        ()
-
-    def clear(): ZIO[Any, Nothing, SessionPromise] =
-      for
-        _ <- locker.lock
-        sessionPromise <- SessionPromise.make
-        _ <- raceCoordinatorRef.set(sessionPromise)
-        _ <- locker.unlock
-      yield
-        sessionPromise
+      defer:
+        locker.lock.run
+        val numRequests = numRequestsRef.updateAndGet(_ - 1).run
+        ZIO.log(s"Num concurrent connections = $numRequests").run
+        ZIO.when(numRequests == 0)(Promise.make.flatMap(raceCoordinatorRef.set)).run
+        locker.unlock.run
 
   object Session:
-    def make(): ZIO[Any, Nothing, Session] =
-      for
-        locker <- ReentrantLock.make()
-        numRequestsRef <- Ref.make[Int](0)
-        sessionPromise <- SessionPromise.make
-        raceCoordinatorRef <- Ref.make(sessionPromise)
-      yield
+    def make[T](): ZIO[Any, Nothing, Session[T]] =
+      defer:
+        val locker = ReentrantLock.make().run
+        val numRequestsRef = Ref.make[Int](0).run
+        val sessionPromise = Promise.make[Nothing, T].run
+        val raceCoordinatorRef = Ref.make(sessionPromise).run
         Session(locker, numRequestsRef, raceCoordinatorRef)
 
 
   /*
   Once two concurrent requests have come in, the first request returns the right response before the second one which takes a long time
   */
-  def scenario1(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
-    val r = for
-      numAndPromise <- session.add()
-      (num, promise) = numAndPromise
-      resp <- if num == 1 then
-        promise.await.as(Response.text("right"))
+  def scenario1(session: Session[Unit])(@unused request: Request): ZIO[Any, Nothing, Response] =
+    defer:
+      val (num, promise) = session.add().run
+      if num == 1 then
+        promise.await.as(Response.text("right")).run
       else
-        promise.succeed(()) *> ZIO.never
-    yield
-      resp
+        promise.succeed(()).run
+        ZIO.never.run
 
-    r.onExit { _ =>
+    .onExit: _ =>
       session.remove()
-    }
-  }
 
 
   /*
   Once two concurrent requests have come in, the first request returns the right response while the second closes the connection
   */
-  def scenario2(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
-    val r = for
-      numAndPromise <- session.add()
-      (num, promise) = numAndPromise
-      resp <- if num == 1 then
-        promise.await *> ZIO.sleep(1.second) as Response.text("right")
+  def scenario2(session: Session[Unit])(@unused request: Request): ZIO[Any, Nothing, Response] =
+    defer:
+      val (num, promise) = session.add().run
+      if num == 1 then
+        promise.await.run
+        ZIO.sleep(1.second).run
+        Response.text("right")
       else
-        promise.succeed(()) *> ZIO.interrupt
-    yield
-      resp
+        promise.succeed(()).run
+        ZIO.interrupt.run
 
-    r.onExit { _ =>
+    .onExit: _ =>
         session.remove()
-    }
-  }
+
 
   /*
   10000 concurrent requests gets a right response
   */
-  def scenario3(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
-    val r = for
-      _ <- ZIO.unit
-      numAndPromise <- session.add()
-      (num, promise) = numAndPromise
-      resp <- if num < 10_000 then
-        promise.await *> ZIO.never
+  def scenario3(session: Session[Unit])(@unused request: Request): ZIO[Any, Nothing, Response] =
+    defer:
+      val (num, promise) = session.add().run
+      if num < 10_000 then
+        promise.await.run
+        ZIO.never.run
       else
-        promise.succeed(()).as(Response.text("right"))
-    yield
-      resp
+        promise.succeed(()).run
+        Response.text("right")
 
-    r.onExit { _ =>
+    .onExit: _ =>
       session.remove()
-    }
-  }
+
 
   /*
   Once a request is cancelled, other pending requests return a right response
   */
-  def scenario4(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
-    val r = for
-      numAndPromise <- session.add()
-      (_, promise) = numAndPromise
-      _ <- promise.await
-    yield
+  def scenario4(session: Session[Unit])(@unused request: Request): ZIO[Any, Nothing, Response] =
+    defer:
+      val (_, promise) = session.add().run
+      promise.await.run
       Response.text("right")
 
-    r.onExit { exit =>
-      ZIO.when(exit.isFailure) {
-        for
-          numAndPromise <- session.get()
-          (_, promise) = numAndPromise
-          _ <- promise.succeed(())
-        yield
-          ()
-      } *> session.remove()
-    }
-  }
+    .onExit: exit =>
+      defer:
+        if exit.isFailure then
+          val (_ , promise) = session.get().run
+          promise.succeed(()).run
+
+        session.remove().run
+
 
   /*
   Once two requests have come in, the first one returns a 500, while a later one is right
   */
-  def scenario5(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
-    val r = for
-      numAndPromise <- session.add()
-      (num, promise) = numAndPromise
-      resp <- if num == 1 then
-        promise.await.as(wrong)
+  def scenario5(session: Session[Unit])(@unused request: Request): ZIO[Any, Nothing, Response] =
+    defer:
+      val (num, promise) = session.add().run
+      if num == 1 then
+        promise.await.run
+        wrong
       else
-        for
-          _ <- promise.succeed(())
-          _ <- ZIO.sleep(1.second) // insure that the wrong response comes before the right one
-        yield
-          Response.text("right")
-    yield
-      resp
+        promise.succeed(()).run
+        ZIO.sleep(1.second).run // insure that the wrong response comes before the right one
+        Response.text("right")
 
-    r.onExit { _ =>
+    .onExit: _ =>
       session.remove()
-    }
-  }
 
 
   /*
   Once three requests have come in, the first one returns a 500, while a later one is right
   */
-  def scenario6(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
-    val r = for
-      numAndPromise <- session.add()
-      (num, promise) = numAndPromise
-      resp <- if num == 1 then
-        promise.await.as(wrong)
+  def scenario6(session: Session[Unit])(@unused request: Request): ZIO[Any, Nothing, Response] =
+    defer:
+      val (num, promise) = session.add().run
+      if num == 1 then
+        promise.await.run
+        wrong
       else if num == 2 then
-        for
-          _ <- promise.await
-          _ <- ZIO.sleep(1.second) // insure that the wrong response comes before the right one
-        yield
-          Response.text("right")
+        promise.await.run
+        ZIO.sleep(1.second).run // insure that the wrong response comes before the right one
+        Response.text("right")
       else
-        for
-          _ <- promise.succeed(())
-          _ <- ZIO.never
-        yield
-          throw NotImplementedError("Never gonna happen")
-    yield
-      resp
+        promise.succeed(()).run
+        ZIO.never.run
 
-    r.onExit { _ =>
+    .onExit: _ =>
       session.remove()
-    }
-  }
+
 
   /*
   The first request is right when a second "hedge" request starts after two seconds
   */
-  def scenario7(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
-    val r = for
-      numAndPromise <- session.add()
-      (num, promise) = numAndPromise
-      resp <- if num == 1 then
-        for
-          first <- Clock.instant
-          second <- promise.await
-        yield
-          second match {
-            case i: Instant if i.minusSeconds(2).isAfter(first) =>
-              Response.text("right")
-            case _ =>
-              Response.text("wrong")
-          }
+  def scenario7(session: Session[Instant])(@unused request: Request): ZIO[Any, Nothing, Response] =
+    defer:
+      val (num, promise) = session.add().run
+      if num == 1 then
+        val first = Clock.instant.run
+        val second = promise.await.run
+        if second.minusSeconds(2).isAfter(first) then
+          Response.text("right")
+        else
+          Response.text("wrong")
       else
-        for
-          now <- Clock.instant
-          _ <- promise.succeed(now)
-          _ <- ZIO.never
-        yield
-          throw NotImplementedError("Never gonna happen")
-    yield
-      resp
+        val now = Clock.instant.run
+        promise.succeed(now).run
+        ZIO.never.run
 
-    r.onExit { _ =>
+    .onExit: _ =>
       session.remove()
-    }
-  }
+
 
   /*
   Two "open" requests are made which return unique ids.
@@ -243,290 +185,135 @@ object EasyRacerServer extends ZIOAppDefault:
   A "close" request is made using the id from the failed "use" request.
   After that "close" request, the other "use" request's response is returned as the "right" response.
   */
-  def scenario8(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
+  def scenario8(session: Session[Promise[Nothing, String]])(request: Request): ZIO[Any, Nothing, Response] =
     enum Cmd:
       case Open
       case Use(id: String)
       case Close(id: String)
 
-    val maybeCmd: Option[Cmd] = req.url.queryParams.get("open").map(_ => Cmd.Open)
-      .orElse(req.url.queryParams.get("use").map(_.asString).map(Cmd.Use(_)))
-      .orElse(req.url.queryParams.get("close").map(_.asString).map(Cmd.Close(_)))
+    val maybeCmd: Option[Cmd] = request.url.queryParams.get("open").map(_ => Cmd.Open)
+      .orElse(request.url.queryParams.get("use").map(Cmd.Use(_)))
+      .orElse(request.url.queryParams.get("close").map(Cmd.Close(_)))
 
-    maybeCmd match
-      case Some(Cmd.Open) =>
-        Random.nextUUID.map(id => Response.text(id.toString))
+      maybeCmd match
+        case Some(Cmd.Open) =>
+          defer:
+            val id = Random.nextUUID.run
+            Response.text(id.toString)
 
-      case Some(Cmd.Use(id)) =>
-        val r = for
-          numAndPromise <- session.add()
-          (num, promise) = numAndPromise
-          resp <- if num == 1 then
-            promise.await.as(wrong)
-          else
-            for
-              nextPromise <- Promise.make[Nothing, String]
-              _ <- promise.succeed(nextPromise)
-              pId <- nextPromise.await
-            yield
-              if id != pId then Response.text("right") else Response.text("wrong")
-        yield
-          resp
-
-        r.onExit { _ =>
-          session.remove()
-        }
-
-      case Some(Cmd.Close(id)) =>
-        for
-          numAndPromise <- session.get()
-          (num, promise) = numAndPromise
-          resp <-
+        case Some(Cmd.Use(id)) =>
+          defer:
+            val (num, promise) = session.add().run
             if num == 1 then
-              for
-                sessionData <- promise.await
-                resp <- sessionData match
-                  case p: Promise[Nothing, String] =>
-                    p.succeed(id).as(Response.ok)
-                  case _ =>
-                    throw NotImplementedError("not gonna happen")
-              yield
-                resp
+              promise.await.run
+              wrong
             else
-              ZIO.succeed(Response.ok)
-        yield
-          resp
+              val nextPromise = Promise.make[Nothing, String].run
+              promise.succeed(nextPromise).run
+              val pId = nextPromise.await.run
+              if id != pId then Response.text("right") else Response.text("wrong")
 
-      case None =>
-        ZIO.succeed(Response.status(Status.NotAcceptable))
-  }
+          .onExit: _ =>
+            session.remove()
+
+        case Some(Cmd.Close(id)) =>
+          defer:
+            val (num, promise) = session.get().run
+            if num == 1 then
+              val sessionData = promise.await.run
+              sessionData.succeed(id).run
+            Response.ok
+
+        case None =>
+          ZIO.succeed(Response.status(Status.NotAcceptable))
 
   /*
   Ten concurrent requests, 5 of them return errors, 5 return the letters "r", "i", "g", "h", and "t" in that order
   */
-  def scenario9(session: Session): Request => ZIO[Any, Nothing, Response] = { _ =>
+  def scenario9(session: Session[Queue[Option[(Char, Int)]]])(@unused request: Request): ZIO[Any, Nothing, Response] =
     def letterOrFail(chars: Queue[Option[(Char, Int)]]): ZIO[Any, Nothing, Response] =
-      for
-        mine <- chars.take
-        resp <- mine.fold(ZIO.succeed(wrong)) { (c, s) =>
-          ZIO.sleep(s.seconds).as(Response.text(c.toString))
-        }
-      yield
-        resp
+      defer:
+        chars.take.run match
+          case None =>
+            wrong
+          case Some(char, seconds) =>
+            ZIO.sleep(seconds.seconds).run
+            Response.text(char.toString)
 
-    val r = for
-      numAndPromise <- session.add()
-      (num, promise) = numAndPromise
-      resp <- if num < 10 then
-        for
-          sessionData <- promise.await
-          resp <- sessionData match
-            case chars: Queue[Option[(Char, Int)]] =>
-              letterOrFail(chars)
-            case _ =>
-              throw NotImplementedError("not gonna happen")
-        yield
-          resp
+    defer:
+      val (num, promise) = session.add().run
+      if num < 10 then
+        val sessionData = promise.await.run
+        letterOrFail(sessionData).run
       else
         // create a queue with randomly dispersed chars
-        for
-          queue <- Queue.bounded[Option[(Char, Int)]](10)
-          right = "right".zipWithIndex
-          all = List.fill(5)(None) ++ right.map(Some(_))
-          allMixed <- Random.shuffle(all)
-          _ <- queue.offerAll(allMixed)
-          _ <- promise.succeed(queue)
-          resp <- letterOrFail(queue)
-        yield
-          resp
-    yield
-      resp
+        val queue = Queue.bounded[Option[(Char, Int)]](10).run
+        val right = "right".zipWithIndex
+        val all = List.fill(5)(None) ++ right.map(Some(_))
+        val allMixed = Random.shuffle(all).run
+        queue.offerAll(allMixed).run
+        promise.succeed(queue).run
+        letterOrFail(queue).run
 
-    r.onExit { _ =>
+    .onExit: _ =>
       session.remove()
-    }
-  }
-
-  def fibonacci(n: Int): BigInt = {
-    @tailrec
-    def fibonacciTail(n: Int, a: BigInt, b: BigInt): BigInt = {
-      if (n == 0) a
-      else if (n == 1) b
-      else fibonacciTail(n - 1, b, a + b)
-    }
-
-    fibonacciTail(n, 0, 1)
-  }
-
-  /*
-    Req 1 = Returns a number
-    Req 2 = Must send the fibonacci of Req 1's number
-    Req 3 = Must send the fibonacci of Req 2's number to get the "right" answer
-  */
-  def scenario10(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
-    val fibMin = 50
-    val fibMax = 100
-
-    if req.url.queryParams.isEmpty then
-      for
-        promise <- session.clear()
-        num = Random.nextIntBetween(fibMin, fibMax)
-        num1 <- num
-        num2 <- num
-        num1FibPromise <- Promise.make[Nothing, BigInt]
-        num2FibPromise <- Promise.make[Nothing, BigInt]
-        _ <- promise.succeed(DoubleFib(num1, num1FibPromise, num2, num2FibPromise))
-        _ <- ZIO.blocking {
-          val fib = fibonacci(num1)
-          num1FibPromise.succeed(fib)
-        }.forkDaemon
-        _ <- ZIO.blocking {
-          val fib = fibonacci(num2)
-          num2FibPromise.succeed(fib)
-        }.forkDaemon
-      yield
-        Response.text(num1.toString)
-    else
-      for
-        numAndPromise <- session.get()
-        (_, promise) = numAndPromise
-        sessionData <- promise.await
-        resp <- sessionData match
-          case doubleFib: DoubleFib =>
-            req.url.queryParams.get(doubleFib.first.toString).map { userFirstFib =>
-              for
-                actualFirstFib <- doubleFib.firstFib.await
-              yield
-                if BigInt(userFirstFib.asString) == actualFirstFib then Response.text(doubleFib.second.toString) else Response.status(Status.BadRequest)
-            }.orElse {
-              req.url.queryParams.get(doubleFib.second.toString).map { userSecondFib =>
-                for
-                  actualSecondFib <- doubleFib.secondFib.await
-                yield
-                  if BigInt(userSecondFib.asString) == actualSecondFib then Response.text("right") else Response.status(Status.BadRequest)
-              }
-            }.getOrElse(ZIO.succeed(Response.status(Status.BadRequest)))
-
-          case _ =>
-            throw NotImplementedError("not gonna happen")
-      yield
-        resp
-  }
-
-  /*
-    Req 1 = Returns 2 numbers
-    Req 2 = Send fibonacci for each
-  */
-  def scenario11(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
-    val fibMin = 50
-    val fibMax = 100
-
-    if req.url.queryParams.isEmpty then
-      for
-        promise <- session.clear()
-        num = Random.nextIntBetween(fibMin, fibMax)
-        num1 <- num
-        num2 <- num
-        num1FibPromise <- Promise.make[Nothing, BigInt]
-        num2FibPromise <- Promise.make[Nothing, BigInt]
-        _ <- promise.succeed(DoubleFib(num1, num1FibPromise, num2, num2FibPromise))
-        _ <- ZIO.blocking {
-          val fib = fibonacci(num1)
-          num1FibPromise.succeed(fib)
-        }.forkDaemon
-        _ <- ZIO.blocking {
-          val fib = fibonacci(num2)
-          num2FibPromise.succeed(fib)
-        }.forkDaemon
-      yield
-        Response.text(num1.toString + "," + num2.toString)
-    else
-      for
-        numAndPromise <- session.get()
-        (_, promise) = numAndPromise
-        sessionData <- promise.await
-        resp <- sessionData match
-          case doubleFib: DoubleFib =>
-            for
-              actualFirstFib <- doubleFib.firstFib.await
-              actualSecondFib <- doubleFib.secondFib.await
-            yield
-              if req.url.queryParams.get(doubleFib.first.toString).contains(Chunk(actualFirstFib.toString())) &&
-                req.url.queryParams.get(doubleFib.second.toString).contains(Chunk(actualSecondFib.toString())) then
-                Response.text("right")
-              else
-                Response.status(Status.BadRequest)
-
-          case _ =>
-            throw NotImplementedError("not gonna happen")
-      yield
-        resp
-  }
-
-  /*
-   Make a total of 50 requests in batches of 10.
-   Each batch returns 1 successful response containing a character.
-   When assembled in order, you get the "right" response.
-  */
-  def scenario12(session: Session): Request => ZIO[Any, Nothing, Response] = { req =>
 
 
+  def app(scenarios: Seq[Request => ZIO[Any, Nothing, Response]]): Routes[Any, Nothing] =
+    val index = Routes:
+      Method.GET / "" ->
+        Handler.ok
 
-    ???
-  }
+    val scenarioRoutes: Routes[Any, Nothing] =
+      scenarios.zipWithIndex.foldLeft(Routes.empty): (routes, scenarioWithIndex) =>
+        val (scenario, index) = scenarioWithIndex
+        val scenarioNum = (index + 1).toString
+        val route = Routes:
+          Method.GET / scenarioNum ->
+            Handler.fromFunctionZIO[Request]: request =>
+              ZIO.logAnnotate("scenario", scenarioNum):
+                scenario(request)
+        routes ++ route
 
-  // scenarioX
-  // retry
-  // game prevention: request 6 (randomly chosen number) will be the winner, but we wait for x seconds to
-  //   verify that no other requests come in after the winner
-  //
+    index ++ scenarioRoutes
 
-  def app(scenarios: Seq[Request => ZIO[Any, Nothing, Response]]) = Http.collectZIO[Request] {
-    case Method.GET -> Path.root =>
-      ZIO.succeed(Response.ok)
-    case req @ Method.GET -> Path.root / scenarioNum =>
-      val maybeScenario = for
-        i <- scenarioNum.toIntOption
-        scenario <- scenarios.unapply(i - 1) //  /1 -> scenarios[0]
-      yield
-        ZIO.logAnnotate("scenario", i.toString) {
-          scenario(req)
-        }
 
-      maybeScenario.getOrElse(ZIO.succeed(Response.status(Status.NotFound)))
-  }
+  private val isDebug =
+    defer:
+      val args = ZIOAppArgs.getArgs.run
+      args.contains("--debug")
 
-  def run =
-    val scenarios = Seq(
-      scenario1,
-      scenario2,
-      scenario3,
-      scenario4,
-      scenario5,
-      scenario6,
-      scenario7,
-      scenario8,
-      scenario9,
-      scenario10,
-      scenario11,
-    )
 
-    for
-      args <- ZIOAppArgs.getArgs
-      isDebug = args.contains("--debug")
-      logger = if isDebug then
-        val loggingConfig = ConsoleLoggerConfig(LogFormat.annotations |-| LogFormat.line, LogFilter.acceptAll)
-        Runtime.removeDefaultLoggers >>> consoleLogger(loggingConfig)
-      else
-        Runtime.removeDefaultLoggers
-      scenariosWithSession <- ZIO.foreach(scenarios) { f => Session.make().map(f(_)) }
-      server =
-        for
-          port <- Server.install(app(scenariosWithSession).provideLayer(logger))
-          _ <- Console.printLine(s"Started server on port: $port (debug=$isDebug)")
-          _ <- ZIO.never
-        yield
-          ()
-      _ <- server.provide(Server.default)
-    yield
-      ()
+  override val bootstrap: ZLayer[ZIOAppArgs, Any, Any] =
+    ZLayer.fromZIO:
+      defer:
+        if isDebug.run then
+          val loggingConfig = ConsoleLoggerConfig(LogFormat.annotations |-| LogFormat.line, LogFilter.acceptAll)
+          Runtime.removeDefaultLoggers >>> consoleLogger(loggingConfig)
+        else
+          Runtime.removeDefaultLoggers
+    .flatten
+
+
+  override def run =
+    val scenariosBuilder =
+      defer:
+        Seq(
+          scenario1(Session.make().run),
+          scenario2(Session.make().run),
+          scenario3(Session.make().run),
+          scenario4(Session.make().run),
+          scenario5(Session.make().run),
+          scenario6(Session.make().run),
+          scenario7(Session.make().run),
+          scenario8(Session.make().run),
+          scenario9(Session.make().run),
+        )
+
+    val server = defer:
+      val scenarios = scenariosBuilder.run
+      val port = Server.install(app(scenarios).toHttpApp).run
+      val debug = isDebug.run
+      Console.printLine(s"Started server on port: $port (debug=$debug)").run
+
+    (server *> ZIO.never).provideSomeLayer(Server.default)
