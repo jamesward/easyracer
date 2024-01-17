@@ -1,4 +1,4 @@
-{ pkgs ? import <nixos-unstable> {} }:
+{ pkgs ? import <nixpkgs> {} }:
 let
   my-python-packages = p: with p; [
     httpx

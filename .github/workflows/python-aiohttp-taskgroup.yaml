@@ -20,7 +20,7 @@ jobs:
 
       - uses: cachix/install-nix-action@v20
         with:
-          nix_path: nixos-unstable=channel:nixos-unstable:nixpkgs=channel:nixos-unstable
+          nix_path: nixpkgs=channel:nixpkgs-unstable
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - working-directory: ./python-aiohttp-taskgroup
