@@ -57,17 +57,16 @@ async def scenario2(port: int):
 
 # currently not working due to some limit of 1016 concurrent connections
 async def scenario3(port: int):
-    limits = httpx.Limits(max_connections=None)
-    async with httpx.AsyncClient(limits=limits) as client:
-        async def req():
-            response = await client.get(url(port, 3))
-            return response.text
+    with trio.move_on_after(30): # timeout to prevent this from hanging
+        limits = httpx.Limits(max_connections=None)
+        async with httpx.AsyncClient(limits=limits) as client:
+            async def req():
+                response = await client.get(url(port, 3))
+                return response.text
 
-        return await race(*[req for _ in range(10_000)])
+            return await race(*[req for _ in range(10_000)])
 
 
-# currently not working
-# timeout is killing the race
 async def scenario4(port: int):
     async with httpx.AsyncClient() as client:
         async def req():
@@ -164,30 +163,30 @@ async def scenario9(port: int):
 
 
 async def main():
-    # result1 = await scenario1(8080)
-    # print(result1)
-    #
-    # result2 = await scenario2(8080)
-    # print(result2)
+    result1 = await scenario1(8080)
+    print(result1)
 
-    # result3 = await scenario3(8080)
-    # print(result3)
+    result2 = await scenario2(8080)
+    print(result2)
 
-    # result4 = await scenario4(8080)
-    # print(result4)
+    result3 = await scenario3(8080)
+    print(result3)
 
-    # result5 = await scenario5(8080)
-    # print(result5)
+    result4 = await scenario4(8080)
+    print(result4)
 
-    # result6 = await scenario6(8080)
-    # print(result6)
+    result5 = await scenario5(8080)
+    print(result5)
 
-    # result7 = await scenario7(8080)
-    # print(result7)
-    #
-    # result8 = await scenario8(8080)
-    # print(result8)
-    #
+    result6 = await scenario6(8080)
+    print(result6)
+
+    result7 = await scenario7(8080)
+    print(result7)
+
+    result8 = await scenario8(8080)
+    print(result8)
+
     result9 = await scenario9(8080)
     print(result9)
 

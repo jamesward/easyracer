@@ -21,8 +21,8 @@ async def test_all():
             result2 = await main.scenario2(port)
             assert result2 == "right"
 
-            # result3 = await main.scenario3(port)
-            # assert result3 == "right"
+            result3 = await main.scenario3(port)
+            assert result3 == "right"
 
             result4 = await main.scenario4(port)
             assert result4 == "right"
