@@ -14,6 +14,5 @@ python main.py
 
 Test with EasyRacer Container:
 ```
-ulimit -n 16000
 pytest
 ```
