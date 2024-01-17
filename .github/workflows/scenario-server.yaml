@@ -29,6 +29,7 @@ jobs:
         run: ./sbt test
 
   build-and-push-amd64:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
@@ -64,6 +65,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   build-and-push-aarch64:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
