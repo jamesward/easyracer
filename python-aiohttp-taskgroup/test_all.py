@@ -1,6 +1,7 @@
 import pytest
-from src import main
-from testcontainers.core.generic import DockerContainer
+import main
+#from testcontainers.core.generic import DockerContainer
+from testcontainers.core.container import DockerContainer
 #from testcontainers.core.waiting_utils import wait_container_is_ready
 
 

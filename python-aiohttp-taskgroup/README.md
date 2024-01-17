@@ -1,24 +1,19 @@
-Easy Racer Python AIOHTTP
--------------------------
-
-### Status
-Blocked on Scenario 3:
-```
-Too many open files
-```
-
-Not sure why or what to do.
+EasyRacer Python AIOHTTP TaskGroup
+----------------------------------
 
 Setup:
-1. Install rye
-2. `rye sync`
+```
+nix-shell
+ulimit -n 16000
+```
 
 Run against local server:
 ```
-python src/main.py
+python main.py
 ```
 
 Test with EasyRacer Container:
 ```
-rye run pytest
+ulimit -n 16000
+pytest
 ```

@@ -18,11 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - uses: cachix/install-nix-action@v20
+        with:
+          nix_path: nixos-unstable=channel:nixos-unstable:nixpkgs=channel:nixos-unstable
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
       - working-directory: ./python-aiohttp-taskgroup
         run: |
-          curl -L -o - https://github.com/mitsuhiko/rye/releases/latest/download/rye-x86_64-linux.gz | gunzip > /tmp/rye
-          chmod +x /tmp/rye
-          export PATH=~/.rye/shims:$PATH
-          /tmp/rye sync
           ulimit -n 16000
-          /tmp/rye run pytest
+          nix-shell --run "pytest"
