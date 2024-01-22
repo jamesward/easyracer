@@ -259,6 +259,50 @@ object EasyRacerServer extends ZIOAppDefault:
       session.remove()
 
 
+  case class Scenario10Data(readings: Seq[Double], duration: Duration, startTime: Instant)
+
+  def scenario10(session: Ref[Option[Scenario10Data]])(request: Request): ZIO[Any, Nothing, Response] =
+    defer:
+      request.url.queryParams.get("load").flatMap(_.toDoubleOption) match
+        case None =>
+          // the blocker
+          val duration = Random.nextIntBetween(5, 10).run.seconds
+          val now = Clock.instant.run
+          session.set(Some(Scenario10Data(Seq.empty, duration, now))).run
+          ZIO.log(s"Starting blocker for $duration").run
+          ZIO.sleep(duration).run
+
+          // maybe cleanup on idle monitor instead?
+          val cleanup =
+            defer:
+              ZIO.sleep(6.seconds).run
+              session.set(None).run
+
+          cleanup.forkDaemon.run
+
+          Response.ok
+        case Some(load) =>
+          // the monitor
+          session.get.run match
+            case None =>
+              Response.status(Status.Continue)
+            case Some(data) =>
+              val now = Clock.instant.run
+              if now.isAfter(data.startTime.plusSeconds(data.duration.toSeconds)) then
+                val meanLoad = data.readings.sum / data.readings.size
+                ZIO.log(s"Mean load while connected to blocker = $meanLoad, Current load = $load").run
+                if load > 0.3 then
+                  Response(Status.Continue, body = Body.fromString(s"Load was still too high: $load"))
+                else if meanLoad < 0.9 then
+                  Response.badRequest(s"A CPU was not near fully loaded - mean load = $meanLoad")
+                else
+                  Response.text("right")
+              else
+                  ZIO.log(s"Saving load: $load").run
+                  session.set(Some(data.copy(readings = data.readings :+ load))).run
+                  Response.status(Status.Processing)
+
+
   def app(scenarios: Seq[Request => ZIO[Any, Nothing, Response]]): Routes[Any, Nothing] =
     val index = Routes:
       Method.GET / "" ->
@@ -308,6 +352,7 @@ object EasyRacerServer extends ZIOAppDefault:
           scenario7(Session.make().run),
           scenario8(Session.make().run),
           scenario9(Session.make().run),
+          scenario10(Ref.make(None).run),
         )
 
     val server = defer:

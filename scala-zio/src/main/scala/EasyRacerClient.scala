@@ -1,8 +1,11 @@
-import zio.*
+import com.sun.management.OperatingSystemMXBean
+import zio.{Schedule, *}
 import zio.http.*
 import zio.direct.*
 import zio.http.netty.NettyConfig
 
+import java.lang.management.ManagementFactory
+import java.security.MessageDigest
 import java.util.concurrent.TimeoutException
 import scala.collection.immutable.SortedMap
 import scala.annotation.tailrec
@@ -102,54 +105,33 @@ object EasyRacerClient extends ZIOAppDefault:
       responses.takeAll.run.to(SortedMap).values.mkString
 
 
-  // in-progress below here
-
-  def fibonacci(n: Int): BigInt = {
-    @tailrec
-    def fibonacciTail(n: Int, a: BigInt, b: BigInt): BigInt = {
-      if (n == 0) a
-      else if (n == 1) b
-      else fibonacciTail(n - 1, b, a + b)
-    }
-
-    fibonacciTail(n, 0, 1)
-  }
-
-
   def scenario10(scenarioUrl: Int => String) =
-    def req(params: Option[String] = None) = for
-      resp <- Client.request(Request.get(scenarioUrl(10) + params.getOrElse(""))).filterOrFail(_.status.isSuccess)(Error())
-      body <- resp.body.asString
-    yield
-      body
+    defer:
+      val messageDigest = MessageDigest.getInstance("SHA-512")
+      val seed = Random.nextBytes(512).run
 
-    for
-      num1 <- req(None)
-      fib1 = fibonacci(num1.toInt)
-      num2 <- req(Some(s"?$num1=$fib1"))
-      fib2 = fibonacci(num2.toInt)
-      resp <- req(Some(s"?$num2=$fib2"))
-    yield
-      resp
+      val blocking = ZIO.attemptBlockingInterrupt:
+        var result = seed.toArray
+        while (!Thread.interrupted())
+          result = messageDigest.digest(result)
 
+      val blocker =
+        Client.request(Request.get(scenarioUrl(10))).race(blocking) *> ZIO.never
 
-  def scenario11(scenarioUrl: Int => String) =
-    def req(params: Option[String] = None) = for
-      resp <- Client.request(Request.get(scenarioUrl(11) + params.getOrElse("")))
-      body <- resp.body.asString
-    yield
-      body
+      val reporter =
+        defer:
+          val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
+          val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
+          val resp = Client.request(Request.get(scenarioUrl(10) + s"?load=$load")).run
+          if resp.status.isInformational then
+            ZIO.fail(()).run
+          else if resp.status.isSuccess then
+            resp.body.asString.run
+          else
+            val body = resp.body.asString.orDie.run
+            ZIO.die(Error(body)).run
 
-    for
-      nums <- req(None)
-      Array(num1, num2) = nums.split(',')
-      fibFiber1 <- ZIO.succeedBlocking(fibonacci(num1.toInt)).fork
-      fibFiber2 <- ZIO.succeedBlocking(fibonacci(num2.toInt)).fork
-      fib1 <- fibFiber1.join
-      fib2 <- fibFiber2.join
-      resp <- req(Some(s"?$num1=$fib1&$num2=$fib2"))
-    yield
-      resp
+      blocker.race(reporter.retry(Schedule.fixed(1.second))).run
 
 
   def scenarios(scenarioUrl: Int => String) = Seq(
@@ -162,8 +144,7 @@ object EasyRacerClient extends ZIOAppDefault:
     scenario7,
     scenario8,
     scenario9,
-    //scenario10,
-    //scenario11,
+    scenario10,
   ).map(_.apply(scenarioUrl))
 
   //def scenarios(scenarioUrl: Int => String) = Seq(scenario9).map(_.apply(scenarioUrl))
