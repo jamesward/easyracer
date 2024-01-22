@@ -8,10 +8,6 @@ import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.images.PullPolicy
 import zio.http.netty.NettyConfig
 
-import java.lang.management.ManagementFactory
-import com.sun.management.OperatingSystemMXBean
-
-import java.security.MessageDigest
 
 object EasyRacerClientSpec extends ZIOSpecDefault:
 
@@ -33,36 +29,16 @@ object EasyRacerClientSpec extends ZIOSpecDefault:
   def spec = suite("easyracer")(
     test("all") {
       defer:
-        /*
-        for
-          containerWrapper <- ZIO.service[GenericContainer]
-          port = containerWrapper.container.getFirstMappedPort
-          results <- EasyRacerClient.all({ i => s"http://localhost:$port/$i" }).provide(
-            ZLayer.succeed(clientConfig),
-            Client.live,
-            ZLayer.succeed(NettyConfig.default),
-            DnsResolver.default,
-            Scope.default,
-          )
-        yield
-          assertTrue(results.forall(_ == "right"))
+        val containerWrapper = ZIO.service[GenericContainer].run
+        val port = containerWrapper.container.getFirstMappedPort
+        val results = EasyRacerClient.all(i => s"http://localhost:$port/$i").provide(
+          ZLayer.succeed(clientConfig),
+          Client.live,
+          ZLayer.succeed(NettyConfig.default),
+          DnsResolver.default,
+          Scope.default,
+        ).run
 
-         */
-        val messageDigest = MessageDigest.getInstance("SHA-512")
-        val seed = Random.nextBytes(512).run
-
-        val blocking = ZIO.attemptBlockingInterrupt:
-          var result = seed.toArray
-          while (!Thread.interrupted())
-            result = messageDigest.digest(result)
-
-        val reporter = ZIO.attempt:
-          val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
-          println(osBean.getProcessCpuLoad * osBean.getAvailableProcessors)
-
-        reporter.repeat(Schedule.spaced(100.millis).upTo(5.seconds)).race(blocking).run
-
-
-        assertTrue(false)
+        assertTrue(results.forall(_ == "right"))
     } @@ TestAspect.withLiveClock
-  )//.provideLayerShared(containerLayer)
+  ).provideLayerShared(containerLayer)
