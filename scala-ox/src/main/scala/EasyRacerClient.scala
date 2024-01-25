@@ -1,8 +1,13 @@
+import com.sun.management.OperatingSystemMXBean
+
 import scala.concurrent.duration.*
 import sttp.client3.*
 import sttp.model.Uri
-
 import ox.*
+
+import java.lang.management.ManagementFactory
+import java.security.MessageDigest
+import scala.util.Random
 
 
 object EasyRacerClient:
@@ -73,11 +78,40 @@ object EasyRacerClient:
       forks.map(_.joinEither()).collect { case Right(v) => v }.sortBy(_._1).map(_._2).mkString
     }
 
+  def scenario10(scenarioUrl: Int => Uri): String =
+    def req(url: Uri) =
+      basicRequest.get(url).response(asStringAlways).send(backend)
+
+    val messageDigest = MessageDigest.getInstance("SHA-512")
+
+    def blocking =
+      var result = Random.nextBytes(512)
+      while (!Thread.interrupted())
+        result = messageDigest.digest(result)
+
+    def blocker =
+      raceSuccess(req(scenarioUrl(10)))(blocking)
+
+    def reporter: String =
+      val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
+      val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
+      val resp = req(uri"${scenarioUrl(10)}?load=$load")
+      if resp.code.isRedirect then
+        Thread.sleep(1000)
+        reporter
+      else if resp.code.isSuccess then
+        resp.body
+      else
+        throw Error(resp.body)
+
+    val (_, result) = par(blocker)(reporter)
+    result
+
 @main def run(): Unit =
   import EasyRacerClient.*
   def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
-  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9)
-  // def scenarios: Seq[(Int => Uri) => String] = Seq(scenario3)
+  //def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9)
+  def scenarios: Seq[(Int => Uri) => String] = Seq(scenario10)
   scenarios.foreach { s =>
     println(s(scenarioUrl))
   }

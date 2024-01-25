@@ -285,14 +285,14 @@ object EasyRacerServer extends ZIOAppDefault:
           // the monitor
           session.get.run match
             case None =>
-              Response.status(Status.Continue)
+              Response.status(Status.Found)
             case Some(data) =>
               val now = Clock.instant.run
-              if now.isAfter(data.startTime.plusSeconds(data.duration.toSeconds)) then
+              if now.isAfter(data.startTime.plusSeconds(data.duration.getSeconds)) then
                 val meanLoad = data.readings.sum / data.readings.size
                 ZIO.log(s"Mean load while connected to blocker = $meanLoad, Current load = $load").run
                 if load > 0.3 then
-                  Response(Status.Continue, body = Body.fromString(s"Load was still too high: $load"))
+                  Response(Status.Found, body = Body.fromString(s"Load was still too high: $load"))
                 else if meanLoad < 0.9 then
                   Response.badRequest(s"A CPU was not near fully loaded - mean load = $meanLoad")
                 else
@@ -300,7 +300,7 @@ object EasyRacerServer extends ZIOAppDefault:
               else
                   ZIO.log(s"Saving load: $load").run
                   session.set(Some(data.copy(readings = data.readings :+ load))).run
-                  Response.status(Status.Processing)
+                  Response.status(Status.Found)
 
 
   def app(scenarios: Seq[Request => ZIO[Any, Nothing, Response]]): Routes[Any, Nothing] =

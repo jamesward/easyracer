@@ -123,7 +123,7 @@ object EasyRacerClient extends ZIOAppDefault:
           val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
           val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
           val resp = Client.request(Request.get(scenarioUrl(10) + s"?load=$load")).run
-          if resp.status.isInformational then
+          if resp.status.isRedirection then
             ZIO.fail(()).run
           else if resp.status.isSuccess then
             resp.body.asString.run
