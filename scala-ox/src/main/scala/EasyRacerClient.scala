@@ -7,6 +7,7 @@ import ox.*
 
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
+import scala.annotation.tailrec
 import scala.util.Random
 
 
@@ -16,7 +17,6 @@ object EasyRacerClient:
 
   def scenario1(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(1)
-    // must be a def so that it's lazy-evaluated!
     def req = scenarioRequest(url).send(backend).body
     raceSuccess(req)(req)
 
@@ -27,7 +27,8 @@ object EasyRacerClient:
 
   def scenario3(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(3)
-    val reqs = Seq.fill(10000) { () => scenarioRequest(url).send(backend) }
+    val reqs = Seq.fill(10000): () =>
+      scenarioRequest(url).send(backend)
     raceSuccess(reqs).body
 
   def scenario4(scenarioUrl: Int => Uri): String =
@@ -48,10 +49,9 @@ object EasyRacerClient:
   def scenario7(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(7)
     def req = scenarioRequest(url).send(backend).body
-    raceSuccess(req) {
+    raceSuccess(req):
       Thread.sleep(4000)
       req
-    }
 
   def scenario8(scenarioUrl: Int => Uri): String =
     def req(url: Uri) = basicRequest.get(url).response(asString.getRight).send(backend).body
@@ -73,10 +73,11 @@ object EasyRacerClient:
       val now = System.nanoTime
       now -> body
 
-    scoped {
+    scoped:
       val forks = Seq.fill(10)(fork(req))
-      forks.map(_.joinEither()).collect { case Right(v) => v }.sortBy(_._1).map(_._2).mkString
-    }
+      forks.map(_.joinEither()).collect:
+        case Right(v) => v
+      .sortBy(_._1).map(_._2).mkString
 
   def scenario10(scenarioUrl: Int => Uri): String =
     def req(url: Uri) =
@@ -84,14 +85,15 @@ object EasyRacerClient:
 
     val messageDigest = MessageDigest.getInstance("SHA-512")
 
-    def blocking =
+    def blocking(): Unit =
       var result = Random.nextBytes(512)
       while (!Thread.interrupted())
         result = messageDigest.digest(result)
 
     def blocker =
-      raceSuccess(req(scenarioUrl(10)))(blocking)
+      raceSuccess(req(scenarioUrl(10)))(blocking())
 
+    @tailrec
     def reporter: String =
       val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
       val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
@@ -110,8 +112,7 @@ object EasyRacerClient:
 @main def run(): Unit =
   import EasyRacerClient.*
   def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
-  //def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9)
-  def scenarios: Seq[(Int => Uri) => String] = Seq(scenario10)
-  scenarios.foreach { s =>
+  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9)
+  //def scenarios: Seq[(Int => Uri) => String] = Seq(scenario10)
+  scenarios.foreach: s =>
     println(s(scenarioUrl))
-  }
