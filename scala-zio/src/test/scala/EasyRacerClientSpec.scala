@@ -31,7 +31,7 @@ object EasyRacerClientSpec extends ZIOSpecDefault:
       defer:
         val containerWrapper = ZIO.service[GenericContainer].run
         val port = containerWrapper.container.getFirstMappedPort
-        val results = EasyRacerClient.all(i => s"http://localhost:$port/$i").provide(
+        val results = EasyRacerClient.all(i => s"http://localhost:8080/$i").provide(
           ZLayer.succeed(clientConfig),
           Client.live,
           ZLayer.succeed(NettyConfig.default),

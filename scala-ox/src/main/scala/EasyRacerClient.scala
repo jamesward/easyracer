@@ -4,6 +4,7 @@ import scala.concurrent.duration.*
 import sttp.client3.*
 import sttp.model.Uri
 import ox.*
+import sttp.model.Uri.QuerySegment
 
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
@@ -80,6 +81,8 @@ object EasyRacerClient:
       .sortBy(_._1).map(_._2).mkString
 
   def scenario10(scenarioUrl: Int => Uri): String =
+    val id = Random.nextString(8)
+
     def req(url: Uri) =
       basicRequest.get(url).response(asStringAlways).send(backend)
 
@@ -91,13 +94,14 @@ object EasyRacerClient:
         result = messageDigest.digest(result)
 
     def blocker =
-      raceSuccess(req(scenarioUrl(10)))(blocking())
+      val url = scenarioUrl(10).addQuerySegment(QuerySegment.Plain(id))
+      raceSuccess(req(url))(blocking())
 
     @tailrec
     def reporter: String =
       val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
       val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
-      val resp = req(uri"${scenarioUrl(10)}?load=$load")
+      val resp = req(scenarioUrl(10).addQuerySegment(QuerySegment.KeyValue(id, load.toString)))
       if resp.code.isRedirect then
         Thread.sleep(1000)
         reporter

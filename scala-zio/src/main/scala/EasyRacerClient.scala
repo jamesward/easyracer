@@ -106,7 +106,22 @@ object EasyRacerClient extends ZIOAppDefault:
 
 
   def scenario10(scenarioUrl: Int => String) =
+
+    // not using defer due to recursion issue
+    def reporter(id: String): ZIO[Client & Scope, Throwable, String] =
+      val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
+      val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
+      Client.request(Request.get(scenarioUrl(10) + s"?$id=$load")).flatMap: resp =>
+        if resp.status.isRedirection then
+          ZIO.sleep(1.second) *> reporter(id)
+        else if resp.status.isSuccess then
+          resp.body.asString
+        else
+          resp.body.asString.flatMap: body =>
+            ZIO.fail(Error(body))
+
     defer:
+      val id = Random.nextString(8).run
       val messageDigest = MessageDigest.getInstance("SHA-512")
       val seed = Random.nextBytes(512).run
 
@@ -116,22 +131,10 @@ object EasyRacerClient extends ZIOAppDefault:
           result = messageDigest.digest(result)
 
       val blocker =
-        Client.request(Request.get(scenarioUrl(10))).race(blocking) *> ZIO.never
+        Client.request(Request.get(scenarioUrl(10) + s"?$id")).race(blocking) *> ZIO.never
 
-      val reporter =
-        defer:
-          val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
-          val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
-          val resp = Client.request(Request.get(scenarioUrl(10) + s"?load=$load")).run
-          if resp.status.isRedirection then
-            ZIO.fail(()).run
-          else if resp.status.isSuccess then
-            resp.body.asString.run
-          else
-            val body = resp.body.asString.orDie.run
-            ZIO.die(Error(body)).run
-
-      blocker.race(reporter.retry(Schedule.fixed(1.second))).run
+      blocker.fork.run
+      reporter(id).run
 
 
   def scenarios(scenarioUrl: Int => String) = Seq(

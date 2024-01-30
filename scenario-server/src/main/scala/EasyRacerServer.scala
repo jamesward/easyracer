@@ -1,7 +1,7 @@
 import zio.*
 import zio.direct.*
 import zio.http.*
-import zio.concurrent.ReentrantLock
+import zio.concurrent.{ConcurrentMap, ReentrantLock}
 import zio.logging.{ConsoleLoggerConfig, LogFilter, LogFormat, consoleLogger}
 
 import java.time.Instant
@@ -259,48 +259,50 @@ object EasyRacerServer extends ZIOAppDefault:
       session.remove()
 
 
-  case class Scenario10Data(readings: Seq[Double], duration: Duration, startTime: Instant)
+  case class Scenario10Data(readings: Seq[Double], duration: Duration, startTime: Instant):
+    def isInBlocking(instant: Instant): Boolean =
+      instant.isBefore(startTime.plusSeconds(duration.getSeconds))
 
-  def scenario10(session: Ref[Option[Scenario10Data]])(request: Request): ZIO[Any, Nothing, Response] =
+  def scenario10(sessions: ConcurrentMap[String, Scenario10Data])(request: Request): ZIO[Any, Nothing, Response] =
     defer:
-      request.url.queryParams.get("load").flatMap(_.toDoubleOption) match
+      request.url.queryParams.map.keys.headOption match
         case None =>
-          // the blocker
-          val duration = Random.nextIntBetween(5, 10).run.seconds
+          Response.badRequest("You need to specify a query parameter")
+        case Some(id) =>
           val now = Clock.instant.run
-          session.set(Some(Scenario10Data(Seq.empty, duration, now))).run
-          ZIO.log(s"Starting blocker for $duration").run
-          ZIO.sleep(duration).run
 
-          // maybe cleanup on idle monitor instead?
-          val cleanup =
-            defer:
-              ZIO.sleep(6.seconds).run
-              session.set(None).run
-
-          cleanup.forkDaemon.run
-
-          Response.ok
-        case Some(load) =>
-          // the monitor
-          session.get.run match
+          request.url.queryParams.get(id).filterNot(_.isEmpty) match
             case None =>
-              Response.status(Status.Found)
-            case Some(data) =>
-              val now = Clock.instant.run
-              if now.isAfter(data.startTime.plusSeconds(data.duration.getSeconds)) then
-                val meanLoad = data.readings.sum / data.readings.size
-                ZIO.log(s"Mean load while connected to blocker = $meanLoad, Current load = $load").run
-                if load > 0.3 then
-                  Response(Status.Found, body = Body.fromString(s"Load was still too high: $load"))
-                else if meanLoad < 0.9 then
-                  Response.badRequest(s"A CPU was not near fully loaded - mean load = $meanLoad")
-                else
-                  Response.text("right")
-              else
-                  ZIO.log(s"Saving load: $load").run
-                  session.set(Some(data.copy(readings = data.readings :+ load))).run
-                  Response.status(Status.Found)
+              // the blocker
+              val duration = Random.nextIntBetween(5, 10).run.seconds
+              sessions.put(id, Scenario10Data(Seq.empty, duration, now)).run
+              ZIO.log(s"Starting blocker for $duration").run
+              ZIO.sleep(duration).run
+              Response.ok
+            case Some(loadString) =>
+              loadString.toDoubleOption match
+                case None =>
+                  Response.badRequest("load was not a double")
+                case Some(load) =>
+                  sessions.get(id).run match
+                    case None =>
+                      // blocker hasn't started yet
+                      Response.status(Status.Found)
+                    case Some(data) =>
+                      if data.isInBlocking(now) then
+                        ZIO.log(s"Load while blocking: $load").run
+                        val newData = data.copy(readings = data.readings :+ load)
+                        sessions.put(id, newData).run
+                        Response.status(Status.Found)
+                      else
+                        val meanLoad = data.readings.sum / data.readings.size
+                        ZIO.log(s"Mean load while connected to blocker = $meanLoad, Current load = $load").run
+                        if load > 0.3 then
+                          Response(Status.Found, body = Body.fromString(s"Load was still too high: $load"))
+                        else if meanLoad < 0.9 then
+                          Response.badRequest(s"A CPU was not near fully loaded - mean load = $meanLoad")
+                        else
+                          Response.text("right")
 
 
   def app(scenarios: Seq[Request => ZIO[Any, Nothing, Response]]): Routes[Any, Nothing] =
@@ -352,13 +354,14 @@ object EasyRacerServer extends ZIOAppDefault:
           scenario7(Session.make().run),
           scenario8(Session.make().run),
           scenario9(Session.make().run),
-          scenario10(Ref.make(None).run),
+          scenario10(ConcurrentMap.empty.run),
         )
 
-    val server = defer:
-      val scenarios = scenariosBuilder.run
-      val port = Server.install(app(scenarios).toHttpApp).run
-      val debug = isDebug.run
-      Console.printLine(s"Started server on port: $port (debug=$debug)").run
+    val server =
+      defer:
+        val scenarios = scenariosBuilder.run
+        val port = Server.install(app(scenarios).toHttpApp).run
+        val debug = isDebug.run
+        Console.printLine(s"Started server on port: $port (debug=$debug)").run
 
     (server *> ZIO.never).provideSomeLayer(Server.default)
