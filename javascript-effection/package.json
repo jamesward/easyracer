@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "effection": "3.0.0-alpha.13",
+    "effection": "3.0.2",
     "expect": "*"
   },
   "scripts": {

@@ -9,7 +9,7 @@
     }
   },
   "imports": {
-    "effection": "https://deno.land/x/effection@3.0.0-alpha.13/mod.ts",
+    "effection": "https://deno.land/x/effection@3.0.2/mod.ts",
     "expect": "https://deno.land/x/expect@v0.3.0/mod.ts",
     "node:test": "https://deno.land/std@0.200.0/testing/bdd.ts"
   }
