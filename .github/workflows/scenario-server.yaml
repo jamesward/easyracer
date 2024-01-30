@@ -44,7 +44,7 @@ jobs:
 
       - id: meta
         name: Extract metadata (tags, labels) for Docker
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
@@ -80,7 +80,7 @@ jobs:
 
       - id: meta
         name: Extract metadata (tags, labels) for Docker
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
@@ -115,7 +115,7 @@ jobs:
 
       - id: meta
         name: Extract metadata (tags, labels) for Docker
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
           tags: type=sha
