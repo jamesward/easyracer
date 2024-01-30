@@ -2,7 +2,6 @@ import {
   action,
   call,
   createContext,
-  expect as $await,
   type Operation,
   sleep,
   spawn,
@@ -43,16 +42,27 @@ export function timeout<T>(
  */
 export const request = (query?: string) =>
   call(function* () {
-    let signal = yield* useAbortSignal();
+    let controller = new AbortController();
+    let { signal } = controller;
     let url = `${yield* BaseURL}/${yield* Scenario}${query ? "?" + query : ""}`;
+
+    let promises: Promise<unknown>[] = [];
 
     let request = fetch(url, { signal });
 
+    promises.push(request);
+
     try {
-      let response = yield* $await(request);
-      return yield* $await(response.text());
+      let response = yield* call(() => request);
+      let text = response.text();
+      promises.push(text);
+
+      return yield* call(() => text);
     } catch (error) {
       return String(error);
+    } finally {
+      controller.abort();
+      yield* call(() => Promise.allSettled(promises));
     }
   });
 
