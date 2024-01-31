@@ -136,9 +136,7 @@ jobs:
       - name: Create latest manifest and push
         if: github.ref == 'refs/heads/main'
         run: |
-          docker manifest create \
-            ghcr.io/${{ github.repository }}:latest \
-            --amend ghcr.io/${{ github.repository }}:latest-amd64 \
-            --amend ghcr.io/${{ github.repository }}:latest-aarch64
-          docker manifest push ghcr.io/${{ github.repository }}:latest
-
+          docker buildx imagetools create \
+            -t ghcr.io/${{ github.repository }}:latest \
+            ghcr.io/${{ github.repository }}:latest-amd64 \
+            ghcr.io/${{ github.repository }}:latest-aarch64
