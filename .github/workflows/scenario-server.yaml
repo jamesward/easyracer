@@ -73,7 +73,7 @@ jobs:
 
       - name: Setup Docker
         run: |
-          brew install docker
+          brew install docker colima
           colima start
 
       - name: Login to GitHub Package Registry
