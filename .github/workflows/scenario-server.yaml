@@ -74,6 +74,7 @@ jobs:
       - name: Setup Docker
         run: |
           brew install docker
+          colima start
 
       - name: Login to GitHub Package Registry
         uses: docker/login-action@v2
