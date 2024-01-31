@@ -226,7 +226,7 @@ public class Main {
             }
         }
 
-        public String scenario10() throws NoSuchAlgorithmException, InterruptedException {
+        public String scenario10() throws InterruptedException {
             var id = UUID.randomUUID().toString();
 
             Supplier<String> blocker = () -> {
@@ -283,13 +283,13 @@ public class Main {
             }
         }
 
-        List<String> results() throws ExecutionException, InterruptedException, NoSuchAlgorithmException {
+        List<String> results() throws ExecutionException, InterruptedException {
             return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9());
             //return List.of(scenario10());
         }
     }
 
-    void main() throws URISyntaxException, ExecutionException, InterruptedException, NoSuchAlgorithmException {
+    void main() throws URISyntaxException, ExecutionException, InterruptedException {
         var scenarios = new Scenarios(new URI("http://localhost:8080"));
         scenarios.results().forEach(System.out::println);
     }
