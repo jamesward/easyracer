@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - run: swift test -c release
         working-directory: ./swift-dispatch
