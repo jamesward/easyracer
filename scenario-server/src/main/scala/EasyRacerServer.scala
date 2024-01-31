@@ -9,7 +9,7 @@ import scala.annotation.unused
 
 object EasyRacerServer extends ZIOAppDefault:
 
-  private val wrong = Response.internalServerError("wrong")
+  private val wrong = Response(Status.InternalServerError, body = Body.fromString("wrong"))
 
   private type SessionPromise[T] = Promise[Nothing, T]
 
@@ -267,7 +267,7 @@ object EasyRacerServer extends ZIOAppDefault:
     defer:
       request.url.queryParams.map.keys.headOption match
         case None =>
-          Response.badRequest("You need to specify a query parameter")
+          Response(Status.BadRequest, body = Body.fromString("You need to specify a query parameter"))
         case Some(id) =>
           val now = Clock.instant.run
 
@@ -282,7 +282,7 @@ object EasyRacerServer extends ZIOAppDefault:
             case Some(loadString) =>
               loadString.toDoubleOption match
                 case None =>
-                  Response.badRequest("load was not a double")
+                  Response(Status.BadRequest, body = Body.fromString("load was not a double"))
                 case Some(load) =>
                   sessions.get(id).run match
                     case None =>
@@ -295,14 +295,17 @@ object EasyRacerServer extends ZIOAppDefault:
                         sessions.put(id, newData).run
                         Response.status(Status.Found)
                       else
-                        val meanLoad = data.readings.sum / data.readings.size
-                        ZIO.log(s"Mean load while connected to blocker = $meanLoad, Current load = $load").run
-                        if load > 0.3 then
-                          Response(Status.Found, body = Body.fromString(s"Load was still too high: $load"))
-                        else if meanLoad < 0.9 then
-                          Response.badRequest(s"A CPU was not near fully loaded - mean load = $meanLoad")
+                        if data.readings.size < data.duration.getSeconds - 1 then
+                          Response(Status.BadRequest, body = Body.fromString("Not enough readings"))
                         else
-                          Response.text("right")
+                          val meanLoad = data.readings.sum / data.readings.size
+                          ZIO.log(s"Mean load while connected to blocker = $meanLoad, Current load = $load").run
+                          if load > 0.3 then
+                            Response(Status.Found, body = Body.fromString(s"Load was still too high: $load"))
+                          else if meanLoad < 0.9 then
+                            Response.badRequest(s"A CPU was not near fully loaded - mean load = $meanLoad")
+                          else
+                            Response.text("right")
 
 
   def app(scenarios: Seq[Request => ZIO[Any, Nothing, Response]]): Routes[Any, Nothing] =

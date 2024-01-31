@@ -1,14 +1,22 @@
+import com.sun.management.OperatingSystemMXBean;
+
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.concurrent.StructuredTaskScope;
 
@@ -218,13 +226,70 @@ public class Main {
             }
         }
 
-        List<String> results() throws ExecutionException, InterruptedException {
+        public String scenario10() throws NoSuchAlgorithmException, InterruptedException {
+            var id = UUID.randomUUID().toString();
+
+            Supplier<String> blocker = () -> {
+                try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+                    var req = HttpRequest.newBuilder(url.resolve(STR."/10?\{id}")).build();
+                    var messageDigest = MessageDigest.getInstance("SHA-512");
+
+                    scope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
+                    scope.fork(() -> {
+                        var result = new byte[512];
+                        new Random().nextBytes(result);
+                        while (!Thread.interrupted())
+                            result = messageDigest.digest(result);
+                        return null;
+                    });
+                    scope.join();
+                    return scope.result().body();
+                } catch (ExecutionException | InterruptedException | NoSuchAlgorithmException e) {
+                    throw new RuntimeException(e);
+                }
+            };
+
+            class Recursive<I> {
+                public I func;
+            }
+
+            Recursive<Supplier<String>> recursive = new Recursive<>();
+            recursive.func = () -> {
+                var osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
+                var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
+                var req = HttpRequest.newBuilder(url.resolve(STR."/10?\{id}=\{load}")).build();
+                try {
+                    var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+                    if ((resp.statusCode() >= 200) && (resp.statusCode() < 300)) {
+                        return resp.body();
+                    }
+                    else if ((resp.statusCode() >= 300) && (resp.statusCode() < 400)) {
+                        Thread.sleep(1000);
+                        return recursive.func.get();
+                    }
+                    else {
+                        throw new RuntimeException(resp.body());
+                    }
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            };
+
+            try (var scope = new StructuredTaskScope<String>()) {
+                scope.fork(blocker::get);
+                var task = scope.fork(recursive.func::get);
+                scope.join();
+                return task.get();
+            }
+        }
+
+        List<String> results() throws ExecutionException, InterruptedException, NoSuchAlgorithmException {
             return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9());
-            //return List.of(scenario9());
+            //return List.of(scenario10());
         }
     }
 
-    void main() throws URISyntaxException, ExecutionException, InterruptedException {
+    void main() throws URISyntaxException, ExecutionException, InterruptedException, NoSuchAlgorithmException {
         var scenarios = new Scenarios(new URI("http://localhost:8080"));
         scenarios.results().forEach(System.out::println);
     }

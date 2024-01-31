@@ -1,3 +1,4 @@
+import com.sun.management.OperatingSystemMXBean
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
@@ -6,11 +7,16 @@ import io.ktor.http.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.time.delay
+import java.lang.management.ManagementFactory
+import java.security.MessageDigest
 import java.time.Duration
 import java.time.Instant
+import java.util.UUID
+import kotlin.random.Random
 
 val client = HttpClient {
     install(HttpTimeout)
+    followRedirects = false
 }
 
 // Note: Intentionally, only url handling code is shared across scenarios
@@ -168,6 +174,49 @@ suspend fun scenario9(url: (Int) -> String): String = coroutineScope {
     letters.filterNotNull().sortedBy { it.first }.joinToString("") { it.second }
 }
 
+suspend fun scenario10(url: (Int) -> String): String = coroutineScope {
+    val id = UUID.randomUUID().toString()
+
+    val messageDigest = MessageDigest.getInstance("SHA-512")
+
+    suspend fun blocking() = coroutineScope {
+        var result = Random.nextBytes(512)
+        while (isActive) {
+            result = messageDigest.digest(result)
+        }
+    }
+
+    suspend fun blocker(): Unit = coroutineScope {
+        try {
+            select {
+                async { client.get(url(10) + "?$id") }.onAwait { }
+                async(Dispatchers.IO) { blocking() }.onAwait { }
+            }
+        } finally {
+            coroutineContext.cancelChildren()
+        }
+    }
+
+    suspend fun reporter(): String = coroutineScope {
+        val osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean::class.java)
+        val load = osBean.processCpuLoad * osBean.availableProcessors
+        val resp = client.get(url(10) + "?$id=$load")
+        if (resp.status.isSuccess()) {
+            resp.bodyAsText()
+        }
+        else if ((resp.status.value >= 300) && (resp.status.value < 400)) {
+            delay(1000)
+            reporter()
+        }
+        else {
+            throw Exception(resp.bodyAsText())
+        }
+    }
+
+    launch { blocker() }
+    reporter()
+}
+
 val scenarios = listOf(
     ::scenario1,
     ::scenario2,
@@ -178,6 +227,7 @@ val scenarios = listOf(
     ::scenario7,
     ::scenario8,
     ::scenario9,
+    ::scenario10,
 )
 
 suspend fun results(url: (Int) -> String) = scenarios.map {
