@@ -66,13 +66,13 @@ jobs:
 
   build-and-push-aarch64:
     needs: test
-    runs-on: macos-14
+    runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
 
-      - name: Setup Docker
-        uses: crazy-max/ghaction-setup-docker@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Login to GitHub Package Registry
         uses: docker/login-action@v2
