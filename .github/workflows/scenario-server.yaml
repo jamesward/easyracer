@@ -71,6 +71,10 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v3
 
+      - name: Setup Docker
+        run: |
+          brew install docker
+
       - name: Login to GitHub Package Registry
         uses: docker/login-action@v2
         with:
