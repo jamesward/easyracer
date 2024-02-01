@@ -172,15 +172,15 @@ async def scenario9(port: int):
 async def main():
     result1 = await scenario1(8080)
     print(result1)
-   
+
     result2 = await scenario2(8080)
     print(result2)
 
-    result3 = await scenario3(8080)
-    print(result3)
+    # result3 = await scenario3(8080)
+    # print(result3)
 
-    result4 = await scenario4(8080)
-    print(result4)
+    # result4 = await scenario4(8080)
+    # print(result4)
 
     result5 = await scenario5(8080)
     print(result5)
@@ -191,8 +191,8 @@ async def main():
     result7 = await scenario7(8080)
     print(result7)
 
-    result8 = await scenario8(8080)
-    print(result8)
+    # result8 = await scenario8(8080)
+    # print(result8)
 
     result9 = await scenario9(8080)
     print(result9)

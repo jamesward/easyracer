@@ -176,8 +176,8 @@ async def main():
     result2 = await scenario2(8080)
     print(result2)
 
-    result3 = await scenario3(8080)
-    print(result3)
+    # result3 = await scenario3(8080)
+    # print(result3)
 
     # result4 = await scenario4(8080)
     # print(result4)

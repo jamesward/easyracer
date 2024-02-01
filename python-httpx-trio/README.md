@@ -4,6 +4,7 @@ Easy Racer Python HTTPX Trio
 Setup:
 ```
 nix-shell
+ulimit -n 16000
 ```
 
 Run against local server:
