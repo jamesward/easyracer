@@ -87,22 +87,22 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 ```
 
 ## Clients
-| Name                           | Source                          | Scenario Coverage | Author(s)                                                 | Notes                       |
-|--------------------------------|---------------------------------|-------------------|-----------------------------------------------------------|-----------------------------|
-| Scala 3 + ZIO                  | [scala-zio](scala-zio)          | 10/10             | [James Ward](https://github.com/jamesward)                                         |                             |
-| Scala 3 + ox                   | [scala-ox](scala-ox)            | 10/10             | [Adam Warski](https://github.com/adamw)                                        |                             |
-| Kotlin + Coroutines            | [kotlin-coroutines](kotlin-coroutines)        | 10/10             | [Jack Leow](https://github.com/jackgene)                                          |                             |
-| Java + Loom                    | [java-loom](java-loom)          | 10/10             | [James Ward](https://github.com/jamesward)                                         |                             |
-| Kotlin + Splitties             | [kotlin-splitties](kotlin-splitties)         | 9/10              | [James Ward](https://github.com/jamesward)                                         | Needs Scenario 10 Impl      |
-| Kotlin + Arrow                 | [kotlin-arrow](kotlin-arrow)             | 9/10              | [James Ward](https://github.com/jamesward)                                         | Needs Scenario 10 Impl      |
-| Python + AIOHTTP + TaskGroup   | [python-aiohttp-taskgroup](python-aiohttp-taskgroup) | 9/10              | [James Ward](https://github.com/jamesward) [Bruce Eckel](https://github.com/BruceEckel)                      | Needs Scenario 10 Impl      |
-| Go                             | [go-stdlib](go-stdlib)          | 9/10              | [Jack Leow](https://github.com/jackgene)                                          | Needs Scenario 10 Impl      |
-| Swift + Grand Central Dispatch | [swift-dispatch](swift-dispatch)           | 9/10              | [Jack Leow](https://github.com/jackgene)                                          | Needs Scenario 10 Impl      |
-| Swift + async/await            | [swift-async](swift-async)              | 9/10              | [Jack Leow](https://github.com/jackgene)                                          | Needs Scenario 10 Impl      |
-| Swift + Combine                | [swift-combine](swift-combine)            | 9/10              | [Jack Leow](https://github.com/jackgene)                                          | Needs Scenario 10 Impl      |
-| Elm                            | [elm-worker](elm-worker)        | 9/10              | [Jack Leow](https://github.com/jackgene)                                          | Needs Scenario 10 Impl      |
-| Rust + Tokio                   | [rust-tokio](rust-tokio)        | 9/10              | [James Ward](https://github.com/jamesward) and Rust Developer Retreat Participants | Needs Scenario 10 Impl      |
-| JavaScript                     | [javascript-stdlib](javascript-stdlib)        | 9/10              | [James Ward](https://github.com/jamesward)                                         | Needs Scenario 10 Impl      |
-| Python + HTTPX + Trio          | [python-httpx-trio](python-httpx-trio)        | 8/10              | [James Ward](https://github.com/jamesward)                                         | Needs Scenarios 3, 10       |
-| Python + AIOHTTP               | [python-aiohttp](python-aiohttp)           | 6/10              | [James Ward](https://github.com/jamesward)                                         | Needs Scenarios 3, 4, 8, 10 |
-| Python + HTTPX + asyncio       | [python-httpx-asyncio](python-httpx-asyncio)     | 2/10              | [James Ward](https://github.com/jamesward)                                         | Needs Scenarios 3-10        |
+| Source                                                   | Scenario Coverage | Author(s)                                                                               | Notes                       |
+|----------------------------------------------------------|-------------------|-----------------------------------------------------------------------------------------|-----------------------------|
+| [Scala 3 + ZIO](scala-zio)                               | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
+| [Scala 3 + Ox](scala-ox)                                 | 10/10             | [Adam Warski](https://github.com/adamw)                                                 |                             |
+| [Kotlin + Coroutines](kotlin-coroutines)                 | 10/10             | [Jack Leow](https://github.com/jackgene)                                                |                             |
+| [Kotlin + Splitties](kotlin-splitties)                   | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
+| [Kotlin + Arrow](kotlin-arrow)                           | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
+| [Java + Loom](java-loom)                                 | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
+| [Python + AIOHTTP + TaskGroup](python-aiohttp-taskgroup) | 9/10              | [James Ward](https://github.com/jamesward) [Bruce Eckel](https://github.com/BruceEckel) | Needs Scenario 10 Impl      |
+| [Go](go-stdlib)                                          | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
+| [Swift + Grand Central Dispatch](swift-dispatch)         | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
+| [Swift + async/await](swift-async)                       | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
+| [Swift + Combine](swift-combine)                         | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
+| [Elm](elm-worker)                                        | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
+| [Rust + Tokio](rust-tokio)                               | 9/10              | [James Ward](https://github.com/jamesward) and Rust Developer Retreat Participants      | Needs Scenario 10 Impl      |
+| [JavaScript](javascript-stdlib)                          | 9/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenario 10 Impl      |
+| [Python + HTTPX + Trio](python-httpx-trio)               | 8/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenarios 3, 10       |
+| [Python + AIOHTTP](python-aiohttp)                       | 6/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenarios 3, 4, 8, 10 |
+| [Python + HTTPX + asyncio](python-httpx-asyncio)         | 2/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenarios 3-10        |

@@ -303,7 +303,7 @@ object EasyRacerServer extends ZIOAppDefault:
                           if load > 0.3 then
                             Response(Status.Found, body = Body.fromString(s"Load was still too high: $load"))
                           else if meanLoad < 0.9 then
-                            Response.badRequest(s"A CPU was not near fully loaded - mean load = $meanLoad")
+                            Response(Status.BadRequest, body = Body.fromString(s"A CPU was not near fully loaded - mean load = $meanLoad"))
                           else
                             Response.text("right")
 

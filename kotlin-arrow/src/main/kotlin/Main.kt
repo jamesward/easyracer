@@ -1,24 +1,21 @@
 import arrow.core.Either
 import arrow.core.merge
-import arrow.fx.coroutines.ResourceScope
-import arrow.fx.coroutines.parMap
-import arrow.fx.coroutines.raceN
-import arrow.fx.coroutines.resourceScope
+import arrow.fx.coroutines.*
+import com.sun.management.OperatingSystemMXBean
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.time.delay
+import java.lang.management.ManagementFactory
+import java.security.MessageDigest
 import java.time.Duration
 import java.time.Instant
-import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.withTimeout
+import java.util.*
+import kotlin.random.Random
 
 suspend fun <A> ignoreException(block: suspend () -> A): A =
   Either.catch { block() }.mapLeft { awaitCancellation() }.merge()
@@ -27,6 +24,7 @@ suspend fun ResourceScope.client(): HttpClient =
   install({
     HttpClient {
       install(HttpTimeout)
+      followRedirects = false
     }
   }) { client, _ -> client.close() }
 
@@ -156,6 +154,46 @@ suspend fun HttpClient.scenario9(url: (Int) -> String): String {
     .joinToString("") { it.second }
 }
 
+suspend fun HttpClient.scenario10(url: (Int) -> String): String {
+  val id = UUID.randomUUID().toString()
+
+  val messageDigest = MessageDigest.getInstance("SHA-512")
+
+  suspend fun blocking() = coroutineScope {
+    var result = Random.nextBytes(512)
+    while (isActive) {
+      result = messageDigest.digest(result)
+    }
+  }
+
+  suspend fun blocker() =
+    raceN(
+      { get(url(10) + "?$id") },
+      { async(Dispatchers.IO) { blocking() }.await() }
+    )
+
+  suspend fun reporter(): String = coroutineScope {
+    val osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean::class.java)
+    val load = osBean.processCpuLoad * osBean.availableProcessors
+    val resp = get(url(10) + "?$id=$load")
+    if (resp.status.isSuccess()) {
+      resp.bodyAsText()
+    }
+    else if ((resp.status.value >= 300) && (resp.status.value < 400)) {
+      delay(1000)
+      reporter()
+    }
+    else {
+      throw Exception(resp.bodyAsText())
+    }
+  }
+
+  return parZip(
+    { blocker() },
+    { reporter() }
+  ) { _, result -> result }
+}
+
 fun HttpClient.scenarios() = listOf(
   ::scenario1,
   ::scenario2,
@@ -165,11 +203,12 @@ fun HttpClient.scenarios() = listOf(
   ::scenario6,
   ::scenario7,
   ::scenario8,
-  ::scenario9
+  ::scenario9,
+  ::scenario10,
 )
 
 //fun HttpClient.scenarios() = listOf(
-//  ::scenario7
+//  ::scenario10
 //)
 
 suspend fun results(url: (Int) -> String) = resourceScope {
