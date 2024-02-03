@@ -96,7 +96,7 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 | [Kotlin + Splitties](kotlin-splitties)                   | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
 | [Kotlin + Arrow](kotlin-arrow)                           | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
 | [Java + Loom](java-loom)                                 | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
-| [Rust + Tokio](rust-tokio)                               | 10/10             | [James Ward](https://github.com/jamesward) and Rust Developer Retreat Participants      | Needs Scenario 10 Impl      |
+| [Rust + Tokio](rust-tokio)                               | 10/10             | [James Ward](https://github.com/jamesward) and Rust Developer Retreat Participants      |                             |
 | [Python + AIOHTTP + TaskGroup](python-aiohttp-taskgroup) | 9/10              | [James Ward](https://github.com/jamesward) [Bruce Eckel](https://github.com/BruceEckel) | Needs Scenario 10 Impl      |
 | [Go](go-stdlib)                                          | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
 | [Swift + Grand Central Dispatch](swift-dispatch)         | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
