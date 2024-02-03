@@ -60,19 +60,20 @@ A scenario server validates the implementations of 10 scenarios:
     ```
     The winner returns a 200 response with a body containing `right`
 
-9. Make 10 concurrent requests where 5 return a 200 response with a letter, when assembled in order of when they responded, form the "right" answer
+9. Make 10 concurrent requests where 5 return a 200 response with a letter
     ```
     GET /9
     ```
+    When assembled in order of when they responded, form the "right" answer
 
 10. This scenario validates that a computationally heavy task can be run in parallel to another task, and then cancelled.
 
-    Part 1) Make a request and while the connection is open, perform something computationally heavy (e.g. repeated SHA calculation), then cancel the task when the connection closes
+    **Part 1)** Make a request and while the connection is open, perform something computationally heavy (e.g. repeated SHA calculation), then cancel the task when the connection closes
     ```
     GET /10?{some_id}
     ```
     
-    Part 2) In parallel to **Part 1**, every 1 second, make a request with the current process load (0 to 1)
+    **Part 2)** In parallel to **Part 1**, every 1 second, make a request with the current process load (0 to 1)
     ```
     GET /10?{same_id_as_part_1}={load}
     ```
@@ -95,13 +96,13 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 | [Kotlin + Splitties](kotlin-splitties)                   | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
 | [Kotlin + Arrow](kotlin-arrow)                           | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
 | [Java + Loom](java-loom)                                 | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
+| [Rust + Tokio](rust-tokio)                               | 10/10             | [James Ward](https://github.com/jamesward) and Rust Developer Retreat Participants      | Needs Scenario 10 Impl      |
 | [Python + AIOHTTP + TaskGroup](python-aiohttp-taskgroup) | 9/10              | [James Ward](https://github.com/jamesward) [Bruce Eckel](https://github.com/BruceEckel) | Needs Scenario 10 Impl      |
 | [Go](go-stdlib)                                          | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
 | [Swift + Grand Central Dispatch](swift-dispatch)         | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
 | [Swift + async/await](swift-async)                       | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
 | [Swift + Combine](swift-combine)                         | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
 | [Elm](elm-worker)                                        | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
-| [Rust + Tokio](rust-tokio)                               | 9/10              | [James Ward](https://github.com/jamesward) and Rust Developer Retreat Participants      | Needs Scenario 10 Impl      |
 | [JavaScript](javascript-stdlib)                          | 9/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenario 10 Impl      |
 | [Python + HTTPX + Trio](python-httpx-trio)               | 8/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenarios 3, 10       |
 | [Python + AIOHTTP](python-aiohttp)                       | 6/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenarios 3, 4, 8, 10 |

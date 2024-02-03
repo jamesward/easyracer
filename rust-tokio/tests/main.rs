@@ -24,6 +24,7 @@ async fn all_scenarios() {
         assert_eq!(scenario_7(port).await, "right");
         assert_eq!(scenario_8(port).await, "right");
         assert_eq!(scenario_9(port).await, "right");
+        assert_eq!(scenario_10(port).await, "right");
     }
 
 }

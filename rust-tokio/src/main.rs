@@ -11,4 +11,5 @@ async fn main() {
     println!("{}", scenario_7(8080).await);
     println!("{}", scenario_8(8080).await);
     println!("{}", scenario_9(8080).await);
+    println!("{}", scenario_10(8080).await);
 }

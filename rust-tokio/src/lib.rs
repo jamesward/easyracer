@@ -2,6 +2,15 @@ use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::time::{Instant, sleep, timeout};
 use tokio::time::error::Elapsed;
+use tokio_util::sync::CancellationToken;
+use rand::{thread_rng, Rng, RngCore};
+use rand::distributions::{Alphanumeric};
+use reqwest::Response;
+use sha2::{Sha512, Digest};
+use tokio::task::JoinError;
+use procinfo::pid::stat_self;
+use procfs::ticks_per_second;
+use async_recursion::async_recursion;
 
 fn url(port: u16, path: &str) -> String {
     format!("http://localhost:{}/{}", port, path)
@@ -202,4 +211,71 @@ pub async fn scenario_9(port: u16) -> String {
     ok_responses.sort_by(|a, b| a.1.cmp(&b.1));
 
     ok_responses.iter().fold("".to_string(), |acc, response| acc + &response.0)
+}
+
+pub async fn scenario_10(port: u16) -> String {
+    async fn req(port: u16, params: String) -> Result<Response, reqwest::Error> {
+        reqwest::get(url(port, format!("10?{}", params).as_str())).await
+    }
+
+    async fn blocking(cancellation_token: CancellationToken) -> Result<(), JoinError> {
+        tokio::spawn(async move {
+            while !cancellation_token.is_cancelled() {
+                let mut hasher = Sha512::new();
+                let mut bytes = [0u8; 512];
+                thread_rng().fill_bytes(&mut bytes);
+                hasher.update(bytes);
+                hasher.finalize();
+            }
+        }).await
+    }
+
+    // might be a better way than the CancellationToken
+    async fn blocker(port: u16, id: String) {
+        let token = CancellationToken::new();
+        let cloned_token = token.clone();
+
+        tokio::select! {
+            Ok(_) = req(port, id) => (),
+            Ok(_) = blocking(cloned_token) => (),
+            else => panic!("all failed")
+        }
+
+        token.cancel()
+    }
+
+    let random_string: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(8)
+        .map(char::from)
+        .collect();
+
+    fn current_load(previous_stime: i64) -> (i64, f64) {
+        let stime = stat_self().unwrap().utime;
+        let cpu_usage = (stime - previous_stime) as f64 / ticks_per_second() as f64;
+        return (stime, cpu_usage);
+    }
+
+    #[async_recursion]
+    async fn reporter(port: u16, id: String, previous_stime: i64) -> String {
+        let (stime, load) = current_load(previous_stime);
+        let resp = req(port, format!("{}={}", id, load)).await.unwrap();
+        let status = resp.status();
+        if status.is_success() {
+            return resp.text().await.unwrap()
+        }
+        else if status.is_redirection() {
+            sleep(Duration::from_secs(1)).await;
+            return reporter(port, id, stime).await;
+        }
+        else {
+            panic!("{}", resp.text().await.unwrap());
+        }
+    }
+
+    tokio::spawn(
+        blocker(port, random_string.clone())
+    );
+
+    return reporter(port, random_string.clone(), 0).await;
 }
