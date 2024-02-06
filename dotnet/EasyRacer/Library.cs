@@ -13,31 +13,28 @@ public class Library
     /// Race 2 concurrent requests, print the result of the first one to return 
     /// and cancels the other one.
     /// </summary>
-    public async Task Scenario1(int port)
+    public async Task<string> Scenario1(int port)
     {
-        Console.WriteLine("Running scenario 1...");
-
         var cancel = new CancellationTokenSource();
 
         var req1 = http.GetStringAsync(GetUrl(port, 1), cancel.Token);
         var req2 = http.GetStringAsync(GetUrl(port, 1), cancel.Token);
 
-        await Task.WhenAny(req1, req2).ContinueWith(async result => 
+        var result = await Task.WhenAny(req1, req2).ContinueWith(result => 
         {
-            var response = await result.Result;
-            Console.WriteLine($"\tresponse: {response}");
-            
             cancel.Cancel();
+
+            return result.Result;
         });
+
+        return await result;
     }
 
     /// <summary>
     /// Race 2 concurrent requests, where one produces a connection error.
     /// </summary>
-    public async Task Scenario2(int port)
+    public async Task<string> Scenario2(int port)
     {
-        Console.WriteLine("Running scenario 2...");
-
         var tasks = new Task<string>[]
         {
             http.GetStringAsync(GetUrl(port, 2)),
@@ -48,28 +45,29 @@ public class Library
         {
             await Task.WhenAll(tasks);
         }
-        catch (Exception error)
+        catch (Exception)
         {
-            Console.Error.WriteLine($"\tError: {error.Message}");
+            // ignore
         }
 
         var task = tasks.FirstOrDefault(t => !t.IsFaulted);
 
+        string answer = "";
+
         if (task != null)
         {
-            var response = await task;
-            Console.WriteLine($"\tresponse: {response}");
+            answer = await task;
         }
+
+        return answer;
     }
     
     /// <summary>
     /// Race 10000 concurrent requests, accept the first that succeeds.
     /// </summary>
-    public async Task Scenario3(int port)
+    public async Task<string> Scenario3(int port)
     {
         const int RequestCount = 10000;
-
-        Console.WriteLine($"Running scenario 3 with {RequestCount} requests...");
 
         using var cancel = new CancellationTokenSource();
 
@@ -80,21 +78,20 @@ public class Library
             tasks.Add(http.GetStringAsync(GetUrl(port, 3), cancel.Token));
         }
 
-        await Task.WhenAny(tasks).ContinueWith(async task => 
+        var response = await Task.WhenAny(tasks).ContinueWith(task => 
         {
-            var response = await task.Result;
             cancel.Cancel();
-            Console.WriteLine($"\tresponse: {response}");
+            return task.Result;
         });
+
+        return await response;
     }
 
     /// <summary>
     /// Race 2 requests, 1 with a 1 second timeout.
     /// </summary>
-    public async Task Scenario4(int port)
+    public async Task<string> Scenario4(int port)
     {
-        Console.WriteLine("Running scenario 4...");
-
         var timeout = TimeSpan.FromSeconds(1);
         using var cancel = new CancellationTokenSource(timeout);
 
@@ -104,15 +101,24 @@ public class Library
             http.GetStringAsync(GetUrl(port, 4), cancel.Token)
         };
 
-        await Task.WhenAny(tasks);
+        try
+        {
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception)
+        {/*ignore*/}
 
-        var task = tasks.FirstOrDefault(t => t.IsCompletedSuccessfully);
+        var task = tasks.FirstOrDefault(t => !t.IsCanceled && 
+            t.IsCompletedSuccessfully);
+
+        string answer = "";
 
         if (task != null)
         {
-            var response = task.Result;
-            Console.WriteLine($"\tresponse: {response}");
+            answer = task.Result;
         }
+
+        return answer;
     }
 
     /// <summary>
@@ -177,6 +183,14 @@ public class Library
             var response = await task.Result.Content.ReadAsStringAsync();
             Console.WriteLine($"\tresponse: {response}");
         }
+    }
+
+    /// <summary>
+    /// Start a request, wait at least 3 seconds then start a second request (hedging)
+    /// </summary>
+    public async Task Scenario7(int port)
+    {
+        Console.WriteLine("Running scenario 6...");
     }
 
     private string GetUrl(int port, int scenario) => $"http://localhost:{port}/{scenario}";    
