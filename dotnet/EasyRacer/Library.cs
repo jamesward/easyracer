@@ -41,25 +41,13 @@ public class Library
             http.GetStringAsync(GetUrl(port, 2))
         };
 
-        try
+        var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            await Task.WhenAll(tasks);
-        }
-        catch (Exception)
-        {
-            // ignore
-        }
+            var task = tasks.FirstOrDefault(t => !t.IsFaulted);
+            return task?.Result ?? "";
+        });
 
-        var task = tasks.FirstOrDefault(t => !t.IsFaulted);
-
-        string answer = "";
-
-        if (task != null)
-        {
-            answer = await task;
-        }
-
-        return answer;
+        return response;
     }
     
     /// <summary>
