@@ -101,24 +101,15 @@ public class Library
             http.GetStringAsync(GetUrl(port, 4), cancel.Token)
         };
 
-        try
+        var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            await Task.WhenAll(tasks);
-        }
-        catch (Exception)
-        {/*ignore*/}
+            var task = tasks.FirstOrDefault(t => !t.IsCanceled && 
+                t.IsCompletedSuccessfully);
 
-        var task = tasks.FirstOrDefault(t => !t.IsCanceled && 
-            t.IsCompletedSuccessfully);
+            return task?.Result ?? "";
+        });
 
-        string answer = "";
-
-        if (task != null)
-        {
-            answer = task.Result;
-        }
-
-        return answer;
+        return response;
     }
 
     /// <summary>
