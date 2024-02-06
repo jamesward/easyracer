@@ -62,13 +62,16 @@ public class Library
         }
     }
     
+    /// <summary>
+    /// Race 10000 concurrent requests, accept the first that succeeds.
+    /// </summary>
     public async Task Scenario3(int port)
     {
         const int RequestCount = 10000;
 
         Console.WriteLine($"Running scenario 3 with {RequestCount} requests...");
 
-        var cancel = new CancellationTokenSource();
+        using var cancel = new CancellationTokenSource();
 
         var tasks = new List<Task<string>>(RequestCount);
 
@@ -77,14 +80,39 @@ public class Library
             tasks.Add(http.GetStringAsync(GetUrl(port, 3), cancel.Token));
         }
 
-        // task.Exception?.Handle(e => true);
-
         await Task.WhenAny(tasks).ContinueWith(async task => 
         {
             var response = await task.Result;
             cancel.Cancel();
             Console.WriteLine($"\tresponse: {response}");
         });
+    }
+
+    /// <summary>
+    /// Race 2 requests, 1 with a 1 second timeout.
+    /// </summary>
+    public async Task Scenario4(int port)
+    {
+        Console.WriteLine("Running scenario 4...");
+
+        var timeout = TimeSpan.FromSeconds(1);
+        using var cancel = new CancellationTokenSource(timeout);
+
+        var tasks = new Task<string>[]
+        {
+            http.GetStringAsync(GetUrl(port, 4)),
+            http.GetStringAsync(GetUrl(port, 4), cancel.Token)
+        };
+
+        await Task.WhenAny(tasks);
+
+        var task = tasks.FirstOrDefault(t => t.IsCompletedSuccessfully);
+
+        if (task != null)
+        {
+            var response = task.Result;
+            Console.WriteLine($"\tresponse: {response}");
+        }
     }
 
     private string GetUrl(int port, int scenario) => $"http://localhost:{port}/{scenario}";    
