@@ -115,5 +115,31 @@ public class Library
         }
     }
 
+    /// <summary>
+    /// Race 2 concurrent requests where a non-200 response is a loser
+    /// </summary>
+    public async Task Scenario5(int port)
+    {
+        Console.WriteLine("Running scenario 5...");
+
+        using var cancel = new CancellationTokenSource();
+
+        var tasks = new Task<HttpResponseMessage>[]
+        {
+            http.GetAsync(GetUrl(port, 5), cancel.Token),
+            http.GetAsync(GetUrl(port, 5), cancel.Token)
+        };
+
+        await Task.WhenAll(tasks);
+
+        var task = tasks.FirstOrDefault(t => t.Result.IsSuccessStatusCode);
+
+        if (task != null)
+        {
+            var response = await task.Result.Content.ReadAsStringAsync();
+            Console.WriteLine($"\tresponse: {response}");
+        }
+    }
+
     private string GetUrl(int port, int scenario) => $"http://localhost:{port}/{scenario}";    
 }
