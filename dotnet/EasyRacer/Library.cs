@@ -153,7 +153,7 @@ public class Library
         var tasks = new Task<string>[]
         {
             http.GetStringAsync(GetUrl(port, 7), cancel.Token),
-            await Task.Delay(3000)
+            await Task.Delay(TimeSpan.FromSeconds(3))
                 .ContinueWith(_ => http.GetStringAsync(GetUrl(port, 7), cancel.Token)),
         };
 
@@ -164,6 +164,16 @@ public class Library
         });
 
         return response;
+    }
+
+    /// <summary>
+    /// Race 2 concurrent requests that "use" a resource which is obtained and 
+    /// released through other requests. The "use" request can return a non-20x 
+    /// request, in which case it is not a winner.
+    /// </summary>
+    public async Task<string> Scenario8(int port)
+    {
+        return await Task.FromResult("");
     }
 
     /// <summary>
