@@ -41,10 +41,10 @@ public class Library
             http.GetStringAsync(GetUrl(port, 2))
         };
 
+        // Using ContinueWith() to supress cancellation exception
         var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            var task = tasks.FirstOrDefault(t => !t.IsFaulted);
-            return task?.Result ?? "";
+            return GetStringResult(tasks);
         });
 
         return response;
@@ -89,12 +89,10 @@ public class Library
             http.GetStringAsync(GetUrl(port, 4), cancel.Token)
         };
 
+        // Using ContinueWith() to supress cancellation exception
         var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            var task = tasks.FirstOrDefault(t => !t.IsCanceled && 
-                t.IsCompletedSuccessfully);
-
-            return task?.Result ?? "";
+            return GetStringResult(tasks);
         });
 
         return response;
@@ -172,5 +170,19 @@ public class Library
         Console.WriteLine("Running scenario 6...");
     }
 
+    /// <summary>
+    /// Helper method to return the first non-canceled task result.
+    /// </summary>
+    private string GetStringResult(IEnumerable<Task<string>> tasks)
+    {
+        var task = tasks.FirstOrDefault(t => !t.IsCanceled && 
+            t.IsCompletedSuccessfully);
+
+        return task?.Result ?? "";
+    }
+
+    /// <summary>
+    /// Helper method to get the url for a scenario.
+    /// </summary>
     private string GetUrl(int port, int scenario) => $"http://localhost:{port}/{scenario}";    
 }
