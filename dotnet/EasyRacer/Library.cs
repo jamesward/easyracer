@@ -101,10 +101,8 @@ public class Library
     /// <summary>
     /// Race 2 concurrent requests where a non-200 response is a loser
     /// </summary>
-    public async Task Scenario5(int port)
+    public async Task<string> Scenario5(int port)
     {
-        Console.WriteLine("Running scenario 5...");
-
         using var cancel = new CancellationTokenSource();
 
         var tasks = new Task<HttpResponseMessage>[]
@@ -115,14 +113,7 @@ public class Library
 
         await Task.WhenAll(tasks);
 
-        var task = tasks.FirstOrDefault(t => t.IsCompletedSuccessfully && 
-            t.Result.IsSuccessStatusCode);
-
-        if (task != null)
-        {
-            var response = await task.Result.Content.ReadAsStringAsync();
-            Console.WriteLine($"\tresponse: {response}");
-        }
+        return await GetStringResultAsync(tasks);
     }
 
     /// <summary>
@@ -179,6 +170,26 @@ public class Library
             t.IsCompletedSuccessfully);
 
         return task?.Result ?? "";
+    }
+
+    /// <summary>
+    /// Helper method to return the first non-canceled task result.
+    /// </summary>
+    private async Task<string> GetStringResultAsync(IEnumerable<Task<HttpResponseMessage>> tasks)
+    {
+        var task = tasks.FirstOrDefault(t => t.IsCompletedSuccessfully && 
+            t.Result.IsSuccessStatusCode);
+
+        if (task != null)
+        {
+            var response = await task.Result.Content.ReadAsStringAsync();
+            return response;
+        }
+        else
+        {
+            return "";
+        }
+
     }
 
     /// <summary>
