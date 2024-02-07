@@ -119,10 +119,8 @@ public class Library
     /// <summary>
     /// Race 3 concurrent requests where a non-200 response is a loser
     /// </summary>
-    public async Task Scenario6(int port)
+    public async Task<string> Scenario6(int port)
     {
-        Console.WriteLine("Running scenario 6...");
-
         // This is not in the instrucions, but I needed to timeout because one
         // of the requests never completes with a non-200.
         using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(3));
@@ -134,23 +132,12 @@ public class Library
             http.GetAsync(GetUrl(port, 6), cancel.Token)
         };
 
-        try
+        var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            await Task.WhenAll(tasks);
-        }
-        catch (Exception error)
-        {
-            Console.Error.WriteLine($"\tError: {error.Message}");
-        }
+            return GetStringResultAsync(tasks);
+        });
 
-        var task = tasks.FirstOrDefault(t => t.IsCompletedSuccessfully && 
-            t.Result.IsSuccessStatusCode);
-
-        if (task != null)
-        {
-            var response = await task.Result.Content.ReadAsStringAsync();
-            Console.WriteLine($"\tresponse: {response}");
-        }
+        return await response;
     }
 
     /// <summary>

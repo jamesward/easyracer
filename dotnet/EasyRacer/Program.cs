@@ -10,4 +10,4 @@ Console.WriteLine(await lib.Scenario2(Port));
 Console.WriteLine(await lib.Scenario3(Port));
 Console.WriteLine(await lib.Scenario4(Port));
 Console.WriteLine(await lib.Scenario5(Port));
-// await lib.Scenario6(Port);
+Console.WriteLine(await lib.Scenario6(Port));
