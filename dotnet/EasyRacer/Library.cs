@@ -1,3 +1,5 @@
+using System.Net.Cache;
+
 namespace EasyRacer;
 
 public class Library
@@ -143,9 +145,25 @@ public class Library
     /// <summary>
     /// Start a request, wait at least 3 seconds then start a second request (hedging)
     /// </summary>
-    public async Task Scenario7(int port)
+    public async Task<string> Scenario7(int port)
     {
-        Console.WriteLine("Running scenario 6...");
+        // Not in the instructions, but needed to timeout here.
+        var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+        var tasks = new Task<string>[]
+        {
+            http.GetStringAsync(GetUrl(port, 7), cancel.Token),
+            await Task.Delay(3000)
+                .ContinueWith(_ => http.GetStringAsync(GetUrl(port, 7), cancel.Token)),
+        };
+
+        // Using ContinueWith() to supress cancellation exception
+        var response = await Task.WhenAll(tasks).ContinueWith(_ => 
+        {
+            return GetStringResult(tasks);
+        });
+
+        return response;
     }
 
     /// <summary>
