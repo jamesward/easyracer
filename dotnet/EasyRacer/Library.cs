@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using System.Net.Cache;
+using System.Xml.XPath;
 
 namespace EasyRacer;
 
@@ -59,13 +61,15 @@ public class Library
     {
         const int RequestCount = 10000;
 
+        var url = GetUrl(port, 3);
+
         using var cancel = new CancellationTokenSource();
 
         var tasks = new List<Task<string>>(RequestCount);
 
         for (int i = 0; i < RequestCount; i++)
         {
-            tasks.Add(http.GetStringAsync(GetUrl(port, 3), cancel.Token));
+            tasks.Add(http.GetStringAsync(url, cancel.Token));
         }
 
         var response = await Task.WhenAny(tasks).ContinueWith(task => 
@@ -173,8 +177,58 @@ public class Library
     /// </summary>
     public async Task<string> Scenario8(int port)
     {
-        return await Task.FromResult("");
+        var tasks = new Task<string>[] 
+        {
+            Scenario8Request(port),
+            Scenario8Request(port)
+        };
+
+        var response = await Task.WhenAll(tasks).ContinueWith(_ => 
+        {
+            return GetStringResult(tasks);
+        });
+
+        return response;
     }
+
+    private async Task<string> Scenario8Request(int port)
+    {
+        var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+
+        var baseUrl = GetUrl(port, 8);
+        var openUrl = baseUrl + "?open";
+        string useUrl(string id) => baseUrl + $"?use={id}";
+        string closeUrl(string id) => baseUrl + $"?close={id}";
+
+        var id = await http.GetStringAsync(openUrl, cancel.Token);
+
+        // Console.WriteLine("Got id:" + id);
+
+        if (string.IsNullOrWhiteSpace(id))
+            throw new ApplicationException("No id returned");
+
+        try
+        {
+            var response = await http.GetAsync(useUrl(id), cancel.Token);
+            var result = await GetHttpSuccessString(response);
+
+            return result;
+        }
+        finally
+        {
+            await http.GetStringAsync(closeUrl(id), cancel.Token);
+        }
+    }
+
+    private async Task<string> GetHttpSuccessString(HttpResponseMessage reponse)
+    {
+        if (!reponse.IsSuccessStatusCode)
+        {
+            throw new Exception("Invalid status code");
+        }
+
+        return await GetStringResultAsync(reponse);
+    } 
 
     /// <summary>
     /// Helper method to return the first non-canceled task result.
@@ -195,16 +249,21 @@ public class Library
         var task = tasks.FirstOrDefault(t => t.IsCompletedSuccessfully && 
             t.Result.IsSuccessStatusCode);
 
-        if (task != null)
-        {
-            var response = await task.Result.Content.ReadAsStringAsync();
-            return response;
-        }
-        else
-        {
-            return "";
-        }
+        if (task == null)
+            throw new ApplicationException("No successful request");
 
+        var response = await task;
+
+        return await GetStringResultAsync(response);
+    }
+
+    /// <summary>
+    /// Helper method to return the string from an http task result.
+    /// </summary>
+    private async Task<string> GetStringResultAsync(HttpResponseMessage response)
+    {
+        string answer = await response.Content.ReadAsStringAsync();
+        return answer;
     }
 
     /// <summary>
