@@ -48,7 +48,7 @@ public class Library
         // Using ContinueWith() to supress cancellation exception
         var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            return GetStringResult(tasks);
+            return GetCompletedString(tasks);
         });
 
         return response;
@@ -98,7 +98,7 @@ public class Library
         // Using ContinueWith() to supress cancellation exception
         var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            return GetStringResult(tasks);
+            return GetCompletedString(tasks);
         });
 
         return response;
@@ -164,7 +164,7 @@ public class Library
         // Using ContinueWith() to supress cancellation exception
         var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            return GetStringResult(tasks);
+            return GetCompletedString(tasks);
         });
 
         return response;
@@ -179,19 +179,42 @@ public class Library
     {
         var tasks = new Task<string>[] 
         {
-            Scenario8Request(port),
-            Scenario8Request(port)
+            CreateScenario8Request(port),
+            CreateScenario8Request(port)
         };
 
         var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            return GetStringResult(tasks);
+            return GetCompletedString(tasks);
         });
 
         return response;
     }
 
-    private async Task<string> Scenario8Request(int port)
+    /// <summary>
+    /// Make 10 concurrent requests where 5 return a 200 response with a letter
+    /// </summary>
+    public async Task<string> Scenario9(int port)
+    {
+        string answer = "";
+        
+        var tasks = new List<Task>();
+
+        for (int i = 0; i < 10; i++)
+        {
+            tasks.Add(
+                http.GetStringAsync(GetUrl(port, 9))
+                    .ContinueWith(task => answer += task.Result)
+            );
+        }
+
+        try { await Task.WhenAll(tasks); }
+        catch (Exception) { /*Ignore*/ }
+
+        return answer;
+    }
+
+    private async Task<string> CreateScenario8Request(int port)
     {
         var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(3));
 
@@ -200,23 +223,21 @@ public class Library
         string useUrl(string id) => baseUrl + $"?use={id}";
         string closeUrl(string id) => baseUrl + $"?close={id}";
 
-        var id = await http.GetStringAsync(openUrl, cancel.Token);
-
-        // Console.WriteLine("Got id:" + id);
+        var id = await http.GetStringAsync(openUrl);
 
         if (string.IsNullOrWhiteSpace(id))
             throw new ApplicationException("No id returned");
 
         try
         {
-            var response = await http.GetAsync(useUrl(id), cancel.Token);
+            var response = await http.GetAsync(useUrl(id));
             var result = await GetHttpSuccessString(response);
 
             return result;
         }
         finally
         {
-            await http.GetStringAsync(closeUrl(id), cancel.Token);
+            await http.GetStringAsync(closeUrl(id));
         }
     }
 
@@ -231,12 +252,11 @@ public class Library
     } 
 
     /// <summary>
-    /// Helper method to return the first non-canceled task result.
+    /// Helper method to return the first non-canceled task string result.
     /// </summary>
-    private string GetStringResult(IEnumerable<Task<string>> tasks)
+    private string GetCompletedString(IEnumerable<Task<string>> tasks)
     {
-        var task = tasks.FirstOrDefault(t => !t.IsCanceled && 
-            t.IsCompletedSuccessfully);
+        var task = tasks.FirstOrDefault(t => t.IsCompletedSuccessfully);
 
         return task?.Result ?? "";
     }
