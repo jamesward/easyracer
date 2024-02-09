@@ -123,23 +123,33 @@ public class Library
     /// </summary>
     public async Task<string> Scenario6(int port)
     {
-        // This is not in the instrucions, but I needed to timeout because one
-        // of the requests never completes with a non-200.
-        using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        // Set a long timeout, just in case 1 or more never complete.
+        using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 
-        var tasks = new Task<HttpResponseMessage>[]
+        var tasks = new List<Task<HttpResponseMessage>>
         {
             http.GetAsync(GetUrl(port, 6), cancel.Token),
             http.GetAsync(GetUrl(port, 6), cancel.Token),
             http.GetAsync(GetUrl(port, 6), cancel.Token)
         };
 
-        var response = await Task.WhenAll(tasks).ContinueWith(_ => 
+        while (!cancel.IsCancellationRequested)
         {
-            return GetStringResultAsync(tasks);
-        });
+            int i = Task.WaitAny(tasks.ToArray());
 
-        return await response;
+            var response = tasks[i];
+
+            // Remove from the list so we don't wait on it again
+            tasks.RemoveAt(i);
+
+            if (response.IsCompletedSuccessfully && response.Result.IsSuccessStatusCode)
+            {
+                cancel.Cancel();
+                return await response.Result.Content.ReadAsStringAsync();
+            }
+        }
+
+        return string.Empty;
     }
 
     /// <summary>
