@@ -1,7 +1,3 @@
-using System.Linq.Expressions;
-using System.Net.Cache;
-using System.Xml.XPath;
-
 namespace EasyRacer;
 
 public class Library
@@ -212,6 +208,15 @@ public class Library
         catch (Exception) { /*Ignore*/ }
 
         return answer;
+    }
+
+    /// <summary>
+    /// This scenario validates that a computationally heavy task can be run in parallel to another task, and then cancelled.
+    /// </summary>
+    public async Task<string> Scenario10(int port)
+    {
+        var scenario = new Scenario10(http);
+        return await scenario.Run(GetUrl(port, 10));
     }
 
     private async Task<string> CreateScenario8Request(int port)

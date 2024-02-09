@@ -14,3 +14,4 @@ Console.WriteLine(await lib.Scenario6(Port));
 Console.WriteLine(await lib.Scenario7(Port));
 Console.WriteLine(await lib.Scenario8(Port));
 Console.WriteLine(await lib.Scenario9(Port));
+Console.WriteLine(await lib.Scenario10(Port));
