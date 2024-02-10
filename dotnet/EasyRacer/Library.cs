@@ -44,7 +44,7 @@ public class Library
         // Using ContinueWith() to supress cancellation exception
         var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            return GetCompletedString(tasks);
+            return GetStringResultAsync(tasks);
         });
 
         return response;
@@ -94,7 +94,7 @@ public class Library
         // Using ContinueWith() to supress cancellation exception
         var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            return GetCompletedString(tasks);
+            return GetStringResultAsync(tasks);
         });
 
         return response;
@@ -133,7 +133,7 @@ public class Library
             http.GetAsync(GetUrl(port, 6), cancel.Token)
         };
 
-        return await GetCompletedStringAsync(tasks, cancel);
+        return await GetStringResultAsync(tasks, cancel);
     }
 
     /// <summary>
@@ -151,7 +151,7 @@ public class Library
                 .ContinueWith(_ => http.GetAsync(GetUrl(port, 7), cancel.Token)),
         };
 
-        return await GetCompletedStringAsync(tasks, cancel);
+        return await GetStringResultAsync(tasks, cancel);
     }
 
     /// <summary>
@@ -169,11 +169,40 @@ public class Library
 
         var response = await Task.WhenAll(tasks).ContinueWith(_ => 
         {
-            return GetCompletedString(tasks);
+            return GetStringResultAsync(tasks);
         });
 
         return response;
     }
+
+    private async Task<string> CreateScenario8Request(int port)
+    {
+        var baseUrl = GetUrl(port, 8);
+        var openUrl = baseUrl + "?open";
+        string UseUrl(string id) => baseUrl + $"?use={id}";
+        string CloseUrl(string id) => baseUrl + $"?close={id}";
+
+        var id = await http.GetStringAsync(openUrl);
+
+        if (string.IsNullOrWhiteSpace(id))
+            throw new ApplicationException("No id returned");
+
+        try
+        {
+            var response = await http.GetAsync(UseUrl(id));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception("Invalid status code");
+            }
+
+            return await response.Content.ReadAsStringAsync();
+        }
+        finally
+        {
+            await http.GetStringAsync(CloseUrl(id));
+        }
+    }    
 
     /// <summary>
     /// Make 10 concurrent requests where 5 return a 200 response with a letter
@@ -207,65 +236,10 @@ public class Library
         return await scenario.Run(GetUrl(port, 10));
     }
 
-    private async Task<string> CreateScenario8Request(int port)
-    {
-        var baseUrl = GetUrl(port, 8);
-        var openUrl = baseUrl + "?open";
-        string UseUrl(string id) => baseUrl + $"?use={id}";
-        string CloseUrl(string id) => baseUrl + $"?close={id}";
-
-        var id = await http.GetStringAsync(openUrl);
-
-        if (string.IsNullOrWhiteSpace(id))
-            throw new ApplicationException("No id returned");
-
-        try
-        {
-            var response = await http.GetAsync(UseUrl(id));
-            var result = await GetHttpSuccessString(response);
-
-            return result;
-        }
-        finally
-        {
-            await http.GetStringAsync(CloseUrl(id));
-        }
-    }
-
-    private async Task<string> GetHttpSuccessString(HttpResponseMessage reponse)
-    {
-        if (!reponse.IsSuccessStatusCode)
-        {
-            throw new Exception("Invalid status code");
-        }
-
-        return await GetStringResultAsync(reponse);
-    } 
-
-    private async Task<string> GetCompletedStringAsync(List<Task<HttpResponseMessage>> tasks, CancellationTokenSource cancel)
-    {
-        while (!cancel.IsCancellationRequested)
-        {
-            var task = await Task.WhenAny(tasks);
-
-            if (task.IsCompletedSuccessfully && task.Result.IsSuccessStatusCode)
-            {
-                cancel.Cancel();
-                return await task.Result.Content.ReadAsStringAsync();
-            }
-
-            // Don't wait on this task any more.
-            tasks.Remove(task);
-        }
-
-        return string.Empty;
-    }
-
-
     /// <summary>
     /// Helper method to return the first non-canceled task string result.
     /// </summary>
-    private string GetCompletedString(IEnumerable<Task<string>> tasks)
+    private string GetStringResultAsync(IEnumerable<Task<string>> tasks)
     {
         var task = tasks.FirstOrDefault(t => t.IsCompletedSuccessfully);
 
@@ -285,17 +259,27 @@ public class Library
 
         var response = await task;
 
-        return await GetStringResultAsync(response);
+        return await response.Content.ReadAsStringAsync();
     }
 
-    /// <summary>
-    /// Helper method to return the string from an http task result.
-    /// </summary>
-    private async Task<string> GetStringResultAsync(HttpResponseMessage response)
+    private async Task<string> GetStringResultAsync(List<Task<HttpResponseMessage>> tasks, CancellationTokenSource cancel)
     {
-        string answer = await response.Content.ReadAsStringAsync();
-        return answer;
-    }
+        while (!cancel.IsCancellationRequested)
+        {
+            var task = await Task.WhenAny(tasks);
+
+            if (task.IsCompletedSuccessfully && task.Result.IsSuccessStatusCode)
+            {
+                cancel.Cancel();
+                return await task.Result.Content.ReadAsStringAsync();
+            }
+
+            // Don't wait on this task any more.
+            tasks.Remove(task);
+        }
+
+        return string.Empty;
+    }    
 
     /// <summary>
     /// Helper method to get the url for a scenario.
