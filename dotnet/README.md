@@ -1,18 +1,18 @@
-## Setup
-To build and launch the server, run the following commands:
+# .NET 8.0 Implementation
 
-```bash
-cd ./scenario-server
+Scenarios 1-10 implemented with .NET 8.0.
 
-docker build -t easyracer -f ./Dockerfile-amd64 .
-
-docker run -it -p8080:8080 easyracer --debug
-```
-
-Or just run the prebuilt container:
-```bash
-docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
-```
 
 ## Run
+Run with the following command:
 
+```bash
+cd ./EasyRacer
+dotnet run
+```
+
+## Test
+```bash
+cd ./EasyRacer.Tests
+dotnet test
+```
