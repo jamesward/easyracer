@@ -209,12 +209,10 @@ public class Library
 
     private async Task<string> CreateScenario8Request(int port)
     {
-        var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-
         var baseUrl = GetUrl(port, 8);
         var openUrl = baseUrl + "?open";
-        string useUrl(string id) => baseUrl + $"?use={id}";
-        string closeUrl(string id) => baseUrl + $"?close={id}";
+        string UseUrl(string id) => baseUrl + $"?use={id}";
+        string CloseUrl(string id) => baseUrl + $"?close={id}";
 
         var id = await http.GetStringAsync(openUrl);
 
@@ -223,14 +221,14 @@ public class Library
 
         try
         {
-            var response = await http.GetAsync(useUrl(id));
+            var response = await http.GetAsync(UseUrl(id));
             var result = await GetHttpSuccessString(response);
 
             return result;
         }
         finally
         {
-            await http.GetStringAsync(closeUrl(id));
+            await http.GetStringAsync(CloseUrl(id));
         }
     }
 
