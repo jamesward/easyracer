@@ -133,23 +133,7 @@ public class Library
             http.GetAsync(GetUrl(port, 6), cancel.Token)
         };
 
-        while (!cancel.IsCancellationRequested)
-        {
-            var task = await Task.WhenAny(tasks);
-
-            if (task == null)
-                continue;
-
-            tasks.Remove(task);
-
-            if (task.IsCompletedSuccessfully && task.Result.IsSuccessStatusCode)
-            {
-                cancel.Cancel();
-                return await task.Result.Content.ReadAsStringAsync();
-            }
-        }
-
-        return string.Empty;
+        return await GetCompletedStringAsync(tasks, cancel);
     }
 
     /// <summary>
@@ -160,20 +144,14 @@ public class Library
         // Not in the instructions, but needed to timeout here.
         var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
-        var tasks = new Task<string>[]
+        var tasks = new List<Task<HttpResponseMessage>>
         {
-            http.GetStringAsync(GetUrl(port, 7), cancel.Token),
+            http.GetAsync(GetUrl(port, 7), cancel.Token),
             await Task.Delay(TimeSpan.FromSeconds(3))
-                .ContinueWith(_ => http.GetStringAsync(GetUrl(port, 7), cancel.Token)),
+                .ContinueWith(_ => http.GetAsync(GetUrl(port, 7), cancel.Token)),
         };
 
-        // Using ContinueWith() to supress cancellation exception
-        var response = await Task.WhenAll(tasks).ContinueWith(_ => 
-        {
-            return GetCompletedString(tasks);
-        });
-
-        return response;
+        return await GetCompletedStringAsync(tasks, cancel);
     }
 
     /// <summary>
@@ -265,6 +243,26 @@ public class Library
 
         return await GetStringResultAsync(reponse);
     } 
+
+    private async Task<string> GetCompletedStringAsync(List<Task<HttpResponseMessage>> tasks, CancellationTokenSource cancel)
+    {
+        while (!cancel.IsCancellationRequested)
+        {
+            var task = await Task.WhenAny(tasks);
+
+            if (task.IsCompletedSuccessfully && task.Result.IsSuccessStatusCode)
+            {
+                cancel.Cancel();
+                return await task.Result.Content.ReadAsStringAsync();
+            }
+
+            // Don't wait on this task any more.
+            tasks.Remove(task);
+        }
+
+        return string.Empty;
+    }
+
 
     /// <summary>
     /// Helper method to return the first non-canceled task string result.
