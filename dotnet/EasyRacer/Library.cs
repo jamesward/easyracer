@@ -135,17 +135,17 @@ public class Library
 
         while (!cancel.IsCancellationRequested)
         {
-            int i = Task.WaitAny(tasks.ToArray());
+            var task = await Task.WhenAny(tasks);
 
-            var response = tasks[i];
+            if (task == null)
+                continue;
 
-            // Remove from the list so we don't wait on it again
-            tasks.RemoveAt(i);
+            tasks.Remove(task);
 
-            if (response.IsCompletedSuccessfully && response.Result.IsSuccessStatusCode)
+            if (task.IsCompletedSuccessfully && task.Result.IsSuccessStatusCode)
             {
                 cancel.Cancel();
-                return await response.Result.Content.ReadAsStringAsync();
+                return await task.Result.Content.ReadAsStringAsync();
             }
         }
 
