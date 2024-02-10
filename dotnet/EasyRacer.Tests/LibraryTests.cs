@@ -1,108 +1,81 @@
 namespace EasyRacer.Tests;
 
-public class LibraryTests : IDisposable
+public class LibraryTests : IClassFixture<TestcontainersFixture>
 {
-    const string ContainerImage = "ghcr.io/jamesward/easyracer";
-    const int PortBinding = 8080;
+    TestcontainersFixture fixture;
 
-    private readonly HttpClient httpClient;
-    private readonly IContainer container;
-    private readonly int port;
-
-    public LibraryTests()
+    public LibraryTests(TestcontainersFixture fixture)
     {
-        container = new ContainerBuilder()
-            .WithImage(ContainerImage)
-            // Bind port 8080 of the container to a random port on the host.
-            .WithPortBinding(PortBinding, true)
-            // Wait until the HTTP endpoint of the container is available.
-            .WithWaitStrategy(Wait.ForUnixContainer()
-                .UntilHttpRequestIsSucceeded(r => r.ForPort(PortBinding)))
-            // Build the container configuration.
-            .Build();
-
-        // Start the container.
-        container.StartAsync().Wait();
-
-        // Get the port of the container.
-        port = container.GetMappedPublicPort(PortBinding);
-
-        // Create a new instance of HttpClient to send HTTP requests.
-        httpClient = new HttpClient();
+        this.fixture = fixture;
     }
 
     [Fact]
     public async void TestScenario1()
     {
-        var lib = new Library(httpClient);  
-        Assert.Equal("right", await lib.Scenario1(port));
+        var lib = new Library(fixture.HttpClient);  
+        Assert.Equal("right", await lib.Scenario1(fixture.Port));
     }
     
     [Fact]
     public async void TestScenario2()
     {
-        var lib = new Library(httpClient);  
-        Assert.Equal("right", await lib.Scenario2(port));
+        var lib = new Library(fixture.HttpClient);  
+        Assert.Equal("right", await lib.Scenario2(fixture.Port));
     }
 
     [Fact]
     public async void TestScenario3()
     {
-        var lib = new Library(httpClient);  
-        Assert.Equal("right", await lib.Scenario3(port));
+        var lib = new Library(fixture.HttpClient);  
+        Assert.Equal("right", await lib.Scenario3(fixture.Port));
     }
 
     [Fact]
     public async void TestScenario4()
     {
-        var lib = new Library(httpClient);  
-        Assert.Equal("right", await lib.Scenario4(port));
+        var lib = new Library(fixture.HttpClient);  
+        Assert.Equal("right", await lib.Scenario4(fixture.Port));
     }
 
     [Fact]
     public async void TestScenario5()
     {
-        var lib = new Library(httpClient);  
-        Assert.Equal("right", await lib.Scenario5(port));
+        var lib = new Library(fixture.HttpClient);  
+        Assert.Equal("right", await lib.Scenario5(fixture.Port));
     }
 
     [Fact]
     public async void TestScenario6()
     {
-        var lib = new Library(httpClient);  
-        Assert.Equal("right", await lib.Scenario6(port));
+        var lib = new Library(fixture.HttpClient);  
+        Assert.Equal("right", await lib.Scenario6(fixture.Port));
     }
 
     [Fact]
     public async void TestScenario7()
     {
-        var lib = new Library(httpClient);  
-        Assert.Equal("right", await lib.Scenario7(port));
+        var lib = new Library(fixture.HttpClient);  
+        Assert.Equal("right", await lib.Scenario7(fixture.Port));
     }
 
     [Fact]
     public async void TestScenario8()
     {
-        var lib = new Library(httpClient);  
-        Assert.Equal("right", await lib.Scenario8(port));
+        var lib = new Library(fixture.HttpClient);  
+        Assert.Equal("right", await lib.Scenario8(fixture.Port));
     }
 
     [Fact]
     public async void TestScenario9()
     {
-        var lib = new Library(httpClient);  
-        Assert.Equal("right", await lib.Scenario9(port));
+        var lib = new Library(fixture.HttpClient);  
+        Assert.Equal("right", await lib.Scenario9(fixture.Port));
     }
 
     [Fact]
     public async void TestScenario10()
     {
-        var lib = new Library(httpClient);  
-        Assert.Equal("right", await lib.Scenario10(port));
+        var lib = new Library(fixture.HttpClient);  
+        Assert.Equal("right", await lib.Scenario10(fixture.Port));
     }
-
-    public void Dispose()
-    {
-        container.StopAsync().Wait();
-    }    
 }
