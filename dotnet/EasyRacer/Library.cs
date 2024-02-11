@@ -1,14 +1,10 @@
 namespace EasyRacer;
 
-public class Library
+/// <summary>
+/// Implements 10 scenarios demonstrating structred concurrency in .NET.
+/// </summary>
+public class Library(HttpClient http)
 {
-    private HttpClient http;
-
-    public Library(HttpClient http)
-    {
-        this.http = http;
-    }
-
     /// <summary>
     /// Race 2 concurrent requests, print the result of the first one to return 
     /// and cancels the other one.
@@ -161,21 +157,21 @@ public class Library
     /// </summary>
     public async Task<string> Scenario8(int port)
     {
-        var tasks = new Task<string>[] 
+        var cancel = new CancellationTokenSource();
+
+        var tasks = new List<Task<HttpResponseMessage>> 
         {
-            CreateScenario8Request(port),
-            CreateScenario8Request(port)
+            CreateScenario8Request(port, cancel.Token),
+            CreateScenario8Request(port, cancel.Token)
         };
 
-        var response = await Task.WhenAll(tasks).ContinueWith(_ => 
-        {
-            return GetStringResultAsync(tasks);
-        });
-
-        return response;
+        return await GetStringResultAsync(tasks, cancel);
     }
 
-    private async Task<string> CreateScenario8Request(int port)
+    /// <summary>
+    /// Wraps Scenario 8's 3 phases; Open, Use, Close.
+    /// </summary>
+    private async Task<HttpResponseMessage> CreateScenario8Request(int port, CancellationToken cancel)
     {
         var baseUrl = GetUrl(port, 8);
         var openUrl = baseUrl + "?open";
@@ -189,18 +185,11 @@ public class Library
 
         try
         {
-            var response = await http.GetAsync(UseUrl(id));
-
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception("Invalid status code");
-            }
-
-            return await response.Content.ReadAsStringAsync();
+            return await http.GetAsync(UseUrl(id), cancel);
         }
         finally
         {
-            await http.GetStringAsync(CloseUrl(id));
+            await http.GetAsync(CloseUrl(id));
         }
     }    
 
@@ -262,7 +251,13 @@ public class Library
         return await response.Content.ReadAsStringAsync();
     }
 
-    private async Task<string> GetStringResultAsync(List<Task<HttpResponseMessage>> tasks, CancellationTokenSource cancel)
+    /// <summary>
+    /// Helper method to return the first successful http request result.
+    /// Waits for the first successful task and cancels all others. 
+    /// </summary>
+    private async Task<string> GetStringResultAsync(
+        List<Task<HttpResponseMessage>> tasks, 
+        CancellationTokenSource cancel)
     {
         while (!cancel.IsCancellationRequested)
         {
