@@ -1,3 +1,6 @@
+using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Containers;
+
 namespace EasyRacer.Tests;
 
 public class TestcontainersFixture : IDisposable

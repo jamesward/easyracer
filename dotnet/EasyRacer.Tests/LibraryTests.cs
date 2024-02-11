@@ -1,3 +1,5 @@
+using Xunit;
+
 namespace EasyRacer.Tests;
 
 public class LibraryTests : IClassFixture<TestcontainersFixture>
