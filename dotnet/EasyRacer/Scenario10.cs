@@ -1,32 +1,43 @@
 namespace EasyRacer;
 
+/// <summary>
+/// Wraps the context for a computationally heavy task run in parallel to 
+/// another task, and then cancelled.
+/// </summary>
 public class Scenario10(HttpClient http)
 {
+    // Unique identifier for this scenario instance.
     public readonly string Id = Guid.NewGuid().ToString();
 
-    private double cpuUsage = 0;
+    // Tracks simulated cpu usage 0-1.
+    private double cpuUsage = 0.0;
 
+    /// <summary>
+    /// Run the scenario.
+    /// </summary>
     public async Task<string> Run(string url)
     {
         using var cancel = new CancellationTokenSource();
         
         var openUrl = $"{url}?{Id}";
 
+        // Launch the open task by calling ContinueWith(), and cancel any other
+        // tasks when it completes.
         var openTask = http.GetStringAsync(openUrl).ContinueWith(task => 
         {
+            // When this http request completes, cancel the cpu task.
             cancel.Cancel();
-            return task.Result;
         });
 
         var loadTask = Task.Run(() => SimulateCpu(cancel.Token));
 
         string answer = string.Empty;
         
-        try
-        {
-            answer = await Monitor(url);
+        try 
+        { 
+            answer = await Monitor(url); 
         }
-        catch (TaskCanceledException)
+        catch (TaskCanceledException) 
         {}
         
         return answer;

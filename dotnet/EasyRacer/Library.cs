@@ -31,19 +31,13 @@ public class Library(HttpClient http)
     /// </summary>
     public async Task<string> Scenario2(int port)
     {
-        var tasks = new Task<string>[]
+        var tasks = new List<Task<HttpResponseMessage>>
         {
-            http.GetStringAsync(GetUrl(port, 2)),
-            http.GetStringAsync(GetUrl(port, 2))
+            http.GetAsync(GetUrl(port, 2)),
+            http.GetAsync(GetUrl(port, 2))
         };
 
-        // Using ContinueWith() to supress cancellation exception
-        var response = await Task.WhenAll(tasks).ContinueWith(_ => 
-        {
-            return GetStringResultAsync(tasks);
-        });
-
-        return response;
+        return await RaceStringResultAsync(tasks);
     }
     
     /// <summary>
@@ -52,25 +46,18 @@ public class Library(HttpClient http)
     public async Task<string> Scenario3(int port)
     {
         const int RequestCount = 10000;
-
         var url = GetUrl(port, 3);
 
         using var cancel = new CancellationTokenSource();
 
-        var tasks = new List<Task<string>>(RequestCount);
+        var tasks = new List<Task<HttpResponseMessage>>(RequestCount);
 
         for (int i = 0; i < RequestCount; i++)
         {
-            tasks.Add(http.GetStringAsync(url, cancel.Token));
+            tasks.Add(http.GetAsync(url, cancel.Token));
         }
 
-        var response = await Task.WhenAny(tasks).ContinueWith(task => 
-        {
-            cancel.Cancel();
-            return task.Result;
-        });
-
-        return await response;
+        return await RaceStringResultAsync(tasks, cancel);
     }
 
     /// <summary>
@@ -81,20 +68,15 @@ public class Library(HttpClient http)
         var timeout = TimeSpan.FromSeconds(1);
         using var cancel = new CancellationTokenSource(timeout);
 
-        var tasks = new Task<string>[]
+        var tasks = new List<Task<HttpResponseMessage>>
         {
-            http.GetStringAsync(GetUrl(port, 4)),
-            http.GetStringAsync(GetUrl(port, 4), cancel.Token)
+            http.GetAsync(GetUrl(port, 4), cancel.Token),
+            http.GetAsync(GetUrl(port, 4))
         };
 
-        // Using ContinueWith() to supress cancellation exception
-        var response = await Task.WhenAll(tasks).ContinueWith(_ => 
-        {
-            return GetStringResultAsync(tasks);
-        });
-
-        return response;
+        return await RaceStringResultAsync(tasks);
     }
+
 
     /// <summary>
     /// Race 2 concurrent requests where a non-200 response is a loser
@@ -103,15 +85,13 @@ public class Library(HttpClient http)
     {
         using var cancel = new CancellationTokenSource();
 
-        var tasks = new Task<HttpResponseMessage>[]
+        var tasks = new List<Task<HttpResponseMessage>>
         {
             http.GetAsync(GetUrl(port, 5), cancel.Token),
             http.GetAsync(GetUrl(port, 5), cancel.Token)
         };
 
-        await Task.WhenAll(tasks);
-
-        return await GetStringResultAsync(tasks);
+        return await RaceStringResultAsync(tasks, cancel);
     }
 
     /// <summary>
@@ -129,7 +109,7 @@ public class Library(HttpClient http)
             http.GetAsync(GetUrl(port, 6), cancel.Token)
         };
 
-        return await GetStringResultAsync(tasks, cancel);
+        return await RaceStringResultAsync(tasks, cancel);
     }
 
     /// <summary>
@@ -137,8 +117,7 @@ public class Library(HttpClient http)
     /// </summary>
     public async Task<string> Scenario7(int port)
     {
-        // Not in the instructions, but needed to timeout here.
-        var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var cancel = new CancellationTokenSource();
 
         var tasks = new List<Task<HttpResponseMessage>>
         {
@@ -147,7 +126,7 @@ public class Library(HttpClient http)
                 .ContinueWith(_ => http.GetAsync(GetUrl(port, 7), cancel.Token)),
         };
 
-        return await GetStringResultAsync(tasks, cancel);
+        return await RaceStringResultAsync(tasks, cancel);
     }
 
     /// <summary>
@@ -165,13 +144,14 @@ public class Library(HttpClient http)
             CreateScenario8Request(port, cancel.Token)
         };
 
-        return await GetStringResultAsync(tasks, cancel);
+        return await RaceStringResultAsync(tasks, cancel);
     }
 
     /// <summary>
     /// Wraps Scenario 8's 3 phases; Open, Use, Close.
     /// </summary>
-    private async Task<HttpResponseMessage> CreateScenario8Request(int port, CancellationToken cancel)
+    private async Task<HttpResponseMessage> CreateScenario8Request(int port, 
+        CancellationToken cancel)
     {
         var baseUrl = GetUrl(port, 8);
         var openUrl = baseUrl + "?open";
@@ -198,26 +178,35 @@ public class Library(HttpClient http)
     /// </summary>
     public async Task<string> Scenario9(int port)
     {
-        string answer = "";
-        
+        var cancel = new CancellationTokenSource();
+
         var tasks = new List<Task>();
+
+        string answer = string.Empty;
 
         for (int i = 0; i < 10; i++)
         {
             tasks.Add(
-                http.GetStringAsync(GetUrl(port, 9))
-                    .ContinueWith(task => answer += task.Result)
+                http.GetStringAsync(GetUrl(port, 9), cancel.Token)
+                    .ContinueWith(task => 
+                    {
+                        answer += task.Result;
+
+                        if (answer.Length == 5)
+                            cancel.Cancel();
+                    })
             );
         }
 
         try { await Task.WhenAll(tasks); }
-        catch (Exception) { /*Ignore*/ }
+        catch ( Exception ) { /*Ignore*/ }
 
         return answer;
     }
 
     /// <summary>
-    /// This scenario validates that a computationally heavy task can be run in parallel to another task, and then cancelled.
+    /// This scenario validates that a computationally heavy task can be run in
+    /// parallel to another task, and then cancelled.
     /// </summary>
     public async Task<string> Scenario10(int port)
     {
@@ -226,40 +215,18 @@ public class Library(HttpClient http)
     }
 
     /// <summary>
-    /// Helper method to return the first non-canceled task string result.
-    /// </summary>
-    private string GetStringResultAsync(IEnumerable<Task<string>> tasks)
-    {
-        var task = tasks.FirstOrDefault(t => t.IsCompletedSuccessfully);
-
-        return task?.Result ?? "";
-    }
-
-    /// <summary>
-    /// Helper method to return the first non-canceled task result.
-    /// </summary>
-    private async Task<string> GetStringResultAsync(IEnumerable<Task<HttpResponseMessage>> tasks)
-    {
-        var task = tasks.FirstOrDefault(t => t.IsCompletedSuccessfully && 
-            t.Result.IsSuccessStatusCode);
-
-        if (task == null)
-            throw new ApplicationException("No successful request");
-
-        var response = await task;
-
-        return await response.Content.ReadAsStringAsync();
-    }
-
-    /// <summary>
     /// Helper method to return the first successful http request result.
     /// Waits for the first successful task and cancels all others. 
     /// </summary>
-    private async Task<string> GetStringResultAsync(
+    private async Task<string> RaceStringResultAsync(
         List<Task<HttpResponseMessage>> tasks, 
-        CancellationTokenSource cancel)
+        CancellationTokenSource? cancel = null)
     {
-        while (!cancel.IsCancellationRequested)
+        // If no cancel token is provided, create one with a reasonable timeout.
+        if (cancel == null)
+            cancel = new CancellationTokenSource(TimeSpan.FromSeconds(100));
+
+        while (!cancel.IsCancellationRequested && tasks.Count > 0)
         {
             var task = await Task.WhenAny(tasks);
 
@@ -269,7 +236,7 @@ public class Library(HttpClient http)
                 return await task.Result.Content.ReadAsStringAsync();
             }
 
-            // Don't wait on this task any more.
+            // Task wasn't a succes, so don't wait on this task any more.
             tasks.Remove(task);
         }
 
