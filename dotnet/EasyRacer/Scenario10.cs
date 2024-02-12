@@ -1,7 +1,9 @@
+using System.Globalization;
+
 namespace EasyRacer;
 
 /// <summary>
-/// Wraps the context for a computationally heavy task run in parallel to 
+/// Wraps the context for a computationally heavy task run in parallel to
 /// another task, and then cancelled.
 /// </summary>
 public class Scenario10(HttpClient http)
@@ -18,28 +20,29 @@ public class Scenario10(HttpClient http)
     public async Task<string> Run(string url)
     {
         using var cancel = new CancellationTokenSource();
-        
+
         var openUrl = $"{url}?{Id}";
 
         // Launch the open task by calling ContinueWith(), and cancel any other
         // tasks when it completes.
-        var openTask = http.GetStringAsync(openUrl).ContinueWith(task => 
+        var openTask = http.GetStringAsync(openUrl).ContinueWith(task =>
         {
             // When this http request completes, cancel the cpu task.
             cancel.Cancel();
         });
 
-        var loadTask = Task.Run(() => SimulateCpu(cancel.Token));
+        _ = Task.Run(() => SimulateCpu(cancel.Token));
 
-        string answer = string.Empty;
-        
-        try 
-        { 
-            answer = await Monitor(url); 
+        var answer = string.Empty;
+
+        try
+        {
+            answer = await Monitor(url);
         }
-        catch (TaskCanceledException) 
-        {}
-        
+        catch (TaskCanceledException)
+        {
+        }
+
         return answer;
     }
 
@@ -47,9 +50,9 @@ public class Scenario10(HttpClient http)
     {
         while (true)
         {
-            await Task.Delay(TimeSpan.FromSeconds(1));
+            await Task.Delay(TimeSpan.FromSeconds(0.1));
 
-            var loadUrl = $"{url}?{Id}={cpuUsage}"; 
+            var loadUrl = $"{url}?{Id}={cpuUsage.ToString(CultureInfo.InvariantCulture)}";
             var response = await http.GetAsync(loadUrl);
 
             var answer = await response.Content.ReadAsStringAsync();
@@ -58,7 +61,8 @@ public class Scenario10(HttpClient http)
             {
                 return answer;
             }
-            else if (!string.IsNullOrWhiteSpace(answer))
+
+            if (!string.IsNullOrWhiteSpace(answer))
             {
                 Console.WriteLine($"Error: {answer}");
             }

@@ -6,7 +6,7 @@ namespace EasyRacer;
 public class Library(HttpClient http)
 {
     /// <summary>
-    /// Race 2 concurrent requests, print the result of the first one to return 
+    /// Race 2 concurrent requests, print the result of the first one to return
     /// and cancels the other one.
     /// </summary>
     public async Task<string> Scenario1(int port)
@@ -16,10 +16,9 @@ public class Library(HttpClient http)
         var req1 = http.GetStringAsync(GetUrl(port, 1), cancel.Token);
         var req2 = http.GetStringAsync(GetUrl(port, 1), cancel.Token);
 
-        var result = await Task.WhenAny(req1, req2).ContinueWith(result => 
+        var result = await Task.WhenAny(req1, req2).ContinueWith(result =>
         {
             cancel.Cancel();
-
             return result.Result;
         });
 
@@ -39,20 +38,20 @@ public class Library(HttpClient http)
 
         return await RaceStringResultAsync(tasks);
     }
-    
+
     /// <summary>
     /// Race 10000 concurrent requests, accept the first that succeeds.
     /// </summary>
     public async Task<string> Scenario3(int port)
     {
-        const int RequestCount = 10000;
+        const int requestCount = 10000;
         var url = GetUrl(port, 3);
 
         using var cancel = new CancellationTokenSource();
 
-        var tasks = new List<Task<HttpResponseMessage>>(RequestCount);
+        var tasks = new List<Task<HttpResponseMessage>>(requestCount);
 
-        for (int i = 0; i < RequestCount; i++)
+        for (var i = 0; i < requestCount; i++)
         {
             tasks.Add(http.GetAsync(url, cancel.Token));
         }
@@ -71,12 +70,11 @@ public class Library(HttpClient http)
         var tasks = new List<Task<HttpResponseMessage>>
         {
             http.GetAsync(GetUrl(port, 4), cancel.Token),
-            http.GetAsync(GetUrl(port, 4))
+            http.GetAsync(GetUrl(port, 4), default(CancellationToken))
         };
 
         return await RaceStringResultAsync(tasks);
     }
-
 
     /// <summary>
     /// Race 2 concurrent requests where a non-200 response is a loser
@@ -130,15 +128,15 @@ public class Library(HttpClient http)
     }
 
     /// <summary>
-    /// Race 2 concurrent requests that "use" a resource which is obtained and 
-    /// released through other requests. The "use" request can return a non-20x 
+    /// Race 2 concurrent requests that "use" a resource which is obtained and
+    /// released through other requests. The "use" request can return a non-20x
     /// request, in which case it is not a winner.
     /// </summary>
     public async Task<string> Scenario8(int port)
     {
-        var cancel = new CancellationTokenSource();
+        using var cancel = new CancellationTokenSource();
 
-        var tasks = new List<Task<HttpResponseMessage>> 
+        var tasks = new List<Task<HttpResponseMessage>>
         {
             CreateScenario8Request(port, cancel.Token),
             CreateScenario8Request(port, cancel.Token)
@@ -150,7 +148,7 @@ public class Library(HttpClient http)
     /// <summary>
     /// Wraps Scenario 8's 3 phases; Open, Use, Close.
     /// </summary>
-    private async Task<HttpResponseMessage> CreateScenario8Request(int port, 
+    private async Task<HttpResponseMessage> CreateScenario8Request(int port,
         CancellationToken cancel)
     {
         var baseUrl = GetUrl(port, 8);
@@ -171,7 +169,7 @@ public class Library(HttpClient http)
         {
             await http.GetAsync(CloseUrl(id));
         }
-    }    
+    }
 
     /// <summary>
     /// Make 10 concurrent requests where 5 return a 200 response with a letter
@@ -188,7 +186,7 @@ public class Library(HttpClient http)
         {
             tasks.Add(
                 http.GetStringAsync(GetUrl(port, 9), cancel.Token)
-                    .ContinueWith(task => 
+                    .ContinueWith(task =>
                     {
                         answer += task.Result;
 
@@ -216,10 +214,10 @@ public class Library(HttpClient http)
 
     /// <summary>
     /// Helper method to return the first successful http request result.
-    /// Waits for the first successful task and cancels all others. 
+    /// Waits for the first successful task and cancels all others.
     /// </summary>
     private async Task<string> RaceStringResultAsync(
-        List<Task<HttpResponseMessage>> tasks, 
+        List<Task<HttpResponseMessage>> tasks,
         CancellationTokenSource? cancel = null)
     {
         // If no cancel token is provided, create one with a reasonable timeout.
@@ -236,15 +234,15 @@ public class Library(HttpClient http)
                 return await task.Result.Content.ReadAsStringAsync();
             }
 
-            // Task wasn't a succes, so don't wait on this task any more.
+            // Task wasn't a success, so don't wait on this task any more.
             tasks.Remove(task);
         }
 
         return string.Empty;
-    }    
+    }
 
     /// <summary>
     /// Helper method to get the url for a scenario.
     /// </summary>
-    private string GetUrl(int port, int scenario) => $"http://localhost:{port}/{scenario}";    
+    private string GetUrl(int port, int scenario) => $"http://127.0.0.1:{port}/{scenario}";
 }

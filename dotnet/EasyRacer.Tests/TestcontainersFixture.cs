@@ -1,43 +1,35 @@
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
+using Xunit;
 
 namespace EasyRacer.Tests;
 
-public class TestcontainersFixture : IDisposable
+public sealed class TestcontainersFixture : IAsyncLifetime, IDisposable
 {
-    private const string ContainerImage = "ghcr.io/jamesward/easyracer";
-    private const int PortBinding = 8080;
+    private const ushort HttpPort = 8080;
 
-    public HttpClient HttpClient { get; private set; }
+    private readonly IContainer container = new ContainerBuilder()
+        .WithImage("ghcr.io/jamesward/easyracer")
+        .WithPortBinding(HttpPort, true)
+        .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(HttpPort)))
+        .Build();
 
-    public int Port { get; private set; }
-    
-    private readonly IContainer container;
+    public HttpClient HttpClient { get; } = new HttpClient();
 
-    public TestcontainersFixture()
+    public ushort Port => container.GetMappedPublicPort(HttpPort);
+
+    public Task InitializeAsync()
     {
-        container = new ContainerBuilder()
-            .WithImage(ContainerImage)
-            // Bind port 8080 of the container to a random port on the host.
-            .WithPortBinding(PortBinding, true)
-            // Wait until the HTTP endpoint of the container is available.
-            .WithWaitStrategy(Wait.ForUnixContainer()
-                .UntilHttpRequestIsSucceeded(r => r.ForPort(PortBinding)))
-            // Build the container configuration.
-            .Build();
+        return container.StartAsync();
+    }
 
-        // Start the container.
-        container.StartAsync().Wait();
-
-        // Get the port of the container.
-        Port = container.GetMappedPublicPort(PortBinding);
-
-        // Create a new instance of HttpClient to send HTTP requests.
-        HttpClient = new HttpClient();
-    }    
+    public Task DisposeAsync()
+    {
+        return container.StopAsync();
+    }
 
     public void Dispose()
     {
-        container.StopAsync().Wait();
-    }        
+        HttpClient.Dispose();
+    }
 }
