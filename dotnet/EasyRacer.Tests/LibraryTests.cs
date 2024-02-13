@@ -15,69 +15,69 @@ public class LibraryTests : IClassFixture<TestcontainersFixture>
     public async Task TestScenario1()
     {
         var lib = new Library(fixture.HttpClient);
-        Assert.Equal("right", await lib.Scenario1(fixture.Port));
+        Assert.Equal("right", await lib.Scenario1(fixture.Host, fixture.Port));
     }
 
     [Fact]
     public async Task TestScenario2()
     {
         var lib = new Library(fixture.HttpClient);
-        Assert.Equal("right", await lib.Scenario2(fixture.Port));
+        Assert.Equal("right", await lib.Scenario2(fixture.Host, fixture.Port));
     }
 
     [Fact]
     public async Task TestScenario3()
     {
         var lib = new Library(fixture.HttpClient);
-        Assert.Equal("right", await lib.Scenario3(fixture.Port));
+        Assert.Equal("right", await lib.Scenario3(fixture.Host, fixture.Port));
     }
 
     [Fact]
     public async Task TestScenario4()
     {
         var lib = new Library(fixture.HttpClient);
-        Assert.Equal("right", await lib.Scenario4(fixture.Port));
+        Assert.Equal("right", await lib.Scenario4(fixture.Host, fixture.Port));
     }
 
     [Fact]
     public async Task TestScenario5()
     {
         var lib = new Library(fixture.HttpClient);
-        Assert.Equal("right", await lib.Scenario5(fixture.Port));
+        Assert.Equal("right", await lib.Scenario5(fixture.Host, fixture.Port));
     }
 
     [Fact]
     public async Task TestScenario6()
     {
         var lib = new Library(fixture.HttpClient);
-        Assert.Equal("right", await lib.Scenario6(fixture.Port));
+        Assert.Equal("right", await lib.Scenario6(fixture.Host, fixture.Port));
     }
 
     [Fact]
     public async Task TestScenario7()
     {
         var lib = new Library(fixture.HttpClient);
-        Assert.Equal("right", await lib.Scenario7(fixture.Port));
+        Assert.Equal("right", await lib.Scenario7(fixture.Host, fixture.Port));
     }
 
     [Fact]
     public async Task TestScenario8()
     {
         var lib = new Library(fixture.HttpClient);
-        Assert.Equal("right", await lib.Scenario8(fixture.Port));
+        Assert.Equal("right", await lib.Scenario8(fixture.Host, fixture.Port));
     }
 
     [Fact]
     public async Task TestScenario9()
     {
         var lib = new Library(fixture.HttpClient);
-        Assert.Equal("right", await lib.Scenario9(fixture.Port));
+        Assert.Equal("right", await lib.Scenario9(fixture.Host, fixture.Port));
     }
 
     [Fact]
     public async Task TestScenario10()
     {
         var lib = new Library(fixture.HttpClient);
-        Assert.Equal("right", await lib.Scenario10(fixture.Port));
+        Assert.Equal("right", await lib.Scenario10(fixture.Host, fixture.Port));
     }
 }

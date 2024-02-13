@@ -16,6 +16,8 @@ public sealed class TestcontainersFixture : IAsyncLifetime, IDisposable
 
     public HttpClient HttpClient { get; } = new HttpClient();
 
+    public string Host => container.Hostname;
+
     public ushort Port => container.GetMappedPublicPort(HttpPort);
 
     public Task InitializeAsync()
@@ -25,7 +27,7 @@ public sealed class TestcontainersFixture : IAsyncLifetime, IDisposable
 
     public Task DisposeAsync()
     {
-        return container.StopAsync();
+        return container.DisposeAsync().AsTask();
     }
 
     public void Dispose()
