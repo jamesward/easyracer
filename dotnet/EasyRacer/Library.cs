@@ -20,13 +20,13 @@ public class Library(HttpClient http)
         var req1 = http.GetStringAsync(url, cancel.Token);
         var req2 = http.GetStringAsync(url, cancel.Token);
 
-        var result = await Task.WhenAny(req1, req2)
+        var task = await Task.WhenAny(req1, req2)
             .ConfigureAwait(false);
 
         await cancel.CancelAsync()
             .ConfigureAwait(false);
 
-        return await result;
+        return task.Result;
     }
 
     /// <summary>
@@ -265,8 +265,7 @@ public class Library(HttpClient http)
                 await cancel.CancelAsync()
                     .ConfigureAwait(false);
 
-                var response = await task
-                    .ConfigureAwait(false);
+                using var response = task.Result;
 
                 return await response.Content.ReadAsStringAsync()
                     .ConfigureAwait(false);

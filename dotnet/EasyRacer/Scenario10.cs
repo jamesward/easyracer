@@ -50,7 +50,7 @@ public class Scenario10(HttpClient http)
     {
         while (true)
         {
-            await Task.Delay(TimeSpan.FromSeconds(0.1));
+            await Task.Delay(TimeSpan.FromSeconds(1));
 
             var loadUrl = $"{url}?{Id}={cpuUsage.ToString(CultureInfo.InvariantCulture)}";
             var response = await http.GetAsync(loadUrl);
