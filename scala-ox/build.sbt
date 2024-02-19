@@ -5,7 +5,7 @@ libraryDependencies ++= Seq(
   "com.softwaremill.sttp.client3" %% "core" % "3.9.2",
   "org.scalatest" %% "scalatest" % "3.2.17" % Test,
   "org.slf4j" % "slf4j-simple" % "2.0.11" % Test,
-  "com.dimafeng" %% "testcontainers-scala-core" % "0.41.2" % Test
+  "com.dimafeng" %% "testcontainers-scala-core" % "0.41.3" % Test
 )
 
 fork := true
