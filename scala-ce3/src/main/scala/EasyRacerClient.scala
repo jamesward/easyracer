@@ -14,7 +14,6 @@ import org.http4s.client.dsl.io._
 
 import org.http4s.ember.client.EmberClientBuilder
 
-
 import cats.effect.kernel.Outcome.Succeeded
 
 object EasyRacerClient extends IOApp.Simple {
