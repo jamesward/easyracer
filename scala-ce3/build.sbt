@@ -1,7 +1,7 @@
-scalaVersion := "2.13.10"
+scalaVersion := "2.13.12"
 
 libraryDependencies ++= List(
-  "org.http4s"          %% "http4s-ember-client"      % "0.23.18",
+  "org.http4s"          %% "http4s-ember-client"      % "0.23.23",
   "com.disneystreaming" %% "weaver-cats"              % "0.8.1"    % Test,
   "com.dimafeng"        %% "testcontainers-scala"     % "0.40.12"  % Test,
   "ch.qos.logback"       % "logback-classic"          % "1.4.7"    % Runtime,
