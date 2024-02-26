@@ -14,8 +14,8 @@ repositories {
 
 dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
-    testImplementation("org.testcontainers:testcontainers:1.19.5")
-    testImplementation("org.testcontainers:junit-jupiter:1.19.5")
+    testImplementation("org.testcontainers:testcontainers:1.19.6")
+    testImplementation("org.testcontainers:junit-jupiter:1.19.6")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.12")
 }
 
