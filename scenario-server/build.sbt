@@ -2,7 +2,7 @@ enablePlugins(GraalVMNativeImagePlugin)
 
 name := "easyracer-server"
 
-scalaVersion := "3.3.1"
+scalaVersion := "3.4.0"
 
 fork := true
 
@@ -14,7 +14,7 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio" % zioVersion,
   "dev.zio" %% "zio-concurrent" % zioVersion,
   "dev.zio" %% "zio-direct" % "1.0.0-RC7",
-  "dev.zio" %% "zio-logging" % "2.1.17",
+  "dev.zio" %% "zio-logging" % "2.2.2",
   "dev.zio" %% "zio-http" % "3.0.0-RC4",
   "dev.zio" %% "zio-test" % zioVersion % Test,
   "dev.zio" %% "zio-test-sbt" % zioVersion % Test

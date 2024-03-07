@@ -302,7 +302,7 @@ object EasyRacerServer extends ZIOAppDefault:
                           ZIO.log(s"Mean load while connected to blocker = $meanLoad, Current load = $load").run
                           if load > 0.3 then
                             Response(Status.Found, body = Body.fromString(s"Load was still too high: $load"))
-                          else if meanLoad < 0.9 then
+                          else if meanLoad < 0.8 then
                             Response(Status.BadRequest, body = Body.fromString(s"A CPU was not near fully loaded - mean load = $meanLoad"))
                           else
                             Response.text("right")
@@ -337,8 +337,8 @@ object EasyRacerServer extends ZIOAppDefault:
     ZLayer.fromZIO:
       defer:
         if isDebug.run then
-          val loggingConfig = ConsoleLoggerConfig(LogFormat.annotations |-| LogFormat.line, LogFilter.acceptAll)
-          Runtime.removeDefaultLoggers >>> consoleLogger(loggingConfig)
+          val consoleLoggerConfig = ConsoleLoggerConfig(LogFormat.annotations |-| LogFormat.line, LogFilter.LogLevelByNameConfig.default)
+          Runtime.removeDefaultLoggers >>> consoleLogger(consoleLoggerConfig)
         else
           Runtime.removeDefaultLoggers
     .flatten

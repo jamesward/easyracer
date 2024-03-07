@@ -113,7 +113,7 @@ object EasyRacerClient extends ZIOAppDefault:
       val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
       Client.request(Request.get(scenarioUrl(10) + s"?$id=$load")).flatMap: resp =>
         if resp.status.isRedirection then
-          ZIO.sleep(1.second) *> reporter(id)
+          reporter(id).delay(1.second)
         else if resp.status.isSuccess then
           resp.body.asString
         else

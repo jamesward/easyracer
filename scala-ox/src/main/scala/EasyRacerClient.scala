@@ -19,40 +19,41 @@ object EasyRacerClient:
   def scenario1(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(1)
     def req = scenarioRequest(url).send(backend).body
-    raceSuccess(req)(req)
+    race(req, req)
 
   def scenario2(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(2)
     def req = scenarioRequest(url).send(backend)
-    raceSuccess(req)(req).body
+    race(req, req).body
 
   def scenario3(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(3)
     val reqs = Seq.fill(10000): () =>
       scenarioRequest(url).send(backend)
-    raceSuccess(reqs).body
+    race(reqs).body
 
   def scenario4(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(4)
     def req = scenarioRequest(url).send(backend).body
-    raceSuccess(timeout(1.second)(req))(req)
+    race(timeout(1.second)(req), req)
 
   def scenario5(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(5)
     def req = basicRequest.get(url).response(asString.getRight).send(backend).body
-    raceSuccess(req)(req)
+    race(req, req)
 
   def scenario6(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(6)
     def req = basicRequest.get(url).response(asString.getRight).send(backend).body
-    raceSuccess(Seq(() => req, () => req, () => req))
+    race(req, req, req)
 
   def scenario7(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(7)
     def req = scenarioRequest(url).send(backend).body
-    raceSuccess(req):
+    def delayedReq =
       Thread.sleep(4000)
       req
+    race(req, delayedReq)
 
   def scenario8(scenarioUrl: Int => Uri): String =
     def req(url: Uri) = basicRequest.get(url).response(asString.getRight).send(backend).body
@@ -66,7 +67,7 @@ object EasyRacerClient:
       try use(id)
       finally close(id)
 
-    raceSuccess(reqRes)(reqRes)
+    race(reqRes, reqRes)
 
   def scenario9(scenarioUrl: Int => Uri): String =
     def req =
@@ -95,7 +96,7 @@ object EasyRacerClient:
 
     def blocker =
       val url = scenarioUrl(10).addQuerySegment(QuerySegment.Plain(id))
-      raceSuccess(req(url))(blocking())
+      race(req(url), blocking())
 
     @tailrec
     def reporter: String =
@@ -110,13 +111,13 @@ object EasyRacerClient:
       else
         throw Error(resp.body)
 
-    val (_, result) = par(blocker)(reporter)
+    val (_, result) = par(blocker, reporter)
     result
 
 @main def run(): Unit =
   import EasyRacerClient.*
   def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
-  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9)
+  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
   //def scenarios: Seq[(Int => Uri) => String] = Seq(scenario10)
   scenarios.foreach: s =>
     println(s(scenarioUrl))
