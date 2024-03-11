@@ -18,7 +18,7 @@ application {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("io.ktor:ktor-client-core:2.3.9")
-    implementation("io.ktor:ktor-client-java:2.3.8")
+    implementation("io.ktor:ktor-client-java:2.3.9")
 
     testImplementation("io.kotest:kotest-runner-junit5:5.8.1")
     testImplementation("io.kotest:kotest-assertions-core:5.8.1")
