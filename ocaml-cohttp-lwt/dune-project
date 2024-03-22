@@ -1,0 +1,26 @@
+(lang dune 3.12)
+
+(name ocaml_cohttp_lwt)
+
+(generate_opam_files true)
+
+(source
+ (github jamesward/easyracer))
+
+(authors "Puneeth Chaganti")
+
+(maintainers "James Ward")
+
+(documentation https://url/to/documentation)
+
+(package
+ (name ocaml_cohttp_lwt)
+ (synopsis "Cohttp Lwt based code for easyracer")
+ (depends
+  ocaml
+  dune
+  conf-libev
+  cohttp-lwt
+  cohttp-lwt-unix
+  digestif
+  (alcotest :with-test)))

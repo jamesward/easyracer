@@ -45,3 +45,6 @@ bin/
 
 # general
 *.class
+
+# OCaml
+_build/
