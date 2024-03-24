@@ -1,0 +1,3 @@
+(library
+ (name ocaml_cohttp_lwt)
+ (libraries cohttp cohttp-lwt-unix lwt digestif))

@@ -1,0 +1,4 @@
+(executable
+ (public_name ocaml_cohttp_lwt)
+ (name main)
+ (libraries ocaml_cohttp_lwt))
