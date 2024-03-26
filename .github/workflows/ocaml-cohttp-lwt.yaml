@@ -31,7 +31,6 @@ jobs:
       - name: Run tests
         working-directory: ./ocaml-cohttp-lwt
         run: |
-          ulimit -n 16000
           opam install . --deps-only --with-test
-          opam exec -- dune build
-          opam exec -- dune runtest
+          ulimit -n 16000
+          opam exec -- dune runtest --force
