@@ -99,6 +99,7 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 | [Rust + Tokio](rust-tokio)                               | 10/10             | [James Ward](https://github.com/jamesward) and Rust Developer Retreat Participants      |                             |
 | [C#](dotnet)                                             | 10/10             | [Jason De Lorme](https://github.com/delormej)                                           | Scenario 10: CPU Not Pegged |
 | [OCaml + Lwt + Cohttp](ocaml-cohttp-lwt)                 | 10/10             | [Puneeth Chaganti](https://github.com/punchagan)                                        |                             |
+| [OCaml + Eio + Cohttp](ocaml-cohttp-eio)                 | 10/10             | [Puneeth Chaganti](https://github.com/punchagan)                                        |                             |
 | [Python + AIOHTTP + TaskGroup](python-aiohttp-taskgroup) | 9/10              | [James Ward](https://github.com/jamesward) [Bruce Eckel](https://github.com/BruceEckel) | Needs Scenario 10 Impl      |
 | [Go](go-stdlib)                                          | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
 | [Swift + Grand Central Dispatch](swift-dispatch)         | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
@@ -106,7 +107,7 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 | [Swift + Combine](swift-combine)                         | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
 | [Elm](elm-worker)                                        | 9/10              | [Jack Leow](https://github.com/jackgene)                                                | Needs Scenario 10 Impl      |
 | [JavaScript](javascript-stdlib)                          | 9/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenario 10 Impl      |
-| [Scala + Cats Effects 3](scala-ce3)                      | 9/10              | [Paul Snively](https://github.com/paul-snively)                                           | Needs Scenario 10 Impl      |
+| [Scala + Cats Effects 3](scala-ce3)                      | 9/10              | [Paul Snively](https://github.com/paul-snively)                                         | Needs Scenario 10 Impl      |
 | [Python + HTTPX + Trio](python-httpx-trio)               | 8/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenarios 3, 10       |
 | [Python + AIOHTTP](python-aiohttp)                       | 6/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenarios 3, 4, 8, 10 |
 | [Python + HTTPX + asyncio](python-httpx-asyncio)         | 2/10              | [James Ward](https://github.com/jamesward)                                              | Needs Scenarios 3-10        |

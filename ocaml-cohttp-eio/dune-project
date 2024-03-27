@@ -1,0 +1,26 @@
+(lang dune 3.12)
+
+(name ocaml_cohttp_eio)
+
+(generate_opam_files true)
+
+(source
+ (github jamesward/easyracer))
+
+(authors "Puneeth Chaganti")
+
+(maintainers "James Ward")
+
+(documentation https://url/to/documentation)
+
+(package
+ (name ocaml_cohttp_eio)
+ (synopsis "Cohttp Eio based code for easyracer")
+ (depends
+  ocaml
+  dune
+  (eio  (>= 1.0))
+  eio_main
+  cohttp-eio
+  digestif
+  (alcotest :with-test)))
