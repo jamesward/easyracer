@@ -1,4 +1,4 @@
-scalaVersion := "3.4.0"
+scalaVersion := "3.4.1"
 
 fork := true
 
