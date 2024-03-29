@@ -99,12 +99,6 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 | [Java + Loom](java-loom)                                 | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
 | [Rust + Tokio](rust-tokio)                               | 10/10             | [James Ward](https://github.com/jamesward) and Rust Developer Retreat Participants      |                             |
 | [C#](dotnet)                                             | 10/10             | [Jason De Lorme](https://github.com/delormej)                                           | Scenario 10: CPU Not Pegged |
-| [Kotlin + Coroutines](kotlin-coroutines)                 | 10/10             | [Jack Leow](https://github.com/jackgene)                                                |                             |
-| [Kotlin + Splitties](kotlin-splitties)                   | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
-| [Kotlin + Arrow](kotlin-arrow)                           | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
-| [Java + Loom](java-loom)                                 | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
-| [Rust + Tokio](rust-tokio)                               | 10/10             | [James Ward](https://github.com/jamesward) and Rust Developer Retreat Participants      |                             |
-| [C#](dotnet)                                             | 10/10             | [Jason De Lorme](https://github.com/delormej)                                           | Scenario 10: CPU Not Pegged |
 | [OCaml + Lwt + Cohttp](ocaml-cohttp-lwt)                 | 10/10             | [Puneeth Chaganti](https://github.com/punchagan)                                        |                             |
 | [OCaml + Eio + Cohttp](ocaml-cohttp-eio)                 | 10/10             | [Puneeth Chaganti](https://github.com/punchagan)                                        |                             |
 | [Python + AIOHTTP + TaskGroup](python-aiohttp-taskgroup) | 9/10              | [James Ward](https://github.com/jamesward) [Bruce Eckel](https://github.com/BruceEckel) | Needs Scenario 10 Impl      |
