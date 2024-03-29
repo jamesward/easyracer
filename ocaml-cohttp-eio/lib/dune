@@ -1,0 +1,3 @@
+(library
+ (name ocaml_cohttp_eio)
+ (libraries cohttp-eio eio eio_main digestif))

@@ -5,12 +5,12 @@ on:
     types: [completed]
   push:
     paths:
-      - ocaml-cohttp-lwt/**
-      - .github/workflows/ocaml-cohttp-lwt.yaml
+      - ocaml-cohttp-eio/**
+      - .github/workflows/ocaml-cohttp-eio.yaml
   pull_request:
     paths:
-      - ocaml-cohttp-lwt/**
-      - .github/workflows/ocaml-cohttp-lwt.yaml
+      - ocaml-cohttp-eio/**
+      - .github/workflows/ocaml-cohttp-eio.yaml
 
 jobs:
   test:
@@ -25,11 +25,8 @@ jobs:
           ocaml-compiler: 5.1
           dune-cache: true
 
-      - name: Install libev
-        run: sudo apt install libev4 libev-dev
-
       - name: Run tests
-        working-directory: ./ocaml-cohttp-lwt
+        working-directory: ./ocaml-cohttp-eio
         run: |
           opam install . --deps-only --with-test
           ulimit -n 16000
