@@ -1,16 +1,15 @@
 import com.sun.management.OperatingSystemMXBean
-
-import scala.concurrent.duration.*
-import sttp.client3.*
-import sttp.model.Uri
-import sttp.model.Uri.QuerySegment
 import kyo.*
 import kyo.Fibers.Effects
+import sttp.client3.*
+import sttp.model.Uri.QuerySegment
+import sttp.model.{ResponseMetadata, Uri}
 
+import java.io.Closeable
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
-import scala.annotation.tailrec
-import scala.util.{Random, Success, Try}
+import java.time.Instant
+import scala.concurrent.duration.*
 
 
 object EasyRacerClient extends KyoApp:
@@ -18,113 +17,131 @@ object EasyRacerClient extends KyoApp:
   def scenario1(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(1)
     val req = Requests[String](_.get(url))
-    Fibers.raceSuccesses(req, req)
+    Fibers.race(req, req)
 
   def scenario2(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(2)
-    val req: String < Fibers = Requests[String](_.get(url))
+    val req = Requests[String](_.get(url))
     Fibers.raceSuccesses(req, req)
 
-  /*
-
-
-
-  def scenario3(scenarioUrl: Int => Uri): String =
+  def scenario3(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(3)
-    val reqs = Seq.fill(10000): () =>
-      scenarioRequest(url).send(backend)
-    race(reqs).body
+    val reqs = Seq.fill(10000):
+      Requests[String](_.get(url))
+    Fibers.race(reqs)
 
-  def scenario4(scenarioUrl: Int => Uri): String =
+  def scenario4(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(4)
-    def req = scenarioRequest(url).send(backend).body
-    race(timeout(1.second)(req), req)
+    val req = Requests[String](_.get(url))
+    Fibers.raceSuccesses(Fibers.timeout(1.second)(req), req)
 
-  def scenario5(scenarioUrl: Int => Uri): String =
+  def scenario5(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(5)
-    def req = basicRequest.get(url).response(asString.getRight).send(backend).body
-    race(req, req)
+    val req = Requests[String](_.get(url))
+    Fibers.raceSuccesses(req, req)
 
-  def scenario6(scenarioUrl: Int => Uri): String =
+  def scenario6(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(6)
-    def req = basicRequest.get(url).response(asString.getRight).send(backend).body
-    race(req, req, req)
+    val req = Requests[String](_.get(url))
+    Fibers.raceSuccesses(Seq(req, req, req))
 
-  def scenario7(scenarioUrl: Int => Uri): String =
+  def scenario7(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(7)
-    def req = scenarioRequest(url).send(backend).body
-    def delayedReq =
-      Thread.sleep(4000)
-      req
-    race(req, delayedReq)
+    val req = Requests[String](_.get(url))
+    val delayedReq = Fibers.delay(4.seconds)(req)
+    Fibers.race(req, delayedReq)
 
-  def scenario8(scenarioUrl: Int => Uri): String =
-    def req(url: Uri) = basicRequest.get(url).response(asString.getRight).send(backend).body
+  def scenario8(scenarioUrl: Int => Uri): String < Fibers =
+    def req(uri: Uri) = Requests[String](_.get(uri))
 
-    def open = req(uri"${scenarioUrl(8)}?open")
-    def use(id: String) = req(uri"${scenarioUrl(8)}?use=$id")
-    def close(id: String) = req(uri"${scenarioUrl(8)}?close=$id")
+    case class MyResource(id: String) extends Closeable:
+      override def close(): Unit =
+        IOs.run(Fibers.run(req(uri"${scenarioUrl(8)}?close=$id")))
 
-    def reqRes =
-      val id = open
-      try use(id)
-      finally close(id)
+    val myResource = defer:
+      val id = await:
+        req(uri"${scenarioUrl(8)}?open")
+      await:
+        Resources.acquire(MyResource(id))
 
-    race(reqRes, reqRes)
+    val reqRes = Resources.run:
+      defer:
+        val resource = await(myResource)
+        await:
+          req(uri"${scenarioUrl(8)}?use=${resource.id}")
 
-  def scenario9(scenarioUrl: Int => Uri): String =
-    def req =
-      val body = basicRequest.get(scenarioUrl(9)).response(asString.getRight).send(backend).body
-      val now = System.nanoTime
-      now -> body
+    Fibers.raceSuccesses(reqRes, reqRes)
 
-    scoped:
-      val forks = Seq.fill(10)(fork(req))
-      forks.map(_.joinEither()).collect:
-        case Right(v) => v
-      .sortBy(_._1).map(_._2).mkString
+  def scenario9(scenarioUrl: Int => Uri): String < Fibers =
+    val url = scenarioUrl(9)
+    val req = IOs.attempt:
+      defer:
+        val body = await(Requests[String](_.get(url)))
+        val now = await(Clocks.now)
+        now -> body
 
-  def scenario10(scenarioUrl: Int => Uri): String =
-    val id = Random.nextString(8)
+    val reqs = Seq.fill(10)(req)
 
-    def req(url: Uri) =
-      basicRequest.get(url).response(asStringAlways).send(backend)
+    defer:
+      val successes = await(Fibers.parallel(reqs)).collect:
+        case scala.util.Success(value) => value
+
+      successes.sortBy(_._1).map(_._2).mkString
+
+  def scenario10(scenarioUrl: Int => Uri): String < Fibers =
+    // always puts the body into the response, even if it is empty, and includes the responseMetadata
+    def req(uriModifier: Uri => Uri): (String, ResponseMetadata) < Fibers =
+      val uri = uriModifier(scenarioUrl(10))
+      Requests[(String, ResponseMetadata)]:
+        _.get(uri).response:
+          asString.mapWithMetadata: (stringEither, responseMetadata) =>
+            Right(stringEither.fold(identity, identity) -> responseMetadata)
 
     val messageDigest = MessageDigest.getInstance("SHA-512")
 
-    def blocking(): Unit =
-      var result = Random.nextBytes(512)
-      while (!Thread.interrupted())
-        result = messageDigest.digest(result)
+    // recursive digesting
+    def blocking(bytesEffect: Array[Byte] < Fibers): String < (Fibers & IOs) =
+      IOs {
+        bytesEffect.map { bytes =>
+          blocking(messageDigest.digest(bytes))
+        }
+      }
 
-    def blocker =
-      val url = scenarioUrl(10).addQuerySegment(QuerySegment.Plain(id))
-      race(req(url), blocking())
+    // runs blocking code while the request is open
+    def blocker(id: String): String < Fibers =
+      Fibers.race(
+        req(_.addQuerySegment(QuerySegment.Plain(id))).map(_._1),
+        blocking(Randoms.nextBytes(512)),
+      )
 
-    @tailrec
-    def reporter: String =
+    // sends CPU usage every second until the server says to stop
+    def reporter(id: String): String < Fibers =
       val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
       val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
-      val resp = req(scenarioUrl(10).addQuerySegment(QuerySegment.KeyValue(id, load.toString)))
-      if resp.code.isRedirect then
-        Thread.sleep(1000)
-        reporter
-      else if resp.code.isSuccess then
-        resp.body
-      else
-        throw Error(resp.body)
 
-    val (_, result) = par(blocker, reporter)
-    result
+      defer:
+        val (maybeResponseBody, responseMetadata) =
+          await(req(_.addQuerySegment(QuerySegment.KeyValue(id, load.toString))))
 
-   */
+        if responseMetadata.isRedirect then
+          await(Fibers.delay(1.seconds)(reporter(id)))
+        else if responseMetadata.isSuccess then
+          maybeResponseBody
+        else
+          await(Fibers.get(Fibers.fail(Error(maybeResponseBody))))
+
+    defer:
+      val id = await(Randoms.nextString(8))
+      val (_, result) = await(Fibers.parallel(blocker(id), reporter(id)))
+      result
+
+
+  def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
+
+  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
+  //def scenarios: Seq[(Int => Uri) => String < Fibers] = Seq(scenario10)
 
   run:
-    def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
-
-    def scenarios = Seq(scenario1, scenario2)//, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
-    //def scenarios: Seq[(Int => Uri) => String < Fibers] = Seq(scenario1)
-
     val scenariosReady: Seq[String < Fibers] = scenarios.map(s => s(scenarioUrl))
 
     defer:

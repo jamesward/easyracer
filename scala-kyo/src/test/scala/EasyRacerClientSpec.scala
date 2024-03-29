@@ -1,26 +1,20 @@
 import com.dimafeng.testcontainers.GenericContainer
+import kyo.*
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.images.PullPolicy
 import sttp.client3.UriContext
 
-class EasyRacerClientSpec extends AnyFlatSpec with Matchers with BeforeAndAfterAll:
+import scala.compiletime.uninitialized
+import scala.concurrent.{ExecutionContext, Future}
 
-  val scenarios = List(
-    1 -> EasyRacerClient.scenario1,
-    2 -> EasyRacerClient.scenario2,
-    3 -> EasyRacerClient.scenario3,
-    4 -> EasyRacerClient.scenario4,
-    5 -> EasyRacerClient.scenario5,
-    6 -> EasyRacerClient.scenario6,
-    7 -> EasyRacerClient.scenario7,
-    8 -> EasyRacerClient.scenario8,
-    9 -> EasyRacerClient.scenario9
-  )
+class EasyRacerClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll:
 
-  var container: GenericContainer = _
+  implicit override def executionContext: ExecutionContext = ExecutionContext.global
+
+  var container: GenericContainer = uninitialized
   var port: Int = 0
 
   override protected def beforeAll(): Unit =
@@ -40,8 +34,8 @@ class EasyRacerClientSpec extends AnyFlatSpec with Matchers with BeforeAndAfterA
 
   def scenarioUrl(scenario: Int) = uri"http://localhost:$port/$scenario"
 
-  scenarios.foreach { (number, fn) =>
-    s"scenario $number" should "work" in {
-      fn(scenarioUrl) shouldBe "right"
+  EasyRacerClient.scenarios.zipWithIndex.foreach { (fn, number) =>
+    s"scenario ${number + 1}" should "work" in {
+      IOs.run(KyoApp.runFiber(fn(scenarioUrl)).toFuture).map(_.get).map(_ shouldBe "right")
     }
   }
