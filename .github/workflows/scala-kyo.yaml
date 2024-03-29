@@ -1,0 +1,28 @@
+on:
+  workflow_run:
+    workflows: [scenario-server]
+    types: [completed]
+  push:
+    paths:
+      - scala-kyo/**
+      - .github/workflows/scala-kyo.yaml
+  pull_request:
+    paths:
+      - scala-kyo/**
+      - .github/workflows/scala-kyo.yaml
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'sbt'
+
+      - run: ./sbt test
+        working-directory: ./scala-kyo

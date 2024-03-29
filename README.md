@@ -92,6 +92,13 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 |----------------------------------------------------------|-------------------|-----------------------------------------------------------------------------------------|-----------------------------|
 | [Scala 3 + ZIO](scala-zio)                               | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
 | [Scala 3 + Ox](scala-ox)                                 | 10/10             | [Adam Warski](https://github.com/adamw)                                                 |                             |
+| [Scala 3 + Kyo](scala-kyo)                               | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
+| [Kotlin + Coroutines](kotlin-coroutines)                 | 10/10             | [Jack Leow](https://github.com/jackgene)                                                |                             |
+| [Kotlin + Splitties](kotlin-splitties)                   | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
+| [Kotlin + Arrow](kotlin-arrow)                           | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
+| [Java + Loom](java-loom)                                 | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
+| [Rust + Tokio](rust-tokio)                               | 10/10             | [James Ward](https://github.com/jamesward) and Rust Developer Retreat Participants      |                             |
+| [C#](dotnet)                                             | 10/10             | [Jason De Lorme](https://github.com/delormej)                                           | Scenario 10: CPU Not Pegged |
 | [Kotlin + Coroutines](kotlin-coroutines)                 | 10/10             | [Jack Leow](https://github.com/jackgene)                                                |                             |
 | [Kotlin + Splitties](kotlin-splitties)                   | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
 | [Kotlin + Arrow](kotlin-arrow)                           | 10/10             | [James Ward](https://github.com/jamesward)                                              |                             |
