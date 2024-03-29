@@ -142,7 +142,4 @@ object EasyRacerClient extends KyoApp:
   //def scenarios: Seq[(Int => Uri) => String < Fibers] = Seq(scenario10)
 
   run:
-    val scenariosReady: Seq[String < Fibers] = scenarios.map(s => s(scenarioUrl))
-
-    defer:
-      await(Fibers.parallel(scenariosReady))
+    Seqs.collect(scenarios.map(s => s(scenarioUrl)))

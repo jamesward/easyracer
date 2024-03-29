@@ -9,6 +9,6 @@ docker build -f Dockerfile-amd64 .
 ```
 
 ```
-nix-shell -p graalvm17-ce
+nix-shell -p graalvm-ce
 NO_STATIC=true ./sbt GraalVMNativeImage/packageBin
 ```
