@@ -17,7 +17,8 @@ class EasyRacerClientSpec extends AnyFlatSpec with Matchers with BeforeAndAfterA
     6 -> EasyRacerClient.scenario6,
     7 -> EasyRacerClient.scenario7,
     8 -> EasyRacerClient.scenario8,
-    9 -> EasyRacerClient.scenario9
+    9 -> EasyRacerClient.scenario9,
+    10 -> EasyRacerClient.scenario10,
   )
 
   var container: GenericContainer = _
