@@ -30,4 +30,6 @@ jobs:
         npm install --no-fund
         npm install -g --save-dev --no-fund jest
         npm test
-      working-directory: ./elm-worker
+    defaults:
+      run:
+        working-directory: elm-worker

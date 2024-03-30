@@ -1,36 +1,36 @@
----
-on:
-  workflow_run:
-    workflows: [scenario-server]
-    types: [completed]
+# Generated file. DO NOT EDIT.
+'on':
   push:
     paths:
-      - ocaml-cohttp-lwt/**
-      - .github/workflows/ocaml-cohttp-lwt.yaml
+    - ocaml-cohttp-lwt/**
+    - .github/workflows/ocaml-cohttp-lwt.yaml
   pull_request:
     paths:
-      - ocaml-cohttp-lwt/**
-      - .github/workflows/ocaml-cohttp-lwt.yaml
-
+    - ocaml-cohttp-lwt/**
+    - .github/workflows/ocaml-cohttp-lwt.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
 jobs:
   test:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set-up OCaml 5.1
-        uses: ocaml/setup-ocaml@v2
-        with:
-          ocaml-compiler: 5.1
-          dune-cache: true
-
-      - name: Install libev
-        run: sudo apt install libev4 libev-dev
-
-      - name: Run tests
-        working-directory: ./ocaml-cohttp-lwt
-        run: |
-          opam install . --deps-only --with-test
-          ulimit -n 16000
-          opam exec -- dune runtest --force
+    - uses: actions/checkout@v4
+    - name: Set-up OCaml 5.1
+      uses: ocaml/setup-ocaml@v2
+      with:
+        ocaml-compiler: '5.1'
+        dune-cache: 'true'
+    - name: Install libev
+      run: sudo apt install libev4 libev-dev
+    - name: Run tests
+      run: |-
+        opam install . --deps-only --with-test
+        ulimit -n 16000
+        opam exec -- dune runtest --force
+    defaults:
+      run:
+        working-directory: ocaml-cohttp-lwt

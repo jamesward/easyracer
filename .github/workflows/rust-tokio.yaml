@@ -1,22 +1,25 @@
-on:
-  workflow_run:
-    workflows: [scenario-server]
-    types: [completed]
+# Generated file. DO NOT EDIT.
+'on':
   push:
     paths:
-      - rust-tokio/**
-      - .github/workflows/rust-tokio.yaml
+    - rust-tokio/**
+    - .github/workflows/rust-tokio.yaml
   pull_request:
     paths:
-      - rust-tokio/**
-      - .github/workflows/rust-tokio.yaml
-
+    - rust-tokio/**
+    - .github/workflows/rust-tokio.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
 jobs:
   test:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v4
-
-      - run: cargo test
-        working-directory: ./rust-tokio
+    - uses: actions/checkout@v4
+    - run: cargo test
+    defaults:
+      run:
+        working-directory: rust-tokio

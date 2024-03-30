@@ -1,27 +1,28 @@
-on:
-  workflow_run:
-    workflows: [scenario-server]
-    types: [completed]
+# Generated file. DO NOT EDIT.
+'on':
   push:
     paths:
-      - dotnet/**
-      - .github/workflows/dotnet.yaml
+    - dotnet/**
+    - .github/workflows/dotnet.yaml
   pull_request:
     paths:
-      - dotnet/**
-      - .github/workflows/dotnet.yaml
-
+    - dotnet/**
+    - .github/workflows/dotnet.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
 jobs:
   test:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '3.1.x'
-
-      - working-directory: ./dotnet/EasyRacer.Tests
-        run: |
-          dotnet test
+    - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 3.1.x
+    - run: dotnet test
+    defaults:
+      run:
+        working-directory: dotnet

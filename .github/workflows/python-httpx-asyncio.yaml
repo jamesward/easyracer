@@ -1,33 +1,33 @@
-on:
-  workflow_run:
-    workflows: [scenario-server]
-    types: [completed]
+# Generated file. DO NOT EDIT.
+'on':
   push:
     paths:
-      - python-httpx-asyncio/**
-      - .github/workflows/python-httpx-asyncio.yaml
+    - python-httpx-asyncio/**
+    - .github/workflows/python-httpx-asyncio.yaml
   pull_request:
     paths:
-      - python-httpx-asyncio/**
-      - .github/workflows/python-httpx-asyncio.yaml
-
+    - python-httpx-asyncio/**
+    - .github/workflows/python-httpx-asyncio.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
 jobs:
   test:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version-file: ./python-httpx-asyncio/.python-version
-          cache: 'pip'
-          cache-dependency-path: ./python-httpx-asyncio/requirements.txt
-
-      - working-directory: ./python-httpx-asyncio
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - working-directory: ./python-httpx-asyncio
-        run: pytest
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version-file: ./python-httpx-asyncio/.python-version
+        cache: pip
+        cache-dependency-path: ./python-httpx-asyncio/requirements.txt
+    - run: |-
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - run: pytest
+    defaults:
+      run:
+        working-directory: python-httpx-asyncio

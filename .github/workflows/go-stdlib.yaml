@@ -1,26 +1,28 @@
-on:
-  workflow_run:
-    workflows: [scenario-server]
-    types: [completed]
+# Generated file. DO NOT EDIT.
+'on':
   push:
     paths:
-      - go-stdlib/**
-      - .github/workflows/go-stdlib.yaml
+    - go-stdlib/**
+    - .github/workflows/go-stdlib.yaml
   pull_request:
     paths:
-      - go-stdlib/**
-      - .github/workflows/go-stdlib.yaml
-
+    - go-stdlib/**
+    - .github/workflows/go-stdlib.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
 jobs:
   test:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: './go-stdlib/go.mod'
-
-      - run: go test ./...
-        working-directory: ./go-stdlib
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: ./go-stdlib/go.mod
+    - run: go test ./...
+    defaults:
+      run:
+        working-directory: go-stdlib

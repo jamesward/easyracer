@@ -1,25 +1,27 @@
-on:
-  workflow_run:
-    workflows: [scenario-server]
-    types: [completed]
+# Generated file. DO NOT EDIT.
+'on':
   push:
     paths:
-      - swift-combine/**
-      - .github/workflows/swift-combine.yaml
+    - swift-combine/**
+    - .github/workflows/swift-combine.yaml
   pull_request:
     paths:
-      - swift-combine/**
-      - .github/workflows/swift-combine.yaml
-
+    - swift-combine/**
+    - .github/workflows/swift-combine.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
 jobs:
   test:
     runs-on: macos-latest
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Docker on macOS
-        uses: douglascamata/setup-docker-macos-action@v1-alpha
-
-      - run: swift test -c release
-        working-directory: ./swift-combine
+    - uses: actions/checkout@v4
+    - name: Setup Docker on macOS
+      uses: douglascamata/setup-docker-macos-action@v1-alpha
+    - run: swift test -c release
+    defaults:
+      run:
+        working-directory: swift-combine
