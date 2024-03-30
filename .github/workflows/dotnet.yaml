@@ -23,6 +23,7 @@ jobs:
       with:
         dotnet-version: 3.1.x
     - run: dotnet test
+      working-directory: ./dotnet/EasyRacer.Tests
     defaults:
       run:
         working-directory: dotnet
