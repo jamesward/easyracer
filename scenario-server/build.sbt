@@ -38,6 +38,7 @@ graalVMNativeImageOptions ++= Seq(
   "--initialize-at-run-time=io.netty.channel.kqueue.KQueueEventLoop",
   "--initialize-at-run-time=io.netty.channel.kqueue.KQueueEventArray",
   "--initialize-at-run-time=io.netty.channel.kqueue.Native",
+  "--initialize-at-run-time=io.netty.incubator.channel.uring.IOUringEventLoopGroup",
   "--initialize-at-run-time=io.netty.channel.unix.Limits",
   "--initialize-at-run-time=io.netty.channel.unix.Errors",
   "--initialize-at-run-time=io.netty.channel.unix.IovArray",
