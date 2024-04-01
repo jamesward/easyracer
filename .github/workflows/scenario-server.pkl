@@ -1,0 +1,45 @@
+// pkl eval --format yaml -o scenario-server.yaml scenario-server.pkl
+
+amends "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.13#/GitHubAction.pkl"
+import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.13#/GitHubAction.pkl"
+//amends "../../../pklgha/src/GitHubAction.pkl"
+//import "../../../pklgha/src/GitHubAction.pkl"
+
+on {
+  local thesePaths = new Listing<String> {
+    "scenario-server/**"
+    ".github/workflows/scenario-server.yaml"
+  }
+
+  push {
+    paths = thesePaths
+  }
+  pull_request {
+    paths = thesePaths
+  }
+}
+
+jobs {
+  ["test"] = GitHubAction.Scala.sbtTestJob(null, null, null)
+
+  ["build-and-push-amd64"] = (GitHubAction.Docker.buildPushJob("amd64", "scenario-server", "Dockerfile-amd64")) {
+    needs = "test"
+  }
+
+  ["build-and-push-aarch64"] = (GitHubAction.Docker.buildPushJob("aarch64", "scenario-server", "Dockerfile-aarch64")) {
+    needs = "test"
+  }
+
+  local froms = new Listing {
+    "ghcr.io/${{ github.repository }}:latest-amd64"
+    "ghcr.io/${{ github.repository }}:latest-aarch64"
+  }
+  ["create-manifests"] = (GitHubAction.Docker.create("ghcr.io/${{ github.repository }}:latest", froms)) {
+    `runs-on` = "ubuntu-latest"
+    `if` = "${{ github.actor == github.repository_owner && github.ref == 'refs/heads/main'}}"
+    needs = new Listing {
+      "build-and-push-amd64"
+      "build-and-push-aarch64"
+    }
+  }
+}
