@@ -59,15 +59,14 @@ clients = new Mapping<String, Run> {
   }
 
   ["ocaml-cohttp-lwt"] = new {
-    // todo: find a better way to prepend
-    local prepended = (GitHubAction.OCaml.testSteps(null, "5.1").toList().reverse().toListing()) {
+    steps = new {
       new GitHubAction.Step {
         name = "Install libev"
         run = "sudo apt install libev4 libev-dev"
         `working-directory` = "./"
       }
-    }.toList().reverse().toListing()
-    steps = prepended
+      ...GitHubAction.OCaml.testSteps(null, "5.1")
+    }
   }
 
   ["python-aiohttp"] = new {
