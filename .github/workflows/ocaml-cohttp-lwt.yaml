@@ -20,6 +20,7 @@ jobs:
     steps:
     - name: Install libev
       run: sudo apt install libev4 libev-dev
+      working-directory: ./
     - uses: actions/checkout@v4
     - name: Set-up OCaml 5.1
       uses: ocaml/setup-ocaml@v2

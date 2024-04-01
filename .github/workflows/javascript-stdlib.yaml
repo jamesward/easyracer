@@ -23,7 +23,7 @@ jobs:
       with:
         node-version: 21.6.0
         cache: npm
-        cache-dependency-path: package-lock.json
+        cache-dependency-path: javascript-stdlib/package-lock.json
     - run: |-
         npm ci
         npm test
