@@ -25,7 +25,7 @@ jobs:
     - run: |-
         echo Compiling Elm sources...
         for num in {1..9}; do
-        elm make --optimize --output=app/EasyRacer/Scenario$num.js src/EasyRacer/Scenario$num.elm
+          elm make --optimize --output=app/EasyRacer/Scenario$num.js src/EasyRacer/Scenario$num.elm
         done
         npm install --no-fund
         npm install -g --save-dev --no-fund jest
