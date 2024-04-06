@@ -191,9 +191,9 @@ object EasyRacerServer extends ZIOAppDefault:
       case Use(id: String)
       case Close(id: String)
 
-    val maybeCmd: Option[Cmd] = request.url.queryParams.get("open").map(_ => Cmd.Open)
-      .orElse(request.url.queryParams.get("use").map(Cmd.Use(_)))
-      .orElse(request.url.queryParams.get("close").map(Cmd.Close(_)))
+    val maybeCmd: Option[Cmd] = request.url.queryParam("open").map(_ => Cmd.Open)
+      .orElse(request.url.queryParam("use").map(Cmd.Use(_)))
+      .orElse(request.url.queryParam("close").map(Cmd.Close(_)))
 
       maybeCmd match
         case Some(Cmd.Open) =>
@@ -271,7 +271,7 @@ object EasyRacerServer extends ZIOAppDefault:
         case Some(id) =>
           val now = Clock.instant.run
 
-          request.url.queryParams.get(id).filterNot(_.isEmpty) match
+          request.url.queryParam(id).filterNot(_.isEmpty) match
             case None =>
               // the blocker
               val duration = Random.nextIntBetween(5, 10).run.seconds
