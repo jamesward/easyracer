@@ -5,7 +5,6 @@ import sttp.client3.*
 import sttp.model.Uri.QuerySegment
 import sttp.model.{ResponseMetadata, Uri}
 
-import java.io.Closeable
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
 import java.time.Instant
@@ -16,53 +15,53 @@ object EasyRacerClient extends KyoApp:
 
   def scenario1(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(1)
-    val req = Requests[String](_.get(url))
+    val req = Requests.run(Requests[String](_.get(url)))
     Fibers.race(req, req)
 
   def scenario2(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(2)
-    val req = Requests[String](_.get(url))
-    Fibers.raceSuccesses(req, req)
+    val req = Requests.run(Requests[String](_.get(url)))
+    Fibers.race(req, req)
 
   def scenario3(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(3)
     val reqs = Seq.fill(10000):
-      Requests[String](_.get(url))
+      Requests.run(Requests[String](_.get(url)))
     Fibers.race(reqs)
 
   def scenario4(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(4)
-    val req = Requests[String](_.get(url))
-    Fibers.raceSuccesses(Fibers.timeout(1.second)(req), req)
+    val req = Requests.run(Requests[String](_.get(url)))
+    Fibers.race(Fibers.timeout(1.second)(req), req)
 
   def scenario5(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(5)
-    val req = Requests[String](_.get(url))
-    Fibers.raceSuccesses(req, req)
+    val req = Requests.run(Requests[String](_.get(url)))
+    Fibers.race(req, req)
 
   def scenario6(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(6)
-    val req = Requests[String](_.get(url))
-    Fibers.raceSuccesses(Seq(req, req, req))
+    val req = Requests.run(Requests[String](_.get(url)))
+    Fibers.race(Seq(req, req, req))
 
   def scenario7(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(7)
-    val req = Requests[String](_.get(url))
+    val req = Requests.run(Requests[String](_.get(url)))
     val delayedReq = Fibers.delay(4.seconds)(req)
     Fibers.race(req, delayedReq)
 
   def scenario8(scenarioUrl: Int => Uri): String < Fibers =
-    def req(uri: Uri) = Requests[String](_.get(uri))
+    def req(uri: Uri) = Requests.run(Requests[String](_.get(uri)))
 
-    case class MyResource(id: String) extends Closeable:
-      override def close(): Unit =
-        IOs.run(Fibers.run(req(uri"${scenarioUrl(8)}?close=$id")))
+    case class MyResource(id: String):
+      def close: Unit < IOs =
+        Fibers.run(req(uri"${scenarioUrl(8)}?close=$id")).unit
 
     val myResource = defer:
       val id = await:
         req(uri"${scenarioUrl(8)}?open")
       await:
-        Resources.acquire(MyResource(id))
+        Resources.acquireRelease(MyResource(id))(_.close)
 
     val reqRes = Resources.run:
       defer:
@@ -70,13 +69,13 @@ object EasyRacerClient extends KyoApp:
         await:
           req(uri"${scenarioUrl(8)}?use=${resource.id}")
 
-    Fibers.raceSuccesses(reqRes, reqRes)
+    Fibers.race(reqRes, reqRes)
 
   def scenario9(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(9)
     val req = IOs.attempt:
       defer:
-        val body = await(Requests[String](_.get(url)))
+        val body = await(Requests.run(Requests[String](_.get(url))))
         val now = await(Clocks.now)
         now -> body
 
@@ -92,20 +91,19 @@ object EasyRacerClient extends KyoApp:
     // always puts the body into the response, even if it is empty, and includes the responseMetadata
     def req(uriModifier: Uri => Uri): (String, ResponseMetadata) < Fibers =
       val uri = uriModifier(scenarioUrl(10))
-      Requests[(String, ResponseMetadata)]:
-        _.get(uri).response:
-          asString.mapWithMetadata: (stringEither, responseMetadata) =>
-            Right(stringEither.fold(identity, identity) -> responseMetadata)
+      Requests.run:
+        Requests[(String, ResponseMetadata)]:
+          _.get(uri).response:
+            asString.mapWithMetadata: (stringEither, responseMetadata) =>
+              Right(stringEither.fold(identity, identity) -> responseMetadata)
 
     val messageDigest = MessageDigest.getInstance("SHA-512")
 
     // recursive digesting
-    def blocking(bytesEffect: Array[Byte] < Fibers): String < (Fibers & IOs) =
-      IOs {
-        bytesEffect.map { bytes =>
-          blocking(messageDigest.digest(bytes))
-        }
-      }
+    def blocking(bytesEffect: Seq[Byte] < Fibers): String < (Fibers & IOs) =
+      IOs:
+        bytesEffect.map: bytes =>
+          blocking(messageDigest.digest(bytes.toArray))
 
     // runs blocking code while the request is open
     def blocker(id: String): String < Fibers =
@@ -128,10 +126,10 @@ object EasyRacerClient extends KyoApp:
         else if responseMetadata.isSuccess then
           maybeResponseBody
         else
-          await(Fibers.get(Fibers.fail(Error(maybeResponseBody))))
+          await(Fibers.get(IOs.fail(Error(maybeResponseBody))))
 
     defer:
-      val id = await(Randoms.nextString(8))
+      val id = await(Randoms.nextStringAlphanumeric(8))
       val (_, result) = await(Fibers.parallel(blocker(id), reporter(id)))
       result
 
