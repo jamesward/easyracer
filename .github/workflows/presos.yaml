@@ -18,13 +18,15 @@ jobs:
       - run: npx @marp-team/marp-cli --engine ./engine.mjs lambdaconf_2024.md
         working-directory: .presos
 
+      - run: |
+          mkdir _site
+          cp .presos/*.html _site/
+
       - name: setup pages
         uses: actions/configure-pages@v4
 
       - name: upload artifact
         uses: actions/upload-pages-artifact@v3
-        with:
-          path: .presos/*.html
 
   deploy-pages:
     runs-on: ubuntu-latest
