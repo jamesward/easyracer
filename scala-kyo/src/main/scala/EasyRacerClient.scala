@@ -85,7 +85,7 @@ object EasyRacerClient extends KyoApp:
       val successes = await(Fibers.parallel(reqs)).collect:
         case scala.util.Success(value) => value
 
-      successes.sortBy(_._1).map(_._2).mkString
+      successes.sortBy { (completedTime, _) => completedTime }.map { (_, body) => body }.mkString
 
   def scenario10(scenarioUrl: Int => Uri): String < Fibers =
     // always puts the body into the response, even if it is empty, and includes the responseMetadata
@@ -100,7 +100,7 @@ object EasyRacerClient extends KyoApp:
     val messageDigest = MessageDigest.getInstance("SHA-512")
 
     // recursive digesting
-    def blocking(bytesEffect: Seq[Byte] < Fibers): String < (Fibers & IOs) =
+    def blocking(bytesEffect: Seq[Byte] < IOs): Seq[Byte] < IOs =
       IOs:
         bytesEffect.map: bytes =>
           blocking(messageDigest.digest(bytes.toArray))
@@ -108,8 +108,8 @@ object EasyRacerClient extends KyoApp:
     // runs blocking code while the request is open
     def blocker(id: String): String < Fibers =
       Fibers.race(
-        req(_.addQuerySegment(QuerySegment.Plain(id))).map(_._1),
-        blocking(Randoms.nextBytes(512)),
+        req(_.addQuerySegment(QuerySegment.Plain(id))).map { (body, _) => body },
+        blocking(Randoms.nextBytes(512)).map(_ => ""),
       )
 
     // sends CPU usage every second until the server says to stop
