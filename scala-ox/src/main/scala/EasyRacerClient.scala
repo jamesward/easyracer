@@ -76,7 +76,7 @@ object EasyRacerClient:
       now -> body
 
     unsupervised:
-      val forks = Seq.fill(10)(forkPlain(req))
+      val forks = Seq.fill(10)(forkUnsupervised(req))
       forks.map(_.joinEither()).collect:
         case Right(v) => v
       .sortBy(_._1).map(_._2).mkString
