@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-node@v4
 
       - run: npm install
+        working-directory: .presos
+
       - run: npx @marp-team/marp-cli --engine ./engine.mjs lambdaconf_2024.md
         working-directory: .presos
 
