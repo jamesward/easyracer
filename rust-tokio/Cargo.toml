@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-reqwest = "0.12.1"
-testcontainers = { version = "0.15.0", features = ["tokio"] }
-tokio = { version = "1.35.1", features = ["rt-multi-thread", "macros"] }
+reqwest = "0.12.4"
+testcontainers = "0.16.6"
+tokio = { version = "1.37.0", features = ["rt-multi-thread", "macros"] }
 rand = "0.8.5"
-sha2 = "0.10.7"
+sha2 = "0.10.8"
 tokio-util = "0.7.10"
 procinfo = "0.4.2"
 procfs = "0.16.0"
-async-recursion = "1.0.5"
+async-recursion = "1.1.1"

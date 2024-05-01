@@ -11,4 +11,5 @@ mkShell {
   buildInputs = [rust-toolchain];
   nativeBuildInputs = with pkgs; [ gcc pkg-config openssl ];
   RUST_BACKTRACE = 1;
+  RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
 }

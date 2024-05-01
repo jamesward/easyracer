@@ -66,30 +66,27 @@ pub async fn scenario_3(port: u16) -> String {
 }
 
 pub async fn scenario_4(port: u16) -> String {
-
     async fn req(port: u16) -> Result<String, reqwest::Error> {
         reqwest::get(url(port, "4")).await?.text().await
     }
 
     enum TimeoutOrRequestError {
         Timeout(Elapsed),
-        RequestError(reqwest::Error),
+        RequestError,
     }
 
     async fn req_with_timeout(port: u16) -> Result<String, TimeoutOrRequestError> {
         let timeouted_result = timeout(Duration::from_secs(1), req(port));
         match timeouted_result.await {
-            Ok(result) =>
-                result.map_err(TimeoutOrRequestError::RequestError),
-            Err(elapsed) =>
-                Err(TimeoutOrRequestError::Timeout(elapsed)),
+            Ok(result) => result.map_err(|_| TimeoutOrRequestError::RequestError),
+            Err(elapsed) => Err(TimeoutOrRequestError::Timeout(elapsed)),
         }
     }
 
     tokio::select! {
         Ok(result) = req(port) => result,
         Ok(result) = req_with_timeout(port) => result,
-        else => panic!("all failed")
+        else => panic!("all failed"),
     }
 }
 
