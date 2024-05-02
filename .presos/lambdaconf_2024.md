@@ -1,28 +1,52 @@
 # Comparing Approaches to Structured Concurrency
 
-Adam Hearn
+#### Adam Hearn
+*Software Engineer @ Amazon*
+<a href="https://twitter.com/adamhearn_?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large">@adamhearn_</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
-James Ward
+#### James Ward
+*Developer Advocate @ AWS*
+<a href="https://twitter.com/_JamesWard?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large">@_JamesWard</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 ---
 
 ## What is Structured Concurrency?
 
-* Basics on Structured Concurrency (5 min)
-    * loser cancellation
-    * resource management
-    * efficient thread utilization (i.e. reactive, non-blocking)
-    * explicit timeouts
-    * errors causing a race loss
+#### Hierarchical Concurrency Which Generally Supports:
+
+* Cancellation e.g. Races (loser cancellation)
+* Resource management
+* Efficient thread utilization (i.e. reactive, non-blocking)
+* Explicit timeouts
+* Semantic Errors
+
 ---
 
 ## Easy Racer
 
-* What is Easy Racer
-    * Different impls
+[github.com/jamesward/easyracer](https://github.com/jamesward/easyracer)
+
+> Ten Structured Concurrency "obstacle courses"
+
+|                                     |                                          |                                           |
+|-------------------------------------|------------------------------------------|-------------------------------------------|
+| [Scala 3 + ZIO](scala-zio)          | [Kotlin + Coroutines](kotlin-coroutines) | [OCaml + Lwt + Cohttp](ocaml-cohttp-lwt)  |
+| [Scala 3 + Ox](scala-ox)            | [Kotlin + Splitties](kotlin-splitties)   | [OCaml + Eio + Cohttp](ocaml-cohttp-eio)  |
+| [Scala 3 + Kyo](scala-kyo)          | [Kotlin + Arrow](kotlin-arrow)           | Python (Various)                          |
+| [Scala + Cats Effects 3](scala-ce3) | [Rust + Tokio](rust-tokio)               | [C#](dotnet)                              |
+| [Java + Loom](java-loom)            | [Go](go-stdlib)                          | [Elm](elm-worker)                         |
+
+<!-- todo: fix links -->
+
 ---
 
 ## Scenario 1
+
+### Race 2 concurrent requests
+
+<!--
+One returns a 200
+-->
 
 ---
 
