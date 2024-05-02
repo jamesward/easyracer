@@ -107,18 +107,18 @@ object EasyRacerClient extends ZIOAppDefault:
 
   def scenario10(scenarioUrl: Int => String) =
 
-    // not using defer due to recursion issue
     def reporter(id: String): ZIO[Client & Scope, Throwable, String] =
       val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
       val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
-      Client.request(Request.get(scenarioUrl(10) + s"?$id=$load")).flatMap: resp =>
+      defer:
+        val resp = Client.request(Request.get(scenarioUrl(10) + s"?$id=$load")).run
         if resp.status.isRedirection then
-          reporter(id).delay(1.second)
+          reporter(id).delay(1.second).run
         else if resp.status.isSuccess then
-          resp.body.asString
+          resp.body.asString.run
         else
-          resp.body.asString.flatMap: body =>
-            ZIO.fail(Error(body))
+          val body = resp.body.asString.run
+          ZIO.fail(Error(body)).run
 
     defer:
       val id = Random.nextString(8).run
