@@ -65,8 +65,6 @@ object EasyRacerClient extends ZIOAppDefault:
     defer:
       val url = scenarioUrl(7)
       val req = Client.request(Request.get(url))
-      // todo: sometimes the first req can take a second or 2 to start which can break the hedge check which verifies the second request starts 2 seconds after the first one
-      //   but it isn't clear how to resolve that as there isn't a way to know when the req is connected, then send the second one
       val winner = req.race(req.delay(4.seconds)).run
       winner.body.asString.run
 
