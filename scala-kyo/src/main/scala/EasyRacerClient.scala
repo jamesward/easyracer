@@ -8,7 +8,6 @@ import sttp.model.{ResponseMetadata, Uri}
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
 import java.time.Instant
-import scala.concurrent.duration.*
 
 
 object EasyRacerClient extends KyoApp:
@@ -32,7 +31,7 @@ object EasyRacerClient extends KyoApp:
   def scenario4(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(4)
     val req = Requests.run(Requests[String](_.get(url)))
-    Fibers.race(Fibers.timeout(1.second)(req), req)
+    Fibers.race(Fibers.timeout(1.seconds)(req), req)
 
   def scenario5(scenarioUrl: Int => Uri): String < Fibers =
     val url = scenarioUrl(5)
