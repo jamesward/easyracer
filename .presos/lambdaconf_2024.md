@@ -40,6 +40,22 @@
 
 ---
 
+## Approaches to Structured Concurrency
+
+* Effect Oriented
+  - Scala ZIO
+    - Monadic Effect - God Monad
+  - Scala Kyo
+    - Algebraic Effects / single monad
+* Direct Style (Imperative / Monad free!)
+  - Scala Ox
+    - Built on Loom, JDK21+ only
+  - Rust (Future based syntax)
+* Scoped Driven
+  - Java Loom
+
+---
+
 ## Scenario 1
 
 ### Race 2 concurrent requests
