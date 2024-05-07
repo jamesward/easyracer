@@ -27,7 +27,7 @@ jobs:
           cp .presos/*.pdf _site/
 
       - name: setup pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
 
       - name: upload artifact
         uses: actions/upload-pages-artifact@v3
