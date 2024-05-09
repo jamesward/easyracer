@@ -8,3 +8,5 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.2.18" % Test,
   "com.dimafeng" %% "testcontainers-scala-core" % "0.41.3" % Test
 )
+
+Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oD")
