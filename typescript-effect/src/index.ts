@@ -36,11 +36,22 @@ function scenario3(port: number) {
     return Effect.raceAll(reqs)
 }
 
+function scenario4(port: number) {
+    const req = Effect.gen(function* () {
+        const res = yield* Http.request.get(scenarioUrl(port, 4))
+        return yield* res.text
+    }).pipe(Effect.scoped)
+
+
+    return Effect.race(req, req.pipe(Effect.timeout("3 seconds")))
+}
+
 const program = Effect.gen(function* () {
     return [
         yield* scenario1(8080),
         yield* scenario2(8080),
         yield* scenario3(8080),
+        yield* scenario4(8080),
     ]
 }).pipe(Effect.provide(Http.client.layer))
 
