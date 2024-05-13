@@ -126,6 +126,10 @@ clients = new Mapping<String, Run> {
     `runs-on` = "macos-latest"
     steps = GitHubAction.Swift.testSteps()
   }
+
+  ["typescript-effect"] = new {
+    steps = GitHubAction.Node.testSteps(null, "21.6.0", "typescript-effect/package-lock.json")
+  }
 }
 
 function workflow(client: String, s: Run): GitHubAction = new GitHubAction {
