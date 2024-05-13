@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --experimental-vm-modules --max-old-space-size=2048 node_modules/jest/bin/jest.js",
+    "test": "DEBUG=testcontainers,testcontainers:containers node --experimental-vm-modules --max-old-space-size=2048 node_modules/jest/bin/jest.js",
     "run": "tsx src/index.ts"
   },
   "keywords": [],
