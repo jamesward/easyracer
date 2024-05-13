@@ -101,6 +101,7 @@ clients = new Mapping<String, Run> {
         with {
           ["command"] = "test"
         }
+        `working-directory` = "rust-tokio"
       }
     }
   }
