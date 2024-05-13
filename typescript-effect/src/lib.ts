@@ -29,7 +29,7 @@ function scenario3(port: number) {
         return yield* res.text
     }).pipe(Effect.scoped)
 
-    const reqs = Chunk.range(0, 10000).pipe(
+    const reqs = Chunk.range(1, 10000).pipe(
         Chunk.map(() => req)
     )
 
