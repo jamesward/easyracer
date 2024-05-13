@@ -91,16 +91,7 @@ clients = new Mapping<String, Run> {
         uses = "actions/checkout@v4"
       }
       new {
-        uses = "actions-rs/toolchain@v1"
-        with {
-          ["toolchain"] = "stable"
-        }
-      }
-      new {
-        uses = "actions-rs/cargo@v1"
-        with {
-          ["command"] = "test"
-        }
+        run = "cargo test"
       }
     }
   }
