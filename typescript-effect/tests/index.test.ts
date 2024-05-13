@@ -10,7 +10,7 @@ describe("all work", () => {
             .withExposedPorts(8080)
             .withWaitStrategy(Wait.forHttp("/", 8080))
             .start()
-    })
+    }, 30_000)
 
     it("works", async () => {
         const httpPort = container.getFirstMappedPort()
