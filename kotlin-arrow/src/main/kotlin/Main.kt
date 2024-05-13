@@ -212,7 +212,7 @@ fun HttpClient.scenarios() = listOf(
 //)
 
 suspend fun results(url: (Int) -> String) = resourceScope {
-  client().scenarios().parMap { it(url) }
+  client().scenarios().map { it(url) }
 }
 
 suspend fun main() {
