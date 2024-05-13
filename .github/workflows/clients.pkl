@@ -91,9 +91,6 @@ clients = new Mapping<String, Run> {
         uses = "actions/checkout@v4"
       }
       new {
-        run = "rustup update"
-      }
-      new {
         run = "cargo test"
       }
     }

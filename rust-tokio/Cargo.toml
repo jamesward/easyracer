@@ -2,6 +2,7 @@
 name = "rust_tokio"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.78"
 
 [dependencies]
 reqwest = "0.12.4"

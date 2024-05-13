@@ -1,19 +1,18 @@
-use rust_tokio::*;
-use testcontainers::*;
 use testcontainers::core::WaitFor;
 use testcontainers::GenericImage;
+use testcontainers::runners::AsyncRunner;
+use rust_tokio::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn all_scenarios() {
-    let docker = clients::Cli::default();
-
     {
-        let image = GenericImage::new("ghcr.io/jamesward/easyracer", "latest")
+        let container = GenericImage::new("ghcr.io/jamesward/easyracer", "latest")
             .with_wait_for(WaitFor::message_on_stdout("Started server"))
-            .with_exposed_port(8080);
+            .with_exposed_port(8080)
+            .start()
+            .await;
 
-        let node = docker.run(image);
-        let port = node.get_host_port_ipv4(8080);
+        let port = container.get_host_port_ipv4(8080).await;
 
         assert_eq!(scenario_1(port).await, "right");
         assert_eq!(scenario_2(port).await, "right");
@@ -26,5 +25,4 @@ async fn all_scenarios() {
         assert_eq!(scenario_9(port).await, "right");
         assert_eq!(scenario_10(port).await, "right");
     }
-
 }
