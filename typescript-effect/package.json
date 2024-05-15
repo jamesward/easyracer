@@ -4,23 +4,23 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "DEBUG=testcontainers,testcontainers:containers node --experimental-vm-modules --max-old-space-size=2048 node_modules/jest/bin/jest.js",
+    "test": "DEBUG=testcontainers,testcontainers:containers jest",
     "run": "tsx src/index.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "typescript": "latest",
-    "tsx": "latest",
-    "ts-jest": "latest",
     "@types/jest": "latest",
-    "testcontainers": "latest"
+    "testcontainers": "latest",
+    "ts-jest": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
   },
   "dependencies": {
-    "effect": "3.1.2",
+    "@effect/platform": "0.53.0",
     "@effect/platform-node": "0.49.0",
-    "@effect/platform": "0.53.0"
+    "effect": "3.1.2"
   },
   "jest": {
     "transform": {
