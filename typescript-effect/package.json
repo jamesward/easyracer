@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "DEBUG=testcontainers,testcontainers:containers jest",
-    "run": "tsx src/index.ts"
+    "test-hmmm": "DEBUG=testcontainers,testcontainers:containers node --experimental-vm-modules --max-old-space-size=2048 node_modules/jest/bin/jest.js",
+    "dev": "nodemon --watch '*.ts' --exec 'ts-node' src/index.ts"
   },
   "keywords": [],
   "author": "",
@@ -15,7 +16,9 @@
     "testcontainers": "latest",
     "ts-jest": "latest",
     "tsx": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "nodemon": "latest",
+    "ts-node": "latest"
   },
   "dependencies": {
     "@effect/platform": "0.53.0",

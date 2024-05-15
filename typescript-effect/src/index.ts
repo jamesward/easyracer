@@ -1,4 +1,4 @@
-import { NodeRuntime } from "@effect/platform-node"
-import { program } from "./lib";
+import {program} from "./lib";
+import {Effect} from "effect";
 
-NodeRuntime.runMain(program(8080))
+Effect.runPromise(program(8080)).then(console.log)
