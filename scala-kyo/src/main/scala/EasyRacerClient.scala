@@ -1,6 +1,5 @@
 import com.sun.management.OperatingSystemMXBean
 import kyo.*
-import kyo.Fibers.Effects
 import sttp.client3.*
 import sttp.model.Uri.QuerySegment
 import sttp.model.{ResponseMetadata, Uri}
@@ -102,7 +101,7 @@ object EasyRacerClient extends KyoApp:
     def blocking(bytesEffect: Seq[Byte] < IOs): Seq[Byte] < IOs =
       IOs:
         bytesEffect.map: bytes =>
-          blocking(messageDigest.digest(bytes.toArray))
+          blocking(messageDigest.digest(bytes.toArray).toSeq)
 
     // runs blocking code while the request is open
     def blocker(id: String): String < Fibers =
