@@ -363,7 +363,7 @@ object EasyRacerServer extends ZIOAppDefault:
     val server =
       defer:
         val scenarios = scenariosBuilder.run
-        val port = Server.install(app(scenarios).toHttpApp).run
+        val port = Server.install(app(scenarios)).run
         val debug = isDebug.run
         Console.printLine(s"Started server on port: $port (debug=$debug)").run
 
