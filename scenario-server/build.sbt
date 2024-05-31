@@ -44,6 +44,7 @@ graalVMNativeImageOptions ++= Seq(
   "--initialize-at-run-time=io.netty.channel.unix.IovArray",
   "--initialize-at-run-time=io.netty.handler.codec.compression.ZstdOptions",
   "--initialize-at-run-time=io.netty.handler.ssl.BouncyCastleAlpnSslUtils",
+  "--initialize-at-run-time=io.netty.handler.ssl.JdkSslServerContext",
   "-H:+ReportExceptionStackTraces"
 )
 
