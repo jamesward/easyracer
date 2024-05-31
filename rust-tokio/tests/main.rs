@@ -10,9 +10,10 @@ async fn all_scenarios() {
             .with_wait_for(WaitFor::message_on_stdout("Started server"))
             .with_exposed_port(8080)
             .start()
-            .await;
+            .await
+            .unwrap();
 
-        let port = container.get_host_port_ipv4(8080).await;
+        let port = container.get_host_port_ipv4(8080).await.unwrap();
 
         assert_eq!(scenario_1(port).await, "right");
         assert_eq!(scenario_2(port).await, "right");
