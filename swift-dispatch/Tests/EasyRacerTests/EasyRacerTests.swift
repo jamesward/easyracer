@@ -11,7 +11,7 @@ final class EasyRacerTests: XCTestCase {
         // Set up
         var logger = Logger(label: "docker-client")
         logger.logLevel = .error
-        let client = DockerClient(daemonSocket: "unix:///Users/runner/.colima/default/docker.sock", logger: logger)
+        let client = DockerClient(daemonSocket: "/Users/runner/.colima/default/docker.sock", logger: logger)
         let image = try client.images
             .pullImage(byName: "ghcr.io/jamesward/easyracer", tag: "latest").wait()
         let container = try client.containers
