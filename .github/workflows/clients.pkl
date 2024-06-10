@@ -115,19 +115,34 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-zio", null)
   }
 
+  local swiftSteps = new Listing<GitHubAction.Step> {
+    new {
+      uses = "actions/checkout@v4"
+    }
+    new {
+      uses = "atomicjar/testcontainers-cloud-setup-action@v1"
+      with {
+        ["token"] = "${{ secrets.TC_CLOUD_TOKEN }}"
+      }
+    }
+    new {
+      run = "swift test -c release"
+    }
+  }
+
   ["swift-async"] = new {
-    `runs-on` = "macos-latest"
-    steps = GitHubAction.Swift.testSteps()
+    `runs-on` = "macos-14"
+    steps = swiftSteps
   }
 
   ["swift-combine"] = new {
-    `runs-on` = "macos-latest"
-    steps = GitHubAction.Swift.testSteps()
+    `runs-on` = "macos-14"
+    steps = swiftSteps
   }
 
   ["swift-dispatch"] = new {
-    `runs-on` = "macos-latest"
-    steps = GitHubAction.Swift.testSteps()
+    `runs-on` = "macos-14"
+    steps = swiftSteps
   }
 
   ["typescript-effect"] = new {
