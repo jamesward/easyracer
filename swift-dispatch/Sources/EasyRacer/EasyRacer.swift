@@ -553,6 +553,11 @@ public struct EasyRacer {
             DispatchQueue.global().async(execute: blockingTask)
         }
         
+        defer {
+            blockingTask?.cancel()
+            dataTask.cancel()
+        }
+        
         // Report process load
         // POSIX API = mutable state
 #if canImport(Darwin)
@@ -565,12 +570,24 @@ public struct EasyRacer {
         var startCPUTime: rusage = rusage()
         var endCPUTime: rusage = rusage()
         // Baseline
-        gettimeofday(&startWallTime, nil)
-        getrusage(rusageSelf, &startCPUTime)
+        let gettimeofdayRetval: Int32 = gettimeofday(&startWallTime, nil)
+        let getrusageRetval: Int32 = getrusage(rusageSelf, &startCPUTime)
+        guard
+            gettimeofdayRetval == KERN_SUCCESS && getrusageRetval == KERN_SUCCESS
+        else {
+            scenarioHandler(nil)
+            return
+        }
 
         func reportProcessLoad() {
-            gettimeofday(&endWallTime, nil)
-            getrusage(rusageSelf, &endCPUTime)
+            let gettimeofdayRetval: Int32 = gettimeofday(&endWallTime, nil)
+            let getrusageRetval: Int32 = getrusage(rusageSelf, &endCPUTime)
+            guard
+                gettimeofdayRetval == KERN_SUCCESS && getrusageRetval == KERN_SUCCESS
+            else {
+                scenarioHandler(nil)
+                return
+            }
             let startWallTimeSecs: Double =
                 Double(startWallTime.tv_sec) + Double(startWallTime.tv_usec) / 1_000_000.0
             let endWallTimeSecs: Double =
