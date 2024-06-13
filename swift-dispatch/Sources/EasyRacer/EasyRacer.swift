@@ -497,6 +497,150 @@ public struct EasyRacer {
         }
     }
     
+    func scenario10(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("10")
+        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let blockerGroup: DispatchGroup = DispatchGroup()
+        let id: String = UUID().uuidString
+        
+        guard
+            let urlComps: URLComponents = URLComponents(
+                url: url, resolvingAgainstBaseURL: false
+            )
+        else {
+            scenarioHandler(nil)
+            return
+        }
+        
+        // Set up blocking task without executing
+        var blockingTask: DispatchWorkItem?
+        blockingTask = DispatchWorkItem {
+            while true {
+                if blockingTask?.isCancelled ?? true {
+                    blockerGroup.leave()
+                    blockingTask = nil
+                    break
+                }
+                // busy waiting
+            }
+        }
+        
+        // Build "blocker" URL
+        var blockerURLComps = urlComps
+        blockerURLComps.queryItems = [URLQueryItem(name: id, value: nil)]
+        
+        guard
+            let blockerURL: URL = blockerURLComps.url
+        else {
+            scenarioHandler(nil)
+            return
+        }
+        
+        // Set up HTTP request without executing
+        let dataTask: URLSessionDataTask = urlSession
+            .dataTask(with: blockerURL) { _, _, _ in
+                // We don't much care what happens with this request
+                blockingTask?.cancel()
+                blockerGroup.leave()
+            }
+        
+        // Executing tasks, adding them to the DispatchGroup
+        blockerGroup.enter()
+        dataTask.resume()
+        
+        if let blockingTask = blockingTask {
+            blockerGroup.enter()
+            DispatchQueue.global().async(execute: blockingTask)
+        }
+        
+        // Report process load
+        // POSIX API = mutable state
+#if canImport(Darwin)
+        let rusageSelf = RUSAGE_SELF
+#else
+        let rusageSelf = RUSAGE_SELF.rawValue
+#endif
+        var startWallTime: timeval = timeval()
+        var endWallTime: timeval = timeval()
+        var startCPUTime: rusage = rusage()
+        var endCPUTime: rusage = rusage()
+        // Baseline
+        gettimeofday(&startWallTime, nil)
+        getrusage(rusageSelf, &startCPUTime)
+
+        func reportProcessLoad() {
+            gettimeofday(&endWallTime, nil)
+            getrusage(rusageSelf, &endCPUTime)
+            let startWallTimeSecs: Double = Double(startWallTime.tv_sec) + Double(startWallTime.tv_usec) / 1_000_000.0
+            let endWallTimeSecs: Double = Double(endWallTime.tv_sec) + Double(endWallTime.tv_usec) / 1_000_000.0
+            let startCPUTimeSecs: Double = Double(startCPUTime.ru_utime.tv_sec + startCPUTime.ru_stime.tv_sec) + Double(startCPUTime.ru_utime.tv_usec + startCPUTime.ru_stime.tv_usec) / 1_000_000.0
+            let endCPUTimeSecs: Double = Double(endCPUTime.ru_utime.tv_sec + endCPUTime.ru_stime.tv_sec) + Double(endCPUTime.ru_utime.tv_usec + endCPUTime.ru_stime.tv_usec) / 1_000_000.0
+            let totalUsageOfCPU: Double = (endCPUTimeSecs - startCPUTimeSecs) / (endWallTimeSecs - startWallTimeSecs)
+            startWallTime = endWallTime
+            startCPUTime = endCPUTime
+
+            // Build "reporter" URL
+            var reporterURLComps = urlComps
+            reporterURLComps.queryItems = [URLQueryItem(name: id, value: "\(totalUsageOfCPU)")]
+            
+            guard
+                let reporterURL: URL = reporterURLComps.url
+            else {
+                scenarioHandler(nil)
+                return
+            }
+            
+            urlSession
+                .dataTask(with: reporterURL) { data, response, error in
+                    if let _ = error {
+                        blockingTask?.cancel()
+                        dataTask.cancel()
+                        blockerGroup.notify(queue: .global()) {
+                            scenarioHandler(nil)
+                        }
+                        return
+                    }
+                    
+                    guard
+                        let response: HTTPURLResponse = response as? HTTPURLResponse,
+                        (200..<400) ~= response.statusCode
+                    else {
+                        blockingTask?.cancel()
+                        dataTask.cancel()
+                        blockerGroup.notify(queue: .global()) {
+                            scenarioHandler(nil)
+                        }
+                        return
+                    }
+                    
+                    if 300..<400 ~= response.statusCode {
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 1.0) {
+                            reportProcessLoad()
+                        }
+                        return
+                    }
+                    
+                    guard
+                        let data: Data = data,
+                        let text: String = String(data: data, encoding: .utf8)
+                    else {
+                        blockingTask?.cancel()
+                        dataTask.cancel()
+                        blockerGroup.notify(queue: .global()) {
+                            scenarioHandler(nil)
+                        }
+                        return
+                    }
+                    
+                    blockerGroup.notify(queue: .global()) {
+                        scenarioHandler(text)
+                    }
+                }
+                .resume()
+        }
+        reportProcessLoad()
+    }
+    
     // Runs scenarios one by one, blocking until they are all complete
     public func scenarios(scenariosHandler: @escaping @Sendable ([String?]) -> Void) {
         let scenarios = [
@@ -509,6 +653,7 @@ public struct EasyRacer {
             (7, scenario7),
             (8, scenario8),
             (9, scenario9),
+            (10, scenario10),
         ]
         let completions: DispatchSemaphore = DispatchSemaphore(value: 0)
         func sortResultsAndNotify(results: [(Int, String?)]) {
