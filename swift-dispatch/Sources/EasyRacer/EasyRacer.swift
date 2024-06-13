@@ -573,7 +573,7 @@ public struct EasyRacer {
         let gettimeofdayRetval: Int32 = gettimeofday(&startWallTime, nil)
         let getrusageRetval: Int32 = getrusage(rusageSelf, &startCPUTime)
         guard
-            gettimeofdayRetval == KERN_SUCCESS && getrusageRetval == KERN_SUCCESS
+            gettimeofdayRetval == 0 && getrusageRetval == 0
         else {
             scenarioHandler(nil)
             return
@@ -583,7 +583,7 @@ public struct EasyRacer {
             let gettimeofdayRetval: Int32 = gettimeofday(&endWallTime, nil)
             let getrusageRetval: Int32 = getrusage(rusageSelf, &endCPUTime)
             guard
-                gettimeofdayRetval == KERN_SUCCESS && getrusageRetval == KERN_SUCCESS
+                gettimeofdayRetval == 0 && getrusageRetval == 0
             else {
                 scenarioHandler(nil)
                 return
