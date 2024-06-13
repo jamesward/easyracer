@@ -571,11 +571,18 @@ public struct EasyRacer {
         func reportProcessLoad() {
             gettimeofday(&endWallTime, nil)
             getrusage(rusageSelf, &endCPUTime)
-            let startWallTimeSecs: Double = Double(startWallTime.tv_sec) + Double(startWallTime.tv_usec) / 1_000_000.0
-            let endWallTimeSecs: Double = Double(endWallTime.tv_sec) + Double(endWallTime.tv_usec) / 1_000_000.0
-            let startCPUTimeSecs: Double = Double(startCPUTime.ru_utime.tv_sec + startCPUTime.ru_stime.tv_sec) + Double(startCPUTime.ru_utime.tv_usec + startCPUTime.ru_stime.tv_usec) / 1_000_000.0
-            let endCPUTimeSecs: Double = Double(endCPUTime.ru_utime.tv_sec + endCPUTime.ru_stime.tv_sec) + Double(endCPUTime.ru_utime.tv_usec + endCPUTime.ru_stime.tv_usec) / 1_000_000.0
-            let totalUsageOfCPU: Double = (endCPUTimeSecs - startCPUTimeSecs) / (endWallTimeSecs - startWallTimeSecs)
+            let startWallTimeSecs: Double =
+                Double(startWallTime.tv_sec) + Double(startWallTime.tv_usec) / 1_000_000.0
+            let endWallTimeSecs: Double =
+                Double(endWallTime.tv_sec) + Double(endWallTime.tv_usec) / 1_000_000.0
+            let startCPUTimeSecs: Double =
+                Double(startCPUTime.ru_utime.tv_sec + startCPUTime.ru_stime.tv_sec) +
+                Double(startCPUTime.ru_utime.tv_usec + startCPUTime.ru_stime.tv_usec) / 1_000_000.0
+            let endCPUTimeSecs: Double =
+                Double(endCPUTime.ru_utime.tv_sec + endCPUTime.ru_stime.tv_sec) +
+                Double(endCPUTime.ru_utime.tv_usec + endCPUTime.ru_stime.tv_usec) / 1_000_000.0
+            let totalUsageOfCPU: Double =
+                (endCPUTimeSecs - startCPUTimeSecs) / (endWallTimeSecs - startWallTimeSecs)
             startWallTime = endWallTime
             startCPUTime = endCPUTime
 
