@@ -553,11 +553,6 @@ public struct EasyRacer {
             DispatchQueue.global().async(execute: blockingTask)
         }
         
-        defer {
-            blockingTask?.cancel()
-            dataTask.cancel()
-        }
-        
         // Report process load
         // POSIX API = mutable state
 #if canImport(Darwin)
@@ -575,7 +570,11 @@ public struct EasyRacer {
         guard
             gettimeofdayRetval == 0 && getrusageRetval == 0
         else {
-            scenarioHandler(nil)
+            blockingTask?.cancel()
+            dataTask.cancel()
+            blockerGroup.notify(queue: .global()) {
+                scenarioHandler(nil)
+            }
             return
         }
 
@@ -585,7 +584,11 @@ public struct EasyRacer {
             guard
                 gettimeofdayRetval == 0 && getrusageRetval == 0
             else {
-                scenarioHandler(nil)
+                blockingTask?.cancel()
+                dataTask.cancel()
+                blockerGroup.notify(queue: .global()) {
+                    scenarioHandler(nil)
+                }
                 return
             }
             let startWallTimeSecs: Double =
@@ -610,7 +613,11 @@ public struct EasyRacer {
             guard
                 let reporterURL: URL = reporterURLComps.url
             else {
-                scenarioHandler(nil)
+                blockingTask?.cancel()
+                dataTask.cancel()
+                blockerGroup.notify(queue: .global()) {
+                    scenarioHandler(nil)
+                }
                 return
             }
             
