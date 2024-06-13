@@ -552,6 +552,13 @@ public struct EasyRacer {
             blockerGroup.enter()
             DispatchQueue.global().async(execute: blockingTask)
         }
+        func cancelBlockerGroup() {
+            blockingTask?.cancel()
+            dataTask.cancel()
+            blockerGroup.notify(queue: .global()) {
+                scenarioHandler(nil)
+            }
+        }
         
         // Report process load
         // POSIX API = mutable state
@@ -570,11 +577,7 @@ public struct EasyRacer {
         guard
             gettimeofdayRetval == 0 && getrusageRetval == 0
         else {
-            blockingTask?.cancel()
-            dataTask.cancel()
-            blockerGroup.notify(queue: .global()) {
-                scenarioHandler(nil)
-            }
+            cancelBlockerGroup()
             return
         }
 
@@ -584,11 +587,7 @@ public struct EasyRacer {
             guard
                 gettimeofdayRetval == 0 && getrusageRetval == 0
             else {
-                blockingTask?.cancel()
-                dataTask.cancel()
-                blockerGroup.notify(queue: .global()) {
-                    scenarioHandler(nil)
-                }
+                cancelBlockerGroup()
                 return
             }
             let startWallTimeSecs: Double =
@@ -613,22 +612,14 @@ public struct EasyRacer {
             guard
                 let reporterURL: URL = reporterURLComps.url
             else {
-                blockingTask?.cancel()
-                dataTask.cancel()
-                blockerGroup.notify(queue: .global()) {
-                    scenarioHandler(nil)
-                }
+                cancelBlockerGroup()
                 return
             }
             
             urlSession
                 .dataTask(with: reporterURL) { data, response, error in
                     if let _ = error {
-                        blockingTask?.cancel()
-                        dataTask.cancel()
-                        blockerGroup.notify(queue: .global()) {
-                            scenarioHandler(nil)
-                        }
+                        cancelBlockerGroup()
                         return
                     }
                     
@@ -636,11 +627,7 @@ public struct EasyRacer {
                         let response: HTTPURLResponse = response as? HTTPURLResponse,
                         (200..<400) ~= response.statusCode
                     else {
-                        blockingTask?.cancel()
-                        dataTask.cancel()
-                        blockerGroup.notify(queue: .global()) {
-                            scenarioHandler(nil)
-                        }
+                        cancelBlockerGroup()
                         return
                     }
                     
@@ -655,11 +642,7 @@ public struct EasyRacer {
                         let data: Data = data,
                         let text: String = String(data: data, encoding: .utf8)
                     else {
-                        blockingTask?.cancel()
-                        dataTask.cancel()
-                        blockerGroup.notify(queue: .global()) {
-                            scenarioHandler(nil)
-                        }
+                        cancelBlockerGroup()
                         return
                     }
                     
