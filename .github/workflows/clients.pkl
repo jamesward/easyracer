@@ -141,8 +141,14 @@ clients = new Mapping<String, Run> {
   }
 
   ["swift-dispatch"] = new {
-    `runs-on` = "macos-14"
-    steps = swiftSteps
+    steps {
+      new {
+        uses = "actions/checkout@v4"
+      }
+      new {
+        run = "swift test -c release"
+      }
+    }
   }
 
   ["typescript-effect"] = new {
