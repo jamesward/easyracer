@@ -42,7 +42,10 @@ final class EasyRacerTests: XCTestCase {
 
         // Test
         let completed = DispatchSemaphore(value: 0)
-        var disposeBag: Set<AnyCancellable> = Set()
+        var subscriptions: Set<AnyCancellable> = Set()
+        defer {
+            subscriptions.removeAll()
+        }
         EasyRacer(baseURL: baseURL).scenarios()
             .sink(
                 receiveCompletion: { _ in completed.signal() },
@@ -53,7 +56,7 @@ final class EasyRacerTests: XCTestCase {
                     }
                 }
             )
-            .store(in: &disposeBag)
+            .store(in: &subscriptions)
         completed.wait()
     }
 }
