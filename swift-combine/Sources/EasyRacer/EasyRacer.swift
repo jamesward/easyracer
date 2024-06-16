@@ -249,7 +249,10 @@ public struct EasyRacer {
         else { return }
         
         let completed = DispatchSemaphore(value: 0)
-        var disposeBag: Set<AnyCancellable> = Set()
+        var subscriptions: Set<AnyCancellable> = Set()
+        defer {
+            subscriptions.removeAll()
+        }
         EasyRacer(baseURL: baseURL).scenarios()
             .sink(
                 receiveCompletion: { _ in completed.signal() },
@@ -259,7 +262,7 @@ public struct EasyRacer {
                     }
                 }
             )
-            .store(in: &disposeBag)
+            .store(in: &subscriptions)
         completed.wait()
     }
 }
