@@ -3,6 +3,12 @@ import Foundation
 import FoundationNetworking
 #endif
 
+#if canImport(Darwin)
+let rusageSelf = RUSAGE_SELF
+#else
+let rusageSelf = RUSAGE_SELF.rawValue
+#endif
+
 extension URLSession {
     func bodyTextTask(
         with url: URL, completionHandler: @escaping (Result<String, Error>) -> Void
@@ -561,50 +567,29 @@ public struct EasyRacer {
         }
         
         // Report process load
-        // POSIX API = mutable state
-#if canImport(Darwin)
-        let rusageSelf = RUSAGE_SELF
-#else
-        let rusageSelf = RUSAGE_SELF.rawValue
-#endif
-        var startWallTime: timeval = timeval()
-        var endWallTime: timeval = timeval()
-        var startCPUTime: rusage = rusage()
-        var endCPUTime: rusage = rusage()
-        // Baseline
-        let gettimeofdayRetval: Int32 = gettimeofday(&startWallTime, nil)
-        let getrusageRetval: Int32 = getrusage(rusageSelf, &startCPUTime)
-        guard
-            gettimeofdayRetval == 0 && getrusageRetval == 0
-        else {
-            cancelBlockerGroup()
-            return
+        func currentWallTime() -> TimeInterval {
+            var timeval: timeval = timeval()
+            // Should never error as parameters are valid
+            gettimeofday(&timeval, nil)
+            
+            return TimeInterval(timeval.tv_sec) + TimeInterval(timeval.tv_usec) / 1_000_000.0
         }
-
-        func reportProcessLoad() {
-            let gettimeofdayRetval: Int32 = gettimeofday(&endWallTime, nil)
-            let getrusageRetval: Int32 = getrusage(rusageSelf, &endCPUTime)
-            guard
-                gettimeofdayRetval == 0 && getrusageRetval == 0
-            else {
-                cancelBlockerGroup()
-                return
-            }
-            let startWallTimeSecs: Double =
-                Double(startWallTime.tv_sec) + Double(startWallTime.tv_usec) / 1_000_000.0
-            let endWallTimeSecs: Double =
-                Double(endWallTime.tv_sec) + Double(endWallTime.tv_usec) / 1_000_000.0
-            let startCPUTimeSecs: Double =
-                Double(startCPUTime.ru_utime.tv_sec + startCPUTime.ru_stime.tv_sec) +
-                Double(startCPUTime.ru_utime.tv_usec + startCPUTime.ru_stime.tv_usec) / 1_000_000.0
-            let endCPUTimeSecs: Double =
-                Double(endCPUTime.ru_utime.tv_sec + endCPUTime.ru_stime.tv_sec) +
-                Double(endCPUTime.ru_utime.tv_usec + endCPUTime.ru_stime.tv_usec) / 1_000_000.0
-            let totalUsageOfCPU: Double =
-                (endCPUTimeSecs - startCPUTimeSecs) / (endWallTimeSecs - startWallTimeSecs)
-            startWallTime = endWallTime
-            startCPUTime = endCPUTime
-
+        func currentCPUTime() -> TimeInterval {
+            var rusage: rusage = rusage()
+            // Should never error as parameters are valid
+            getrusage(rusageSelf, &rusage)
+            let utime = rusage.ru_utime
+            let stime = rusage.ru_stime
+            let secs = utime.tv_sec + stime.tv_sec
+            let usecs = utime.tv_usec + stime.tv_usec
+            
+            return TimeInterval(secs) + TimeInterval(usecs) / 1_000_000.0
+        }
+        func reportProcessLoad(startWallTime: TimeInterval, startCPUTime: TimeInterval) {
+            let endWallTime: TimeInterval = currentWallTime()
+            let endCPUTime: TimeInterval = currentCPUTime()
+            let totalUsageOfCPU: Double = (endCPUTime - startCPUTime) / (endWallTime - startWallTime)
+            
             // Build "reporter" URL
             var reporterURLComps = urlComps
             reporterURLComps.queryItems = [URLQueryItem(name: id, value: "\(totalUsageOfCPU)")]
@@ -618,12 +603,8 @@ public struct EasyRacer {
             
             urlSession
                 .dataTask(with: reporterURL) { data, response, error in
-                    if let _ = error {
-                        cancelBlockerGroup()
-                        return
-                    }
-                    
                     guard
+                        error == nil,
                         let response: HTTPURLResponse = response as? HTTPURLResponse,
                         (200..<400) ~= response.statusCode
                     else {
@@ -633,7 +614,7 @@ public struct EasyRacer {
                     
                     if 300..<400 ~= response.statusCode {
                         DispatchQueue.global().asyncAfter(deadline: .now() + 1.0) {
-                            reportProcessLoad()
+                            reportProcessLoad(startWallTime: endWallTime, startCPUTime: endCPUTime)
                         }
                         return
                     }
@@ -652,7 +633,7 @@ public struct EasyRacer {
                 }
                 .resume()
         }
-        reportProcessLoad()
+        reportProcessLoad(startWallTime: currentWallTime(), startCPUTime: currentCPUTime())
     }
     
     // Runs scenarios one by one, blocking until they are all complete
