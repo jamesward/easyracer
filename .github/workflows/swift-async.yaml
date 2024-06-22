@@ -30,7 +30,7 @@ jobs:
         sleep 1
         sudo chmod a+rw /var/run/docker.sock
     - name: Run scenarios
-      run: swift test -c debug
+      run: swift test -c release
     defaults:
       run:
         working-directory: swift-async
