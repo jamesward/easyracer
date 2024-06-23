@@ -36,7 +36,7 @@ final class EasyRacerTests: XCTestCase {
 
         // Test
         let results = await EasyRacer(baseURL: baseURL).scenarios()
-        XCTAssertEqual(results.count, 9, "Number of Scenarios")
+        XCTAssertEqual(results.count, 10, "Number of Scenarios")
         for (idx, result) in results.enumerated() {
             XCTAssertEqual(result, "right", "Scenario \(idx + 1)")
         }
