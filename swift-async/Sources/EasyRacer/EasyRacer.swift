@@ -6,7 +6,7 @@ extension URLSession {
         
         guard
             let response = response as? HTTPURLResponse,
-            (200..<300).contains(response.statusCode)
+            200..<300 ~= response.statusCode
         else {
             throw URLError(.badServerResponse)
         }
@@ -232,6 +232,113 @@ public struct EasyRacer {
         return result
     }
     
+    func scenario10() async -> String? {
+        let url: URL = baseURL.appendingPathComponent("10")
+        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let id: String = UUID().uuidString
+        
+        guard
+            let urlComps: URLComponents = URLComponents(
+                url: url, resolvingAgainstBaseURL: false
+            )
+        else {
+            return nil
+        }
+        
+        @Sendable func request() async throws {
+            var blockerURLComps = urlComps
+            blockerURLComps.queryItems = [URLQueryItem(name: id, value: nil)]
+            guard
+                let blockerURL: URL = blockerURLComps.url
+            else {
+                throw URLError(.badServerResponse)
+            }
+            
+            let _ = try await urlSession.data(from: blockerURL)
+        }
+        @Sendable func blocking() async throws {
+            while true {
+                try Task.checkCancellation()
+                // busy wait
+            }
+        }
+        
+        func currentWallTime() -> TimeInterval {
+            var timeval: timeval = timeval()
+            // Should never error as parameters are valid
+            gettimeofday(&timeval, nil)
+            
+            return TimeInterval(timeval.tv_sec) + TimeInterval(timeval.tv_usec) / 1_000_000.0
+        }
+        func currentCPUTime() -> TimeInterval {
+            var rusage: rusage = rusage()
+            // Should never error as parameters are valid
+            getrusage(RUSAGE_SELF, &rusage)
+            let utime = rusage.ru_utime
+            let stime = rusage.ru_stime
+            let secs = utime.tv_sec + stime.tv_sec
+            let usecs = utime.tv_usec + stime.tv_usec
+            
+            return TimeInterval(secs) + TimeInterval(usecs) / 1_000_000.0
+        }
+        func reportProcessLoad(
+            startWallTime: TimeInterval, startCPUTime: TimeInterval
+        ) async throws -> String {
+            let endWallTime: TimeInterval = currentWallTime()
+            let endCPUTime: TimeInterval = currentCPUTime()
+            let totalUsageOfCPU: Double = (endCPUTime - startCPUTime) / (endWallTime - startWallTime)
+            
+            var reporterURLComps = urlComps
+            reporterURLComps.queryItems = [URLQueryItem(name: id, value: "\(totalUsageOfCPU)")]
+            guard
+                let reporterURL: URL = reporterURLComps.url
+            else {
+                throw URLError(.badURL)
+            }
+            
+            let (data, response) = try await urlSession.data(from: reporterURL)
+            
+            guard
+                let response: HTTPURLResponse = response as? HTTPURLResponse,
+                200..<400 ~= response.statusCode
+            else {
+                throw URLError(.badServerResponse)
+            }
+            
+            if 300..<400 ~= response.statusCode {
+                try await Task.sleep(nanoseconds: 1_000_000_000)
+                return try await reportProcessLoad(
+                    startWallTime: endWallTime, startCPUTime: endCPUTime
+                )
+            }
+            
+            guard
+                let text: String = String(data: data, encoding: .utf8)
+            else {
+                throw URLError(.cannotDecodeContentData)
+            }
+            
+            return text
+        }
+        
+        // Run blocker
+        async let blockerResult: Void? = withTaskGroup(of: Void?.self) { group in
+            defer { group.cancelAll() }
+            
+            group.addTask { try? await request() }
+            group.addTask { try? await blocking() }
+            
+            return await group.first { $0 != nil }.flatMap { $0 }
+        }
+        
+        // Run reporter
+        let result: String? = try? await reportProcessLoad(
+            startWallTime: currentWallTime(), startCPUTime: currentCPUTime()
+        )
+        
+        return await blockerResult.flatMap { result }
+    }
+    
     public func scenarios() async -> [String?] {
         [
             (1, await scenario1()),
@@ -242,6 +349,7 @@ public struct EasyRacer {
             (7, await scenario7()),
             (8, await scenario8()),
             (9, await scenario9()),
+            (10, await scenario10()),
             (3, await scenario3()), // This has to come last, as it frequently causes other scenarios to fail
         ].sorted { $0.0 < $1.0 }.map { $0.1 }
     }
