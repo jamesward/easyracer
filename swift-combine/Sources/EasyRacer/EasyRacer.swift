@@ -2,7 +2,7 @@ import Combine
 import Foundation
 
 extension URLSession {
-    func bodyTextTaskPublisher(for url: URL) -> Publishers.TryMap<URLSession.DataTaskPublisher, String> {
+    func bodyTextTaskPublisher(for url: URL) -> some Publisher<String, any Error> {
         dataTaskPublisher(for: url).tryMap { data, response in
             guard
                 let response = response as? HTTPURLResponse,
@@ -14,11 +14,23 @@ extension URLSession {
             guard
                 let text: String = String(data: data, encoding: .utf8)
             else {
-                throw URLError(.cannotDecodeContentData)
+                throw URLError(.cannotDecodeRawData)
             }
             
             return text
         }
+    }
+}
+
+extension Publishers {
+    static func count(from: Int) -> AnyPublisher<Int, Never> {
+        Just(from)
+            .delay(for: .microseconds(10), scheduler: DispatchQueue.global(qos: .background))
+            .flatMap {
+                count(from: from + 1)
+                    .prepend($0)
+            }
+            .eraseToAnyPublisher()
     }
 }
 
@@ -69,7 +81,7 @@ public struct EasyRacer {
 //        )
         let urlSessionCfg = URLSessionConfiguration.ephemeral
         urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
-        func publisher() -> Publishers.ReplaceError<Publishers.TryMap<URLSession.DataTaskPublisher, String?>> {
+        func publisher() -> some Publisher<String?, Never> {
             URLSession(configuration: urlSessionCfg)
                 .bodyTextTaskPublisher(for: url)
                 .map { $0 }.replaceError(with: nil)
@@ -219,6 +231,113 @@ public struct EasyRacer {
             .eraseToAnyPublisher()
     }
     
+    func scenario10() -> AnyPublisher<String, Never> {
+        let url: URL = baseURL.appendingPathComponent("10")
+        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let id: String = UUID().uuidString
+
+        guard
+            let urlComps: URLComponents = URLComponents(
+                url: url, resolvingAgainstBaseURL: false
+            )
+        else {
+            return Empty().eraseToAnyPublisher()
+        }
+
+        var blockerURLComps = urlComps
+        blockerURLComps.queryItems = [URLQueryItem(name: id, value: nil)]
+        guard
+            let blockerURL: URL = blockerURLComps.url
+        else {
+            return Empty().eraseToAnyPublisher()
+        }
+        let blocker: some Publisher<String?, Never> = urlSession
+            .bodyTextTaskPublisher(for: blockerURL)
+            .map { $0 }.replaceError(with: nil)
+
+        let blocking: some Publisher<String?, Never> = Publishers
+            .count(from: 0)
+            .map { _ in
+                for _ in 0..<1_000_000 {}
+                return nil
+            }
+
+        func currentWallTime() -> TimeInterval {
+            var timeval: timeval = timeval()
+            // Should never error as parameters are valid
+            gettimeofday(&timeval, nil)
+
+            return TimeInterval(timeval.tv_sec) + TimeInterval(timeval.tv_usec) / 1_000_000.0
+        }
+        func currentCPUTime() -> TimeInterval {
+            var rusage: rusage = rusage()
+            // Should never error as parameters are valid
+            getrusage(RUSAGE_SELF, &rusage)
+            let utime = rusage.ru_utime
+            let stime = rusage.ru_stime
+            let secs = utime.tv_sec + stime.tv_sec
+            let usecs = utime.tv_usec + stime.tv_usec
+
+            return TimeInterval(secs) + TimeInterval(usecs) / 1_000_000.0
+        }
+        func reportProcessLoad(
+            startWallTime: TimeInterval, startCPUTime: TimeInterval
+        ) -> AnyPublisher<String?, URLError> {
+            let endWallTime: TimeInterval = currentWallTime()
+            let endCPUTime: TimeInterval = currentCPUTime()
+            let totalUsageOfCPU: Double = (endCPUTime - startCPUTime) / (endWallTime - startWallTime)
+
+            var reporterURLComps = urlComps
+            reporterURLComps.queryItems = [URLQueryItem(name: id, value: "\(totalUsageOfCPU)")]
+            guard
+                let reporterURL: URL = reporterURLComps.url
+            else {
+                return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
+            }
+
+            return urlSession
+                .dataTaskPublisher(for: reporterURL)
+                .flatMap { data, response -> AnyPublisher<String?, URLError> in
+                    guard
+                        let response: HTTPURLResponse = response as? HTTPURLResponse,
+                        200..<400 ~= response.statusCode
+                    else {
+                        return Fail(error: URLError(.badServerResponse))
+                            .eraseToAnyPublisher()
+                    }
+
+                    if 300..<400 ~= response.statusCode {
+                        return Just(())
+                            .delay(for: .seconds(1), scheduler: DispatchQueue.global(qos: .background))
+                            .flatMap { _ in
+                                reportProcessLoad(
+                                    startWallTime: endWallTime, startCPUTime: endCPUTime
+                                )
+                            }
+                            .eraseToAnyPublisher()
+                    }
+
+                    guard
+                        let text: String = String(data: data, encoding: .utf8)
+                    else {
+                        return Fail(error: URLError(.cannotDecodeRawData))
+                            .eraseToAnyPublisher()
+                    }
+
+                    return Just(text).setFailureType(to: URLError.self).eraseToAnyPublisher()
+                }
+                .eraseToAnyPublisher()
+        }
+        let reporter: some Publisher<String?, Never> = reportProcessLoad(
+            startWallTime: currentWallTime(), startCPUTime: currentCPUTime()
+        ).replaceError(with: nil)
+
+        return blocker.merge(with: blocking).first { $0 != nil }
+            .merge(with: reporter)
+            .compactMap { $0 }.first { $0 != "" }
+            .eraseToAnyPublisher()
+    }
+
     public func scenarios() -> AnyPublisher<[String?], Never> {
         let scenarios = [
             (1, scenario1()),
@@ -229,6 +348,7 @@ public struct EasyRacer {
             (7, scenario7()),
             (8, scenario8()),
             (9, scenario9()),
+            (10, scenario10()),
             (3, scenario3()), // This has to come last, as it frequently causes other scenarios to fail
         ]
         return scenarios.publisher
