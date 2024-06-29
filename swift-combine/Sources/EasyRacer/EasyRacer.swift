@@ -1,3 +1,4 @@
+import Atomics
 import Combine
 import Foundation
 
@@ -22,15 +23,51 @@ extension URLSession {
     }
 }
 
-extension Publishers {
-    static func count(from: Int) -> AnyPublisher<Int, Never> {
-        Just(from)
-            .delay(for: .microseconds(10), scheduler: DispatchQueue.global(qos: .background))
-            .flatMap {
-                count(from: from + 1)
-                    .prepend($0)
+struct Repeating<Output>: Publisher {
+    typealias Failure = Never
+    
+    private let element: Output
+    
+    init(_ element: Output) {
+        self.element = element
+    }
+    
+    func receive<S>(subscriber: S) where S : Subscriber, Never == S.Failure, Output == S.Input {
+        let subscription: some Subscription = RepeatingSubscription(element, subscriber)
+        subscriber.receive(subscription: subscription)
+    }
+    
+    final class RepeatingSubscription<Downstream: Subscriber>: Subscription where Downstream.Input == Output, Downstream.Failure == Never {
+        private let element: Output
+        private let subscriber: Downstream
+        private var active: ManagedAtomic<Bool> = ManagedAtomic(true)
+        
+        init(_ element: Output, _ subscriber: Downstream) {
+            self.element = element
+            self.subscriber = subscriber
+        }
+        
+        func request(_ demand: Subscribers.Demand) {
+            if active.load(ordering: .relaxed) {
+                Task {
+                    if let count: Int = demand.max {
+                        let nextDemand: Subscribers.Demand? = (0..<count)
+                            .map { _ in subscriber.receive(element) }
+                            .last
+                        if let nextDemand: Subscribers.Demand = nextDemand {
+                            request(nextDemand)
+                        }
+                    } else {
+                        let nextDemand: Subscribers.Demand = subscriber.receive(element)
+                        request(nextDemand.max ?? 0 > 0 ? nextDemand : demand)
+                    }
+                }
             }
-            .eraseToAnyPublisher()
+        }
+        
+        func cancel() {
+            active.store(false, ordering: .relaxed)
+        }
     }
 }
 
@@ -255,12 +292,8 @@ public struct EasyRacer {
             .bodyTextTaskPublisher(for: blockerURL)
             .map { $0 }.replaceError(with: nil)
 
-        let blocking: some Publisher<String?, Never> = Publishers
-            .count(from: 0)
-            .map { _ in
-                for _ in 0..<1_000_000 {}
-                return nil
-            }
+        // Busy-wait by publishing nils as quickly as possible
+        let blocking: some Publisher<String?, Never> = Repeating(nil)
 
         func currentWallTime() -> TimeInterval {
             var timeval: timeval = timeval()
