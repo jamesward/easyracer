@@ -29,7 +29,7 @@ jobs:
         done
         npm install --no-fund
         npm install -g --save-dev --no-fund jest
-        npm run fix-memory-test
+        npm run fix-memory-limit
         npm test
     defaults:
       run:
