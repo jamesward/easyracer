@@ -84,7 +84,7 @@ update msg model =
         ( Running state, BlockingStep _ ) ->
             ( model
             , if state.keepBusy then
-                Task.succeed (BlockingStep (busyWait 10000))
+                Task.succeed (BlockingStep (busyWait 100000))
                     |> Task.perform identity
 
               else
