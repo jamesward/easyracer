@@ -4,12 +4,9 @@
     "xhr2": "0.2.1"
   },
   "devDependencies": {
-    "cross-env": "7.0.3",
-    "increase-memory-limit": "^1.0.5",
     "testcontainers": "10.10.0"
   },
   "scripts": {
-    "fix-memory-limit": "cross-env LIMIT=4096 increase-memory-limit",
     "test": "jest"
   }
 }
