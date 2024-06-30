@@ -1,4 +1,4 @@
-port module EasyRacer.Ports exposing (receiveCpuLoadPercent, requestCpuLoadPercent, sendResult)
+port module EasyRacer.Ports exposing (receiveCpuLoadResponse, sendCpuLoadRequest, sendResult)
 
 
 type alias ScenarioResult =
@@ -21,7 +21,7 @@ sendResult result =
                 { isError = True, value = error }
 
 
-port requestCpuLoadPercent : () -> Cmd msg
+port sendCpuLoadRequest : () -> Cmd msg
 
 
-port receiveCpuLoadPercent : (Float -> msg) -> Sub msg
+port receiveCpuLoadResponse : (Float -> msg) -> Sub msg

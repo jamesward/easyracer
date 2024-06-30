@@ -17,19 +17,18 @@ describe("EasyRacer", () => {
   });
 
   for (const idx of Array(10).keys()) {
-    const scenarioNum = idx + 1
+    const scenarioNum = idx + 1;
     it("scenario " + scenarioNum, async () => {
-      const name = "Scenario" + scenarioNum
+      const name = "Scenario" + scenarioNum;
       const { Elm } = require("../app/EasyRacer/" + name);
       const scenario = Elm.EasyRacer[name].init({
         flags: `http://${container.getHost()}:${container.getMappedPort(8080)}`
       });
       // For scenario 10
-      if (typeof scenario.ports.requestCpuLoadPercent !== 'undefined') {
-        scenario.ports.requestCpuLoadPercent.subscribe(function () {
+      if (typeof scenario.ports.sendCpuLoadRequest !== 'undefined') {
+        scenario.ports.sendCpuLoadRequest.subscribe(function () {
           os.cpuUsage(function (cpuLoadPercent) {
-            console.log("CPU " + cpuLoadPercent + "%");
-            scenario.ports.receiveCpuLoadPercent.send(cpuLoadPercent);
+            scenario.ports.receiveCpuLoadResponse.send(cpuLoadPercent);
           });
         });
       }
