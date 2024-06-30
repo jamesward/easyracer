@@ -23,7 +23,7 @@ type Model
 
 type Msg
     = NewId Int
-    | NewCpuLoadPercent Float
+    | NewCpuLoad Float
     | BlockerHttpResponse (Result Http.Error String)
     | ReporterHttpResponse Ports.FetchResponse
     | BlockingStep ()
@@ -83,7 +83,7 @@ update msg model =
             ( model
             , if state.keepBusy then
                 Process.sleep 0
-                    |> Task.andThen (\_ -> Task.succeed (BlockingStep (busyWait 1000000)))
+                    |> Task.andThen (\_ -> Task.succeed (BlockingStep (busyWait 10000000)))
                     |> Task.perform identity
 
               else
@@ -92,7 +92,7 @@ update msg model =
 
         -- Reporter
         -- Uses fetch for HTTP call, as Elm HTTP client doesn't allow manual redirect handling
-        ( Running state, NewCpuLoadPercent loadPercent ) ->
+        ( Running state, NewCpuLoad load ) ->
             let
                 url : String
                 url =
@@ -101,7 +101,7 @@ update msg model =
                         ++ "?"
                         ++ String.fromInt state.id
                         ++ "="
-                        ++ String.fromFloat (loadPercent / 100.0)
+                        ++ String.fromFloat load
             in
             ( model
             , Ports.sendFetchRequest url
@@ -133,7 +133,7 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Ports.receiveCpuLoadResponse NewCpuLoadPercent
+        [ Ports.receiveCpuLoadResponse NewCpuLoad
         , Ports.receiveFetchResponse ReporterHttpResponse
         ]
 

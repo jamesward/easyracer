@@ -27,9 +27,8 @@ describe("EasyRacer", () => {
       // For scenario 10
       if (typeof scenario.ports.sendCpuLoadRequest !== "undefined") {
         scenario.ports.sendCpuLoadRequest.subscribe(function () {
-          os.cpuUsage(function (cpuLoadPercent) {
-            console.log("CPU: " + cpuLoadPercent + "%");
-            scenario.ports.receiveCpuLoadResponse.send(cpuLoadPercent);
+          os.cpuUsage(function (cpuLoad) {
+            scenario.ports.receiveCpuLoadResponse.send(cpuLoad);
           });
         });
       }
