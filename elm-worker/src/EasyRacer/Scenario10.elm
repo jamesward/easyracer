@@ -49,8 +49,11 @@ init baseUrl =
 
 busyWait : Int -> ()
 busyWait iteration =
-    if iteration == 0 then ()
-    else busyWait (iteration - 1)
+    if iteration == 0 then
+        ()
+
+    else
+        busyWait (iteration - 1)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -84,7 +87,8 @@ update msg model =
         ( Running state, BlockingStep _ ) ->
             ( model
             , if state.keepBusy then
-                Task.succeed (BlockingStep (busyWait 100000))
+                Process.sleep 0
+                    |> Task.andThen (\_ -> Task.succeed (BlockingStep (busyWait 10000)))
                     |> Task.perform identity
 
               else
