@@ -37,6 +37,7 @@ describe("EasyRacer", () => {
       if (typeof scenario.ports.sendFetchRequest !== "undefined") {
         scenario.ports.sendFetchRequest.subscribe(function (url) {
           fetch(url, {"redirect": "manual"}).then(response => {
+            console.log("fetching: " + url);
             response.text().then(text => {
               scenario.ports.receiveFetchResponse.send({
                 "statusCode": response.status,
