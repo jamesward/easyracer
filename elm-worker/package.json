@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "os-utils": "0.0.14",
     "xhr2": "0.2.1"
   },
   "devDependencies": {
