@@ -24,13 +24,15 @@ describe("EasyRacer", () => {
       const scenario = Elm.EasyRacer[name].init({
         flags: `http://${container.getHost()}:${container.getMappedPort(8080)}`
       });
-      let resultPromise = new Promise((resolve, reject) => {
-        // For scenario 10
-        scenario.ports.requestCpuLoadPercent.subscribe(function() {
-          os.cpuUsage(function(cpuLoadPercent){
+      // For scenario 10
+      if (typeof scenario.ports.requestCpuLoadPercent !== 'undefined') {
+        scenario.ports.requestCpuLoadPercent.subscribe(function () {
+          os.cpuUsage(function (cpuLoadPercent) {
             scenario.ports.receiveCpuLoadPercent.send(cpuLoadPercent);
           });
         });
+      }
+      let resultPromise = new Promise((resolve, reject) => {
         scenario.ports.sendResult_.subscribe(function(scenarioResult) {
           if (scenarioResult.isError) {
             reject(new Error(scenarioResult.value));
