@@ -21,16 +21,11 @@ type Model
         }
 
 
-type ReporterResponse
-    = Done String
-    | Repeat
-
-
 type Msg
     = NewId Int
     | NewCpuLoadPercent Float
     | BlockerHttpResponse (Result Http.Error String)
-    | ReporterHttpResponse (Result Http.Error ReporterResponse)
+    | ReporterHttpResponse Ports.FetchResponse
     | BlockingStep ()
     | Perform (Cmd Msg)
 
@@ -71,7 +66,7 @@ update msg model =
                     { url = baseUrl ++ scenarioPath ++ "?" ++ String.fromInt id
                     , expect = Http.expectString BlockerHttpResponse
                     }
-                , Ports.requestCpuLoadPercent ()
+                , Ports.sendCpuLoadRequest ()
                 ]
             )
 
@@ -96,6 +91,7 @@ update msg model =
             )
 
         -- Reporter
+        -- Uses fetch for HTTP call, as Elm HTTP client doesn't allow manual redirect handling
         ( Running state, NewCpuLoadPercent loadPercent ) ->
             let
                 url : String
@@ -108,46 +104,22 @@ update msg model =
                         ++ String.fromFloat (loadPercent / 100.0)
             in
             ( model
-            , Http.get
-                { url = url
-                , expect =
-                    Http.expectStringResponse ReporterHttpResponse <|
-                        \response ->
-                            case response of
-                                Http.BadUrl_ badUrl ->
-                                    Err (Http.BadUrl badUrl)
-
-                                Http.Timeout_ ->
-                                    Err Http.Timeout
-
-                                Http.NetworkError_ ->
-                                    Err Http.NetworkError
-
-                                Http.BadStatus_ metadata _ ->
-                                    if metadata.statusCode /= 302 then
-                                        Err (Http.BadStatus metadata.statusCode)
-
-                                    else
-                                        Ok Repeat
-
-                                Http.GoodStatus_ _ body ->
-                                    Ok <| Done body
-                }
+            , Ports.sendFetchRequest url
             )
 
-        ( Running _, ReporterHttpResponse httpResult ) ->
+        ( Running _, ReporterHttpResponse { statusCode, bodyText } ) ->
             ( model
-            , case httpResult of
-                Ok (Done result) ->
-                    Ok result |> Ports.sendResult
+            , case statusCode of
+                200 ->
+                    Ok bodyText |> Ports.sendResult
 
-                Ok Repeat ->
+                302 ->
                     Process.sleep 1000
-                        |> Task.andThen (\_ -> Task.succeed (Perform (Ports.requestCpuLoadPercent ())))
+                        |> Task.andThen (\_ -> Task.succeed (Perform (Ports.sendCpuLoadRequest ())))
                         |> Task.perform identity
 
-                Err _ ->
-                    Err "reporter received error" |> Ports.sendResult
+                _ ->
+                    Err "reporter received unexpected response" |> Ports.sendResult
             )
 
         -- Miscellaneous
@@ -160,7 +132,10 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Ports.receiveCpuLoadPercent NewCpuLoadPercent
+    Sub.batch
+        [ Ports.receiveCpuLoadResponse NewCpuLoadPercent
+        , Ports.receiveFetchResponse ReporterHttpResponse
+        ]
 
 
 main : Program Flags Model Msg
