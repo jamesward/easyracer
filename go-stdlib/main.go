@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/struCoder/pidusage"
 	"io"
 	"net/http"
 	"os"
@@ -236,6 +238,71 @@ func scenario9(scenarioURL func(int) string) string {
 	return text
 }
 
+func scenario10(scenarioURL func(int) string) string {
+	url := scenarioURL(10)
+	id := uuid.New().String()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func(ctx context.Context) {
+		if ctx != nil {
+			for ctx.Err() == nil {
+			}
+		}
+	}(ctx)
+	go func() {
+		blockerURL := fmt.Sprintf("%s?%s", url, id)
+		_, err := httpText(blockerURL, ctx)
+		if err == nil {
+			cancel()
+		}
+	}()
+
+	var reporter func() (string, error)
+	reporter = func() (string, error) {
+		sysInfo, getStatErr := pidusage.GetStat(os.Getpid())
+		if getStatErr != nil {
+			return "", getStatErr
+		}
+
+		url := fmt.Sprintf("%s?%s=%.3f", url, id, sysInfo.CPU/100.0)
+
+		req, newReqErr := http.NewRequest("GET", url, nil)
+		if newReqErr != nil {
+			return "", newReqErr
+		}
+
+		resp, reqErr := http.DefaultClient.Do(req)
+		if reqErr != nil {
+			return "", reqErr
+		}
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+			return "", errors.New("non-2xx/3xx HTTP response")
+		}
+
+		if resp.StatusCode >= 300 {
+			time.Sleep(1 * time.Second)
+			return reporter()
+		}
+
+		defer resp.Body.Close()
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return "", readErr
+		}
+
+		return string(body), nil
+	}
+
+	result, err := reporter()
+
+	if err != nil {
+		return fmt.Sprintf("error in reporter: %v", err)
+	}
+
+	return result
+}
+
 func scenarios(scenarioURL func(int) string) []string {
 	return []string{
 		scenario1(scenarioURL),
@@ -247,6 +314,7 @@ func scenarios(scenarioURL func(int) string) []string {
 		scenario7(scenarioURL),
 		scenario8(scenarioURL),
 		scenario9(scenarioURL),
+		scenario10(scenarioURL),
 	}
 }
 
