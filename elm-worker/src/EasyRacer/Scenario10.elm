@@ -31,7 +31,7 @@ type Msg
     | NewCpuLoadPercent Float
     | BlockerHttpResponse (Result Http.Error String)
     | ReporterHttpResponse (Result Http.Error ReporterResponse)
-    | BlockingStep
+    | BlockingStep ()
     | Perform (Cmd Msg)
 
 
@@ -47,6 +47,12 @@ init baseUrl =
     )
 
 
+busyWait : Int -> ()
+busyWait iteration =
+    if iteration == 0 then ()
+    else busyWait (iteration - 1)
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( model, msg ) of
@@ -57,7 +63,7 @@ update msg model =
                 , keepBusy = True
                 }
             , Cmd.batch
-                [ Task.succeed BlockingStep |> Task.perform identity
+                [ Task.succeed (BlockingStep ()) |> Task.perform identity
                 , Http.get
                     { url = baseUrl ++ scenarioPath ++ "?" ++ String.fromInt id
                     , expect = Http.expectString BlockerHttpResponse
@@ -75,10 +81,11 @@ update msg model =
             )
 
         -- Blocking
-        ( Running state, BlockingStep ) ->
+        ( Running state, BlockingStep _ ) ->
             ( model
             , if state.keepBusy then
-                Task.succeed BlockingStep |> Task.perform identity
+                Task.succeed (BlockingStep (busyWait 1000000))
+                    |> Task.perform identity
 
               else
                 Cmd.none
