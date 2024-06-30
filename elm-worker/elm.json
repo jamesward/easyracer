@@ -7,7 +7,8 @@
     "dependencies": {
         "direct": {
             "elm/core": "1.0.5",
-            "elm/http": "2.0.0"
+            "elm/http": "2.0.0",
+            "elm/random": "1.0.0"
         },
         "indirect": {
             "elm/bytes": "1.0.8",

@@ -1,5 +1,6 @@
 global.XMLHttpRequest = require('xhr2');
 const { GenericContainer, Wait } = require("testcontainers");
+const os = require("os-utils");
 
 describe("EasyRacer", () => {
   let container;
@@ -22,6 +23,12 @@ describe("EasyRacer", () => {
       const { Elm } = require("../app/EasyRacer/" + name);
       const scenario = Elm.EasyRacer[name].init({
         flags: `http://${container.getHost()}:${container.getMappedPort(8080)}`
+      });
+      // For scenario 10
+      scenario.ports.requestCpuLoadPercent.subscribe(function() {
+        os.cpuUsage(function(cpuLoadPercent){
+          scenario.ports.receiveCpuLoadPercent.send(cpuLoadPercent);
+        });
       });
       let resultPromise = new Promise((resolve, reject) => {
         scenario.ports.sendResult_.subscribe(function(scenarioResult) {
