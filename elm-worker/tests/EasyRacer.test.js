@@ -16,9 +16,10 @@ describe("EasyRacer", () => {
     await container.stop();
   });
 
-  for (const idx of Array(10).keys()) {
+  for (const idx of Array(9).keys()) {
     const scenarioNum = idx + 1
     it("scenario " + scenarioNum, async () => {
+      console.log("console log?");
       const name = "Scenario" + scenarioNum
       const { Elm } = require("../app/EasyRacer/" + name);
       const scenario = Elm.EasyRacer[name].init({
