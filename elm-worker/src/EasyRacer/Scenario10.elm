@@ -119,7 +119,7 @@ update msg model =
                         |> Task.perform identity
 
                 _ ->
-                    Err "reporter received unexpected response" |> Ports.sendResult
+                    Err ("reporter received unexpected status " ++ String.fromInt statusCode) |> Ports.sendResult
             )
 
         -- Miscellaneous
