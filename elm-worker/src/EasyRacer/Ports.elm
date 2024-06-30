@@ -1,4 +1,15 @@
-port module EasyRacer.Ports exposing (receiveCpuLoadResponse, sendCpuLoadRequest, sendResult)
+port module EasyRacer.Ports exposing
+    ( FetchResponse
+    , receiveCpuLoadResponse
+    , receiveFetchResponse
+    , sendCpuLoadRequest
+    , sendFetchRequest
+    , sendResult
+    )
+
+--
+-- Send scenario results - used by all scenarios
+--
 
 
 type alias ScenarioResult =
@@ -21,7 +32,31 @@ sendResult result =
                 { isError = True, value = error }
 
 
+
+--
+-- Obtain Node CPU load - used by scenario 10
+--
+
+
 port sendCpuLoadRequest : () -> Cmd msg
 
 
 port receiveCpuLoadResponse : (Float -> msg) -> Sub msg
+
+
+
+--
+-- Use fetch for HTTP request - used by scenario 10
+--
+
+
+type alias FetchResponse =
+    { statusCode : Int
+    , bodyText : String
+    }
+
+
+port sendFetchRequest : String -> Cmd msg
+
+
+port receiveFetchResponse : (FetchResponse -> msg) -> Sub msg

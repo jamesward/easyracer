@@ -25,13 +25,26 @@ describe("EasyRacer", () => {
         flags: `http://${container.getHost()}:${container.getMappedPort(8080)}`
       });
       // For scenario 10
-      if (typeof scenario.ports.sendCpuLoadRequest !== 'undefined') {
+      if (typeof scenario.ports.sendCpuLoadRequest !== "undefined") {
         scenario.ports.sendCpuLoadRequest.subscribe(function () {
           os.cpuUsage(function (cpuLoadPercent) {
             scenario.ports.receiveCpuLoadResponse.send(cpuLoadPercent);
           });
         });
       }
+      if (typeof scenario.ports.sendFetchRequest !== "undefined") {
+        scenario.ports.sendFetchRequest.subscribe(function (url) {
+          fetch(url, {"redirect": "manual"}).then(response => {
+            response.text().then(text => {
+              scenario.ports.receiveFetchResponse.send({
+                "statusCode": response.status,
+                "bodyText": text
+              });
+            });
+          });
+        });
+      }
+
       let resultPromise = new Promise((resolve, reject) => {
         scenario.ports.sendResult_.subscribe(function(scenarioResult) {
           if (scenarioResult.isError) {
