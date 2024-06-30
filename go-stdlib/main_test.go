@@ -50,6 +50,7 @@ func TestScenarios(t *testing.T) {
 		scenario7,
 		scenario8,
 		scenario9,
+		scenario10,
 	}
 
 	for idx, scenario := range scenarios {
