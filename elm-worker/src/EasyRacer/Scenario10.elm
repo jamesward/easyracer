@@ -83,7 +83,7 @@ update msg model =
             ( model
             , if state.keepBusy then
                 Process.sleep 0
-                    |> Task.andThen (\_ -> Task.succeed (BlockingStep (busyWait 1000000000)))
+                    |> Task.andThen (\_ -> Task.succeed (BlockingStep (busyWait 1000000)))
                     |> Task.perform identity
 
               else
