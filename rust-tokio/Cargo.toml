@@ -2,10 +2,10 @@
 name = "rust_tokio"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.78"
+rust-version = "1.79"
 
 [dependencies]
-reqwest = "0.12.4"
+reqwest = "0.12.5"
 testcontainers = "0.19.0"
 tokio = { version = "1.37.0", features = ["rt-multi-thread", "macros"] }
 rand = "0.8.5"
