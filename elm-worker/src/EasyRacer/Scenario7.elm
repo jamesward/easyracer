@@ -58,7 +58,7 @@ init baseUrl =
                 in
                 case maybeDelay of
                     Just delay ->
-                        Task.perform (\_ -> Perform httpReqCmd) (Process.sleep delay)
+                        Process.sleep delay |> Task.perform (\_ -> Perform httpReqCmd)
 
                     Nothing ->
                         httpReqCmd
