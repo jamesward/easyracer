@@ -24,7 +24,7 @@ describe("EasyRacer", () => {
         flags: `http://${container.getHost()}:${container.getMappedPort(8080)}`
       });
       // For scenario 10
-      if (typeof scenario.ports.sendCpuLoadRequest !== "undefined") {
+      if (typeof scenario.ports.sendCpuUsageRequest !== "undefined") {
         scenario.ports.sendCpuUsageRequest.subscribe(function (wallTime) {
           const cpuUsage = process.cpuUsage()
           scenario.ports.receiveCpuUsageResponse.send({
@@ -37,7 +37,6 @@ describe("EasyRacer", () => {
       if (typeof scenario.ports.sendFetchRequest !== "undefined") {
         scenario.ports.sendFetchRequest.subscribe(function (url) {
           fetch(url, {"redirect": "manual"}).then(response => {
-            console.log("fetching: " + url);
             response.text().then(text => {
               scenario.ports.receiveFetchResponse.send({
                 "statusCode": response.status,
