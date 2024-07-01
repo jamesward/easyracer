@@ -5,7 +5,7 @@ import Http
 import Platform exposing (Program)
 import Process
 import Random
-import Task
+import Task exposing (Task)
 import Time
 
 
@@ -59,6 +59,20 @@ busyWait iteration =
         busyWait (iteration - 1)
 
 
+wallAndCpuTime : Task x (Cmd Msg)
+wallAndCpuTime =
+    Time.now
+        |> Task.andThen
+            (\now ->
+                let
+                    wallTimeMicros : Int
+                    wallTimeMicros =
+                        1000 * Time.posixToMillis now
+                in
+                Task.succeed (Ports.sendCpuUsageRequest wallTimeMicros)
+            )
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( model, msg ) of
@@ -75,17 +89,7 @@ update msg model =
                     { url = baseUrl ++ scenarioPath ++ "?" ++ String.fromInt id
                     , expect = Http.expectString BlockerHttpResponse
                     }
-                , Time.now
-                    |> Task.andThen
-                        (\now ->
-                            let
-                                wallTimeMicros : Int
-                                wallTimeMicros =
-                                    1000 * Time.posixToMillis now
-                            in
-                            Task.succeed (Ports.sendCpuUsageRequest wallTimeMicros)
-                        )
-                    |> Task.perform Perform
+                , wallAndCpuTime |> Task.perform Perform
                 ]
             )
 
@@ -135,7 +139,9 @@ update msg model =
                     Ports.sendFetchRequest url
 
                 Nothing ->
-                    Cmd.none
+                    Process.sleep 10
+                        |> Task.andThen (\_ -> wallAndCpuTime)
+                        |> Task.perform Perform
             )
 
         ( Running _, ReporterHttpResponse { statusCode, bodyText } ) ->
@@ -146,16 +152,7 @@ update msg model =
 
                 302 ->
                     Process.sleep 1000
-                        |> Task.andThen (\_ -> Time.now)
-                        |> Task.andThen
-                            (\now ->
-                                let
-                                    wallTimeMicros : Int
-                                    wallTimeMicros =
-                                        1000 * Time.posixToMillis now
-                                in
-                                Task.succeed (Ports.sendCpuUsageRequest wallTimeMicros)
-                            )
+                        |> Task.andThen (\_ -> wallAndCpuTime)
                         |> Task.perform Perform
 
                 _ ->
