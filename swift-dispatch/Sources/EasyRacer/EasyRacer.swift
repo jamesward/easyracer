@@ -3,6 +3,12 @@ import Foundation
 import FoundationNetworking
 #endif
 
+#if canImport(Darwin)
+let rusageSelf = RUSAGE_SELF
+#else
+let rusageSelf = RUSAGE_SELF.rawValue
+#endif
+
 extension URLSession {
     func bodyTextTask(
         with url: URL, completionHandler: @escaping (Result<String, Error>) -> Void
@@ -497,6 +503,139 @@ public struct EasyRacer {
         }
     }
     
+    func scenario10(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("10")
+        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let blockerGroup: DispatchGroup = DispatchGroup()
+        let id: String = UUID().uuidString
+        
+        guard
+            let urlComps: URLComponents = URLComponents(
+                url: url, resolvingAgainstBaseURL: false
+            )
+        else {
+            scenarioHandler(nil)
+            return
+        }
+        
+        // Set up blocking task without executing
+        var blockingTask: DispatchWorkItem?
+        blockingTask = DispatchWorkItem {
+            while true {
+                if blockingTask?.isCancelled ?? true {
+                    blockerGroup.leave()
+                    blockingTask = nil
+                    break
+                }
+                // busy waiting
+            }
+        }
+        
+        // Build "blocker" URL
+        var blockerURLComps = urlComps
+        blockerURLComps.queryItems = [URLQueryItem(name: id, value: nil)]
+        
+        guard
+            let blockerURL: URL = blockerURLComps.url
+        else {
+            scenarioHandler(nil)
+            return
+        }
+        
+        // Set up HTTP request without executing
+        let dataTask: URLSessionDataTask = urlSession
+            .dataTask(with: blockerURL) { _, _, _ in
+                // We don't much care what happens with this request
+                blockingTask?.cancel()
+                blockerGroup.leave()
+            }
+        
+        // Executing tasks, adding them to the DispatchGroup
+        blockerGroup.enter()
+        dataTask.resume()
+        
+        if let blockingTask = blockingTask {
+            blockerGroup.enter()
+            DispatchQueue.global().async(execute: blockingTask)
+        }
+        func cancelBlockerGroup() {
+            blockingTask?.cancel()
+            dataTask.cancel()
+            blockerGroup.notify(queue: .global()) {
+                scenarioHandler(nil)
+            }
+        }
+        
+        // Report process load
+        func currentWallTime() -> TimeInterval {
+            var timeval: timeval = timeval()
+            // Should never error as parameters are valid
+            gettimeofday(&timeval, nil)
+            
+            return TimeInterval(timeval.tv_sec) + TimeInterval(timeval.tv_usec) / 1_000_000.0
+        }
+        func currentCPUTime() -> TimeInterval {
+            var rusage: rusage = rusage()
+            // Should never error as parameters are valid
+            getrusage(rusageSelf, &rusage)
+            let utime = rusage.ru_utime
+            let stime = rusage.ru_stime
+            let secs = utime.tv_sec + stime.tv_sec
+            let usecs = utime.tv_usec + stime.tv_usec
+            
+            return TimeInterval(secs) + TimeInterval(usecs) / 1_000_000.0
+        }
+        func reportProcessLoad(startWallTime: TimeInterval, startCPUTime: TimeInterval) {
+            let endWallTime: TimeInterval = currentWallTime()
+            let endCPUTime: TimeInterval = currentCPUTime()
+            let totalUsageOfCPU: Double = (endCPUTime - startCPUTime) / (endWallTime - startWallTime)
+            
+            // Build "reporter" URL
+            var reporterURLComps = urlComps
+            reporterURLComps.queryItems = [URLQueryItem(name: id, value: "\(totalUsageOfCPU)")]
+            
+            guard
+                let reporterURL: URL = reporterURLComps.url
+            else {
+                cancelBlockerGroup()
+                return
+            }
+            
+            urlSession
+                .dataTask(with: reporterURL) { data, response, error in
+                    guard
+                        error == nil,
+                        let response: HTTPURLResponse = response as? HTTPURLResponse,
+                        (200..<400) ~= response.statusCode
+                    else {
+                        cancelBlockerGroup()
+                        return
+                    }
+                    
+                    if 300..<400 ~= response.statusCode {
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 1.0) {
+                            reportProcessLoad(startWallTime: endWallTime, startCPUTime: endCPUTime)
+                        }
+                        return
+                    }
+                    
+                    guard
+                        let data: Data = data,
+                        let text: String = String(data: data, encoding: .utf8)
+                    else {
+                        cancelBlockerGroup()
+                        return
+                    }
+                    
+                    blockerGroup.notify(queue: .global()) {
+                        scenarioHandler(text)
+                    }
+                }
+                .resume()
+        }
+        reportProcessLoad(startWallTime: currentWallTime(), startCPUTime: currentCPUTime())
+    }
+    
     // Runs scenarios one by one, blocking until they are all complete
     public func scenarios(scenariosHandler: @escaping @Sendable ([String?]) -> Void) {
         let scenarios = [
@@ -509,6 +648,7 @@ public struct EasyRacer {
             (7, scenario7),
             (8, scenario8),
             (9, scenario9),
+            (10, scenario10),
         ]
         let completions: DispatchSemaphore = DispatchSemaphore(value: 0)
         func sortResultsAndNotify(results: [(Int, String?)]) {

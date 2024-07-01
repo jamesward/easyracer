@@ -9,7 +9,7 @@ let package = Package(
         .macOS(.v10_14)
     ],
     dependencies: [
-        .package(url: "https://github.com/jackgene/docker-client-swift.git", branch: "feature/string-ipaddress"),
+        .package(url: "https://github.com/alexsteinerde/docker-client-swift.git", branch: "main"),
     ],
     targets: [
         .executableTarget(
