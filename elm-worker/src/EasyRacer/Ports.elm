@@ -1,8 +1,9 @@
 port module EasyRacer.Ports exposing
-    ( FetchResponse
-    , receiveCpuLoadResponse
+    ( ClockTimes
+    , FetchResponse
+    , receiveCpuUsageResponse
     , receiveFetchResponse
-    , sendCpuLoadRequest
+    , sendCpuUsageRequest
     , sendFetchRequest
     , sendResult
     )
@@ -38,10 +39,17 @@ sendResult result =
 --
 
 
-port sendCpuLoadRequest : () -> Cmd msg
+type alias ClockTimes =
+    { wall : Float
+    , user : Float
+    , system : Float
+    }
 
 
-port receiveCpuLoadResponse : (Float -> msg) -> Sub msg
+port sendCpuUsageRequest : Int -> Cmd msg
+
+
+port receiveCpuUsageResponse : (ClockTimes -> msg) -> Sub msg
 
 
 

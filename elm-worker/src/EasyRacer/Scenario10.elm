@@ -6,10 +6,17 @@ import Platform exposing (Program)
 import Process
 import Random
 import Task
+import Time
 
 
 type alias Flags =
     String
+
+
+type alias ClockTimes =
+    { wall : Float
+    , cpu : Float
+    }
 
 
 type Model
@@ -18,12 +25,13 @@ type Model
         { id : Int
         , baseUrl : String
         , keepBusy : Bool
+        , lastClockTimes : Maybe ClockTimes
         }
 
 
 type Msg
     = NewId Int
-    | NewCpuLoad Float
+    | NewCpuUsage Ports.ClockTimes
     | BlockerHttpResponse (Result Http.Error String)
     | ReporterHttpResponse Ports.FetchResponse
     | BlockingStep ()
@@ -59,6 +67,7 @@ update msg model =
                 { id = id
                 , baseUrl = baseUrl
                 , keepBusy = True
+                , lastClockTimes = Nothing
                 }
             , Cmd.batch
                 [ Task.succeed (BlockingStep ()) |> Task.perform identity
@@ -66,7 +75,17 @@ update msg model =
                     { url = baseUrl ++ scenarioPath ++ "?" ++ String.fromInt id
                     , expect = Http.expectString BlockerHttpResponse
                     }
-                , Ports.sendCpuLoadRequest ()
+                , Time.now
+                    |> Task.andThen
+                        (\now ->
+                            let
+                                wallTimeMicros : Int
+                                wallTimeMicros =
+                                    1000 * Time.posixToMillis now
+                            in
+                            Task.succeed (Ports.sendCpuUsageRequest wallTimeMicros)
+                        )
+                    |> Task.perform Perform
                 ]
             )
 
@@ -83,7 +102,7 @@ update msg model =
             ( model
             , if state.keepBusy then
                 Process.sleep 0
-                    |> Task.andThen (\_ -> Task.succeed (BlockingStep (busyWait 100000000)))
+                    |> Task.andThen (\_ -> Task.succeed (BlockingStep (busyWait 1000000)))
                     |> Task.perform identity
 
               else
@@ -92,19 +111,31 @@ update msg model =
 
         -- Reporter
         -- Uses fetch for HTTP call, as Elm HTTP client doesn't allow manual redirect handling
-        ( Running state, NewCpuLoad load ) ->
-            let
-                url : String
-                url =
-                    state.baseUrl
-                        ++ scenarioPath
-                        ++ "?"
-                        ++ String.fromInt state.id
-                        ++ "="
-                        ++ String.fromFloat load
-            in
-            ( model
-            , Ports.sendFetchRequest url
+        ( Running state, NewCpuUsage { wall, user, system } ) ->
+            ( Running
+                { state
+                    | lastClockTimes = Just { wall = wall, cpu = user + system }
+                }
+            , case state.lastClockTimes of
+                Just lastClockTimes ->
+                    let
+                        load : Float
+                        load =
+                            (user + system + lastClockTimes.cpu) / (wall + lastClockTimes.wall)
+
+                        url : String
+                        url =
+                            state.baseUrl
+                                ++ scenarioPath
+                                ++ "?"
+                                ++ String.fromInt state.id
+                                ++ "="
+                                ++ String.fromFloat load
+                    in
+                    Ports.sendFetchRequest url
+
+                Nothing ->
+                    Cmd.none
             )
 
         ( Running _, ReporterHttpResponse { statusCode, bodyText } ) ->
@@ -115,8 +146,17 @@ update msg model =
 
                 302 ->
                     Process.sleep 1000
-                        |> Task.andThen (\_ -> Task.succeed (Perform (Ports.sendCpuLoadRequest ())))
-                        |> Task.perform identity
+                        |> Task.andThen (\_ -> Time.now)
+                        |> Task.andThen
+                            (\now ->
+                                let
+                                    wallTimeMicros : Int
+                                    wallTimeMicros =
+                                        1000 * Time.posixToMillis now
+                                in
+                                Task.succeed (Ports.sendCpuUsageRequest wallTimeMicros)
+                            )
+                        |> Task.perform Perform
 
                 _ ->
                     Err ("reporter received unexpected status " ++ String.fromInt statusCode) |> Ports.sendResult
@@ -133,7 +173,7 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Ports.receiveCpuLoadResponse NewCpuLoad
+        [ Ports.receiveCpuUsageResponse NewCpuUsage
         , Ports.receiveFetchResponse ReporterHttpResponse
         ]
 

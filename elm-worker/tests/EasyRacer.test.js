@@ -1,15 +1,14 @@
 global.XMLHttpRequest = require('xhr2');
 const { GenericContainer, Wait } = require("testcontainers");
-const os = require("os-utils");
 
 describe("EasyRacer", () => {
   let container;
 
   beforeAll(async () => {
     container = await new GenericContainer("ghcr.io/jamesward/easyracer")
-      .withExposedPorts(8080)
-      .withWaitStrategy(Wait.forHttp("/", 8080))
-      .start();
+        .withExposedPorts(8080)
+        .withWaitStrategy(Wait.forHttp("/", 8080))
+        .start();
   }, 30_000);
 
   afterAll(async () => {
@@ -26,11 +25,12 @@ describe("EasyRacer", () => {
       });
       // For scenario 10
       if (typeof scenario.ports.sendCpuLoadRequest !== "undefined") {
-        scenario.ports.sendCpuLoadRequest.subscribe(function () {
-          os.cpuUsage(function (cpuLoad) {
-            const cpuCount = os.cpuCount();
-            console.log("CPU: " + cpuLoad * 100 + "% x " + cpuCount);
-            scenario.ports.receiveCpuLoadResponse.send(cpuLoad * cpuCount);
+        scenario.ports.sendCpuUsageRequest.subscribe(function (wallTime) {
+          const cpuUsage = process.cpuUsage()
+          scenario.ports.receiveCpuUsageResponse.send({
+            "wall": wallTime,
+            "user": cpuUsage.user,
+            "system": cpuUsage.system
           });
         });
       }
