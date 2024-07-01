@@ -24,7 +24,7 @@ jobs:
         elm-version: 0.19.1
     - run: |-
         echo Compiling Elm sources...
-        for num in {1..9}; do
+        for num in {1..10}; do
           elm make --optimize --output=app/EasyRacer/Scenario$num.js src/EasyRacer/Scenario$num.elm
         done
         npm install --no-fund

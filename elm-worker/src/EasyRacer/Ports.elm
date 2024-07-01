@@ -1,4 +1,16 @@
-port module EasyRacer.Ports exposing (sendResult)
+port module EasyRacer.Ports exposing
+    ( ClockTimes
+    , FetchResponse
+    , receiveCpuUsageResponse
+    , receiveFetchResponse
+    , sendCpuUsageRequest
+    , sendFetchRequest
+    , sendResult
+    )
+
+--
+-- Send scenario results - used by all scenarios
+--
 
 
 type alias ScenarioResult =
@@ -19,3 +31,40 @@ sendResult result =
 
             Err error ->
                 { isError = True, value = error }
+
+
+
+--
+-- Obtain Node CPU load - used by scenario 10
+--
+
+
+type alias ClockTimes =
+    { wall : Float
+    , user : Float
+    , system : Float
+    }
+
+
+port sendCpuUsageRequest : Int -> Cmd msg
+
+
+port receiveCpuUsageResponse : (ClockTimes -> msg) -> Sub msg
+
+
+
+--
+-- Use fetch for HTTP request - used by scenario 10
+--
+
+
+type alias FetchResponse =
+    { statusCode : Int
+    , bodyText : String
+    }
+
+
+port sendFetchRequest : String -> Cmd msg
+
+
+port receiveFetchResponse : (FetchResponse -> msg) -> Sub msg

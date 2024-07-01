@@ -3,7 +3,7 @@
     "xhr2": "0.2.1"
   },
   "devDependencies": {
-    "testcontainers": "9.1.3"
+    "testcontainers": "10.10.0"
   },
   "scripts": {
     "test": "jest"
