@@ -121,7 +121,7 @@ update msg model =
                     let
                         load : Float
                         load =
-                            (user + system + lastClockTimes.cpu) / (wall + lastClockTimes.wall)
+                            (user + system - lastClockTimes.cpu) / (wall - lastClockTimes.wall)
 
                         url : String
                         url =
