@@ -276,5 +276,6 @@ public struct EasyRacer {
         for (idx, result) in results.enumerated() {
             print("Scenario \(idx + 1): \(result ?? "error")")
         }
+        exit(results.allSatisfy { $0 != nil } ? EXIT_SUCCESS : EXIT_FAILURE)
     }
 }

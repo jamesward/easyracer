@@ -15,14 +15,17 @@
     - completed
 jobs:
   test:
-    runs-on: macos-14
+    runs-on: macos-latest
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
     - uses: actions/checkout@v4
-    - uses: atomicjar/testcontainers-cloud-setup-action@v1
-      with:
-        token: ${{ secrets.TC_CLOUD_TOKEN }}
-    - run: swift test -c release
+    - name: start scenario-server
+      run: |
+        ./sbt run &
+        sleep 10
+      working-directory: scenario-server
+    - name: run scenarios
+      run: swift run -c release
     defaults:
       run:
         working-directory: swift-combine
