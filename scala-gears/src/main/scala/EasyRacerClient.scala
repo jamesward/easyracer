@@ -154,7 +154,7 @@ object EasyRacerClient:
     def reporter: String =
       val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
       val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
-      val resp = req(s"${scenarioUrl(10)}?$id=$load").await
+      val resp = req(s"${scenarioUrl(10)}?$id=$load").await.link()
       if resp.code == 302 then
         AsyncOperations.sleep(1.second)
         reporter
