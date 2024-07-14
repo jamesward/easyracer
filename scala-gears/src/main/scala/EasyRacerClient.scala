@@ -52,7 +52,7 @@ object EasyRacerClient:
     def req = Future(scenarioRequest(url).execute().link().body().string())
     Seq(req, req).awaitFirstWithCancel
     // Or:
-    // req.orWithCancel(req).await.link().body().string()
+    // req.orWithCancel(req).await
 
   def scenario2(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(2)
