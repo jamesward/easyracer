@@ -69,12 +69,12 @@ object EasyRacerClient:
     val url = scenarioUrl(3)
     val reqs = Seq.fill(10000):
       Future(scenarioRequest(url).execute().link().body().string())
-    reqs.awaitFirst
+    reqs.awaitFirstWithCancel
 
   def scenario4(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(4)
     def req = Future(scenarioRequest(url).execute().link().body().string())
-    Seq(withTimeout(1.second)(req), req).awaitFirst
+    Seq(withTimeout(1.second)(req), req).awaitFirstWithCancel
 
   def scenario5(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(5)
