@@ -147,9 +147,9 @@ object EasyRacerClient:
           unlink()
 
         def start(): Unit =
-          var result = Random.nextBytes(512)
-          while (!cancelled.get())
-            result = messageDigest.digest(result)
+           @tailrec def digest(bytes: Array[Byte]): Unit =
+             if !cancelled.get() then digest(messageDigest.digest(bytes))
+           digest(Random.nextBytes(512))
       new BlockingCancellable().link().start()
 
     def blocker =
