@@ -151,6 +151,13 @@ object EasyRacerClient:
              if !cancelled.get() then digest(messageDigest.digest(bytes))
            digest(Random.nextBytes(512))
       new BlockingCancellable().link().start()
+    // Or:
+    // def blocking = Future:
+    //   @tailrec def digest(bytes: Array[Byte]): Unit =
+    //     // 0-time sleep introduces a suspension point for cancellation
+    //     AsyncOperations.sleep(0.nanosecond)
+    //     digest(messageDigest.digest(bytes))
+    //   digest(Random.nextBytes(512))
 
     def blocker =
       val url = s"${scenarioUrl(10)}?$id"
