@@ -74,12 +74,7 @@ object EasyRacerClient:
   def scenario4(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(4)
     def req = Future(scenarioRequest(url).execute().link().body().string())
-    // Does not work:
-//    Seq(withTimeout(1.second)(req), req).awaitFirst
-    def timeout =
-      AsyncOperations.sleep(1.second)
-      Future.rejected(TimeoutException())
-    Seq(req.orWithCancel(timeout), req).awaitFirst
+    Seq(withTimeout(1.second)(req), req).awaitFirst
 
   def scenario5(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(5)
