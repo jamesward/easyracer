@@ -53,11 +53,17 @@ object EasyRacerClient:
     Seq(req, req).awaitFirstWithCancel
     // Or:
     // req.orWithCancel(req).await
+    // Or:
+    // Async.race(req, req).await
 
   def scenario2(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(2)
     def req = Future(scenarioRequest(url).execute().link().body().string())
     Seq(req, req).awaitFirstWithCancel
+    // Or:
+    // req.orWithCancel(req).await
+    // Does not work (Async.race returns first to _complete_ - even if it completes with a failure):
+    // Async.race(req, req).await
 
   def scenario3(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(3)
