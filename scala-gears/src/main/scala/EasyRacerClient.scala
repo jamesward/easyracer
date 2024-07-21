@@ -113,7 +113,7 @@ object EasyRacerClient:
     def reqRes = Future:
       val id = open
       try use(id)
-      finally close(id)
+      finally uninterruptible(close(id))
 
     Seq(reqRes, reqRes).awaitFirstWithCancel
 
