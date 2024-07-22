@@ -53,27 +53,28 @@ object EasyRacerClient:
     Seq(req, req).awaitFirstWithCancel
     // Or:
     // req.orWithCancel(req).await
+    // Or:
+    // Async.race(req, req).await
 
   def scenario2(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(2)
     def req = Future(scenarioRequest(url).execute().link().body().string())
     Seq(req, req).awaitFirstWithCancel
+    // Or:
+    // req.orWithCancel(req).await
+    // Does not work (Async.race returns first to _complete_ - even if it completes with a failure):
+    // Async.race(req, req).await
 
   def scenario3(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(3)
     val reqs = Seq.fill(10000):
       Future(scenarioRequest(url).execute().link().body().string())
-    reqs.awaitFirst
+    reqs.awaitFirstWithCancel
 
   def scenario4(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(4)
     def req = Future(scenarioRequest(url).execute().link().body().string())
-    // Does not work:
-//    Seq(withTimeout(1.second)(req), req).awaitFirst
-    def timeout =
-      AsyncOperations.sleep(1.second)
-      Future.rejected(TimeoutException())
-    Seq(req.orWithCancel(timeout), req).awaitFirst
+    Seq(withTimeout(1.second)(req), req).awaitFirstWithCancel
 
   def scenario5(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(5)
@@ -112,7 +113,7 @@ object EasyRacerClient:
     def reqRes = Future:
       val id = open
       try use(id)
-      finally close(id)
+      finally uninterruptible(close(id))
 
     Seq(reqRes, reqRes).awaitFirstWithCancel
 
@@ -141,10 +142,17 @@ object EasyRacerClient:
           unlink()
 
         def start(): Unit =
-          var result = Random.nextBytes(512)
-          while (!cancelled.get())
-            result = messageDigest.digest(result)
+           @tailrec def digest(bytes: Array[Byte]): Unit =
+             if !cancelled.get() then digest(messageDigest.digest(bytes))
+           digest(Random.nextBytes(512))
       new BlockingCancellable().link().start()
+    // Or:
+    // def blocking = Future:
+    //   @tailrec def digest(bytes: Array[Byte]): Unit =
+    //     // 0-time sleep introduces a suspension point for cancellation
+    //     AsyncOperations.sleep(0.nanosecond)
+    //     digest(messageDigest.digest(bytes))
+    //   digest(Random.nextBytes(512))
 
     def blocker =
       val url = s"${scenarioUrl(10)}?$id"
