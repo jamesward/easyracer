@@ -24,7 +24,7 @@ extension URLSession {
 @main
 public struct EasyRacer {
     let baseURL: URL
-    let urlSession: URLSession = ScalableURLSession(
+    let urlSession: some URLSession = ScalableURLSession(
         configuration: {
             let configuration = URLSessionConfiguration.ephemeral
             configuration.httpMaximumConnectionsPerHost = 1_000
