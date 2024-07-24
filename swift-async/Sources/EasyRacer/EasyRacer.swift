@@ -63,28 +63,30 @@ public struct EasyRacer {
         // This doesn't seem to work - observed from the scenario server, it'll create
         // ~110 connections, and then stall.
         // URLSession is close-sourced, so it's hard to tell what is going on.
-//        let urlSession: URLSession = URLSession(
-//            configuration: {
-//                let urlSessionCfg = URLSessionConfiguration.ephemeral
-//                urlSessionCfg.httpMaximumConnectionsPerHost = 10_000
-//                return urlSessionCfg
-//            }(),
-//            delegate: nil,
-//            delegateQueue: {
-//                let opQueue: OperationQueue = OperationQueue()
-//                opQueue.maxConcurrentOperationCount = 10_000
-//                return opQueue
-//            }()
-//        )
-        let urlSessionCfg = URLSessionConfiguration.ephemeral
-        urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
+        func urlSession() -> URLSession {
+            URLSession(
+                configuration: {
+                    let configuration = URLSessionConfiguration.ephemeral
+                    configuration.httpMaximumConnectionsPerHost = 1_000
+                    configuration.timeoutIntervalForRequest = 120
+                    return configuration
+                }()
+            )
+        }
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
-            for _ in 1...10_000 {
-                group.addTask {
-                    try? await URLSession(configuration: urlSessionCfg).bodyText(from: url)
+            let requestsPerSession: Int = 100
+            let sessions: Int = 10_000 / requestsPerSession
+            for _ in 1...sessions {
+                let urlSession: URLSession = urlSession()
+                
+                for i in 1...requestsPerSession {
+                    group.addTask {
+                        try? await Task.sleep(nanoseconds: UInt64(i) * 50_000_000)
+                        return try? await urlSession.bodyText(from: url)
+                    }
                 }
             }
             
