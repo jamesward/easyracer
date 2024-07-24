@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "EasyRacer",
     platforms: [
-        .macOS(.v10_15)
+        .macOS(.v13)
     ],
     dependencies: [
         .package(url: "https://github.com/alexsteinerde/docker-client-swift.git", from: "0.1.2"),
