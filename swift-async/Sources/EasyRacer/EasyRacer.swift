@@ -24,10 +24,19 @@ extension URLSession {
 @main
 public struct EasyRacer {
     let baseURL: URL
-    
+    let urlSession: URLSession = ScalableURLSession(
+        configuration: {
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.httpMaximumConnectionsPerHost = 1_000
+            configuration.timeoutIntervalForRequest = 120
+            return configuration
+        }(),
+        requestsPerSession: 100,
+        timeIntervalBetweenRequests: 0.05 // 50ms
+    )
+
     func scenario1() async -> String? {
         let url: URL = baseURL.appendingPathComponent("1")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -43,7 +52,6 @@ public struct EasyRacer {
     
     func scenario2() async -> String? {
         let url: URL = baseURL.appendingPathComponent("2")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -59,34 +67,13 @@ public struct EasyRacer {
     
     func scenario3() async -> String? {
         let url: URL = baseURL.appendingPathComponent("3")
-        // Ideally, we'd use a single URLSession configured to handle 10k connections.
-        // This doesn't seem to work - observed from the scenario server, it'll create
-        // ~110 connections, and then stall.
-        // URLSession is close-sourced, so it's hard to tell what is going on.
-        func urlSession() -> URLSession {
-            URLSession(
-                configuration: {
-                    let configuration = URLSessionConfiguration.ephemeral
-                    configuration.httpMaximumConnectionsPerHost = 1_000
-                    configuration.timeoutIntervalForRequest = 120
-                    return configuration
-                }()
-            )
-        }
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
-            let requestsPerSession: Int = 100
-            let sessions: Int = 10_000 / requestsPerSession
-            for _ in 1...sessions {
-                let urlSession: URLSession = urlSession()
-                
-                for i in 1...requestsPerSession {
-                    group.addTask {
-                        try? await Task.sleep(nanoseconds: UInt64(i) * 50_000_000)
-                        return try? await urlSession.bodyText(from: url)
-                    }
+            for _ in 1...10_000 {
+                group.addTask {
+                    return try? await urlSession.bodyText(from: url)
                 }
             }
             
@@ -98,8 +85,7 @@ public struct EasyRacer {
     
     func scenario4() async -> String? {
         let url: URL = baseURL.appendingPathComponent("4")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        let urlSession1SecTimeout: URLSession = URLSession(configuration: {
+        let urlSession1SecTimeout: URLSession = Foundation.URLSession(configuration: {
             let configuration: URLSessionConfiguration = .ephemeral
             configuration.timeoutIntervalForRequest = 1
             return configuration
@@ -119,7 +105,6 @@ public struct EasyRacer {
     
     func scenario5() async -> String? {
         let url: URL = baseURL.appendingPathComponent("5")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -135,7 +120,6 @@ public struct EasyRacer {
     
     func scenario6() async -> String? {
         let url: URL = baseURL.appendingPathComponent("6")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -152,7 +136,6 @@ public struct EasyRacer {
     
     func scenario7() async -> String? {
         let url: URL = baseURL.appendingPathComponent("7")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -171,7 +154,6 @@ public struct EasyRacer {
     
     func scenario8() async -> String? {
         let url: URL = baseURL.appendingPathComponent("8")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
         @Sendable func doOpenUseAndClose() async throws -> String {
             guard
                 let urlComps: URLComponents = URLComponents(
@@ -234,11 +216,6 @@ public struct EasyRacer {
     
     func scenario9() async -> String? {
         let url: URL = baseURL.appendingPathComponent("9")
-        let urlSession: URLSession = URLSession(configuration: {
-            let configuration: URLSessionConfiguration = .ephemeral
-            configuration.httpMaximumConnectionsPerHost = 10 // Default is 6
-            return configuration
-        }())
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
