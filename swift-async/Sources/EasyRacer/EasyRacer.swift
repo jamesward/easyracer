@@ -234,7 +234,6 @@ public struct EasyRacer {
     
     func scenario10() async -> String? {
         let url: URL = baseURL.appendingPathComponent("10")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let id: String = UUID().uuidString
         
         guard
