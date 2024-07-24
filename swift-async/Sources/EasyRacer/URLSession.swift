@@ -16,7 +16,7 @@ extension Foundation.URLSession: URLSession {
 ///   - Requests are at least timeIntervalBetweenRequests apart
 ///     (Needed in some environments, e.g., GitHub Actions)
 actor ScalableURLSession: URLSession {
-    private static let nanosecondsPerSecond: UInt64 = 1_000_000_000
+    private static let nanosecondsPerSecond: Double = 1_000_000_000
     
     private let configuration: URLSessionConfiguration
     private let requestsPerSession: UInt
@@ -34,7 +34,7 @@ actor ScalableURLSession: URLSession {
                 currentDelegatee.finishTasksAndInvalidate()
                 currentDelegatee = Foundation.URLSession(configuration: configuration)
                 currentRequestCount = 0
-
+                
                 return currentDelegatee
             }
         }
@@ -48,17 +48,22 @@ actor ScalableURLSession: URLSession {
         self.configuration = configuration
         self.requestsPerSession = requestsPerSession
         self.timeIntervalBetweenRequests = timeIntervalBetweenRequests
-        self.currentDelegatee = Foundation.URLSession(configuration: configuration)
+        self.currentDelegatee = Foundation.URLSession(
+            configuration: configuration
+        )
     }
     
     func data(from url: URL) async throws -> (Data, URLResponse) {
-        defer {
-            nextRequestNotBefore = Date()
-                .addingTimeInterval(timeIntervalBetweenRequests)
-        }
         let delay: TimeInterval = nextRequestNotBefore.timeIntervalSinceNow
         if delay > 0 {
-            try await Task.sleep(nanoseconds: UInt64(delay) * Self.nanosecondsPerSecond)
+            nextRequestNotBefore = nextRequestNotBefore
+                .addingTimeInterval(timeIntervalBetweenRequests)
+            try await Task.sleep(
+                nanoseconds: UInt64(delay * Self.nanosecondsPerSecond)
+            )
+        } else {
+            nextRequestNotBefore = Date()
+                .addingTimeInterval(timeIntervalBetweenRequests)
         }
         
         return try await delegatee.data(from: url)
