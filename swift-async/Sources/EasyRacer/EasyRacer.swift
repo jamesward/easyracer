@@ -6,7 +6,7 @@ extension URLSession {
         
         guard
             let response = response as? HTTPURLResponse,
-            (200..<300).contains(response.statusCode)
+            200..<300 ~= response.statusCode
         else {
             throw URLError(.badServerResponse)
         }
@@ -24,10 +24,19 @@ extension URLSession {
 @main
 public struct EasyRacer {
     let baseURL: URL
+    let urlSession: some URLSession = ScalableURLSession(
+        configuration: {
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.httpMaximumConnectionsPerHost = 1_000
+            configuration.timeoutIntervalForRequest = 120
+            return configuration
+        }(),
+        requestsPerSession: 100,
+        timeIntervalBetweenRequests: 0.005 // 5ms
+    )
     
     func scenario1() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("1")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let url: URL = baseURL.appending(path: "1")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -42,8 +51,7 @@ public struct EasyRacer {
     }
     
     func scenario2() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("2")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let url: URL = baseURL.appending(path: "2")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -58,33 +66,14 @@ public struct EasyRacer {
     }
     
     func scenario3() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("3")
-        // Ideally, we'd use a single URLSession configured to handle 10k connections.
-        // This doesn't seem to work - observed from the scenario server, it'll create
-        // ~110 connections, and then stall.
-        // URLSession is close-sourced, so it's hard to tell what is going on.
-//        let urlSession: URLSession = URLSession(
-//            configuration: {
-//                let urlSessionCfg = URLSessionConfiguration.ephemeral
-//                urlSessionCfg.httpMaximumConnectionsPerHost = 10_000
-//                return urlSessionCfg
-//            }(),
-//            delegate: nil,
-//            delegateQueue: {
-//                let opQueue: OperationQueue = OperationQueue()
-//                opQueue.maxConcurrentOperationCount = 10_000
-//                return opQueue
-//            }()
-//        )
-        let urlSessionCfg = URLSessionConfiguration.ephemeral
-        urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
+        let url: URL = baseURL.appending(path: "3")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
             
             for _ in 1...10_000 {
                 group.addTask {
-                    try? await URLSession(configuration: urlSessionCfg).bodyText(from: url)
+                    return try? await urlSession.bodyText(from: url)
                 }
             }
             
@@ -95,9 +84,8 @@ public struct EasyRacer {
     }
     
     func scenario4() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("4")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
-        let urlSession1SecTimeout: URLSession = URLSession(configuration: {
+        let url: URL = baseURL.appending(path: "4")
+        let urlSession1SecTimeout: URLSession = Foundation.URLSession(configuration: {
             let configuration: URLSessionConfiguration = .ephemeral
             configuration.timeoutIntervalForRequest = 1
             return configuration
@@ -116,8 +104,7 @@ public struct EasyRacer {
     }
     
     func scenario5() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("5")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let url: URL = baseURL.appending(path: "5")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -132,8 +119,7 @@ public struct EasyRacer {
     }
     
     func scenario6() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("6")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let url: URL = baseURL.appending(path: "6")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -149,8 +135,7 @@ public struct EasyRacer {
     }
     
     func scenario7() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("7")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let url: URL = baseURL.appending(path: "7")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -168,49 +153,22 @@ public struct EasyRacer {
     }
     
     func scenario8() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("8")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let url: URL = baseURL.appending(path: "8")
         @Sendable func doOpenUseAndClose() async throws -> String {
-            guard
-                let urlComps: URLComponents = URLComponents(
-                    url: url, resolvingAgainstBaseURL: false
-                )
-            else {
-                throw URLError(.badURL)
-            }
-            
             // Open
-            var openURLComps = urlComps
-            openURLComps.queryItems = [URLQueryItem(name: "open", value: nil)]
-            
-            guard
-                let openURL: URL = openURLComps.url
-            else {
-                throw URLError(.badURL)
-            }
-            let id = try await urlSession.bodyText(from: openURL)
+            let id = try await urlSession.bodyText(
+                from: url.appending(queryItems: [.init(name: "open", value: nil)])
+            )
             
             // Use
-            var useURLComps = urlComps
-            useURLComps.queryItems = [URLQueryItem(name: "use", value: id)]
-            
-            guard
-                let useURL: URL = useURLComps.url
-            else {
-                throw URLError(.badURL)
-            }
-            let text: String? = try? await urlSession.bodyText(from: useURL)
+            let text: String? = try? await urlSession.bodyText(
+                from: url.appending(queryItems: [.init(name: "use", value: id)])
+            )
             
             // Close
-            var closeURLComps = urlComps
-            closeURLComps.queryItems = [URLQueryItem(name: "close", value: id)]
-            
-            guard
-                let closeURL: URL = closeURLComps.url
-            else {
-                throw URLError(.badURL)
-            }
-            let _ = try await urlSession.data(from: closeURL)
+            let _ = try await urlSession.data(
+                from: url.appending(queryItems: [.init(name: "close", value: id)])
+            )
             
             guard let text: String = text else {
                 throw URLError(.badServerResponse)
@@ -231,12 +189,7 @@ public struct EasyRacer {
     }
     
     func scenario9() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("9")
-        let urlSession: URLSession = URLSession(configuration: {
-            let configuration: URLSessionConfiguration = .ephemeral
-            configuration.httpMaximumConnectionsPerHost = 10 // Default is 6
-            return configuration
-        }())
+        let url: URL = baseURL.appending(path: "9")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -253,6 +206,92 @@ public struct EasyRacer {
         return result
     }
     
+    func scenario10() async -> String? {
+        let url: URL = baseURL.appending(path: "10")
+        let id: String = UUID().uuidString
+        
+        @Sendable func request() async throws {
+            let _ = try await urlSession.data(
+                from: url.appending(queryItems: [.init(name: id, value: nil)])
+            )
+        }
+        @Sendable func blocking() async throws {
+            while true {
+                try Task.checkCancellation()
+                // busy wait
+            }
+        }
+        
+        func currentWallTime() -> TimeInterval {
+            var timeval: timeval = timeval()
+            // Should never error as parameters are valid
+            gettimeofday(&timeval, nil)
+            
+            return TimeInterval(timeval.tv_sec) + TimeInterval(timeval.tv_usec) / 1_000_000.0
+        }
+        func currentCPUTime() -> TimeInterval {
+            var rusage: rusage = rusage()
+            // Should never error as parameters are valid
+            getrusage(RUSAGE_SELF, &rusage)
+            let utime = rusage.ru_utime
+            let stime = rusage.ru_stime
+            let secs = utime.tv_sec + stime.tv_sec
+            let usecs = utime.tv_usec + stime.tv_usec
+            
+            return TimeInterval(secs) + TimeInterval(usecs) / 1_000_000.0
+        }
+        func reportProcessLoad(
+            startWallTime: TimeInterval, startCPUTime: TimeInterval
+        ) async throws -> String {
+            let endWallTime: TimeInterval = currentWallTime()
+            let endCPUTime: TimeInterval = currentCPUTime()
+            let totalUsageOfCPU: Double = (endCPUTime - startCPUTime) / (endWallTime - startWallTime)
+            
+            let (data, response) = try await urlSession.data(
+                from: url.appending(queryItems: [.init(name: id, value: "\(totalUsageOfCPU)")])
+            )
+            
+            guard
+                let response: HTTPURLResponse = response as? HTTPURLResponse,
+                200..<400 ~= response.statusCode
+            else {
+                throw URLError(.badServerResponse)
+            }
+            
+            if 300..<400 ~= response.statusCode {
+                try await Task.sleep(nanoseconds: 1_000_000_000)
+                return try await reportProcessLoad(
+                    startWallTime: endWallTime, startCPUTime: endCPUTime
+                )
+            }
+            
+            guard
+                let text: String = String(data: data, encoding: .utf8)
+            else {
+                throw URLError(.cannotDecodeContentData)
+            }
+            
+            return text
+        }
+        
+        // Run blocker
+        async let blockerResult: Void? = withTaskGroup(of: Void?.self) { group in
+            defer { group.cancelAll() }
+            
+            group.addTask { try? await request() }
+            group.addTask { try? await blocking() }
+            
+            return await group.first { $0 != nil }.flatMap { $0 }
+        }
+        
+        // Run reporter
+        let result: String? = try? await reportProcessLoad(
+            startWallTime: currentWallTime(), startCPUTime: currentCPUTime()
+        )
+        
+        return await blockerResult.flatMap { result }
+    }
+    
     public func scenarios() async -> [String?] {
         [
             (1, await scenario1()),
@@ -263,6 +302,7 @@ public struct EasyRacer {
             (7, await scenario7()),
             (8, await scenario8()),
             (9, await scenario9()),
+            (10, await scenario10()),
             (3, await scenario3()), // This has to come last, as it frequently causes other scenarios to fail
         ].sorted { $0.0 < $1.0 }.map { $0.1 }
     }
@@ -276,5 +316,6 @@ public struct EasyRacer {
         for (idx, result) in results.enumerated() {
             print("Scenario \(idx + 1): \(result ?? "error")")
         }
+        exit(results.allSatisfy { $0 != nil } ? EXIT_SUCCESS : EXIT_FAILURE)
     }
 }

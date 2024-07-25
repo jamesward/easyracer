@@ -103,6 +103,10 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-ox", "21-ea")
   }
 
+  ["scala-gears"] = new {
+    steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-gears", "21")
+  }
+
   ["scala-kyo"] = new {
     steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-kyo", null)
   }

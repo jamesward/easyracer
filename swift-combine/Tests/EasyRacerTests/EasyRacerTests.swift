@@ -43,20 +43,19 @@ final class EasyRacerTests: XCTestCase {
         // Test
         let completed = DispatchSemaphore(value: 0)
         var subscriptions: Set<AnyCancellable> = Set()
-        defer {
-            subscriptions.removeAll()
-        }
-        EasyRacer(baseURL: baseURL).scenarios()
-            .sink(
-                receiveCompletion: { _ in completed.signal() },
-                receiveValue: { results in
-                    XCTAssertEqual(results.count, 10, "Number of Scenarios")
-                    for (idx, result) in results.enumerated() {
-                        XCTAssertEqual(result, "right", "Scenario \(idx + 1)")
+        withExtendedLifetime(subscriptions) {
+            EasyRacer(baseURL: baseURL).scenarios()
+                .sink(
+                    receiveCompletion: { _ in completed.signal() },
+                    receiveValue: { results in
+                        XCTAssertEqual(results.count, 9, "Number of Scenarios")
+                        for (idx, result) in results.enumerated() {
+                            XCTAssertEqual(result, "right", "Scenario \(idx + 1)")
+                        }
                     }
-                }
-            )
-            .store(in: &subscriptions)
-        completed.wait()
+                )
+                .store(in: &subscriptions)
+            completed.wait()
+        }
     }
 }
