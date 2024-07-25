@@ -34,7 +34,8 @@ public struct EasyRacer {
         }(),
         requestsPerSession: 100
     )
-    
+    let dispatchQueue = DispatchQueue(label: "easyracer")
+
     func scenario1() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("1")
         let publisher = urlSession
@@ -64,7 +65,7 @@ public struct EasyRacer {
             .MergeMany(
                 (1...10_000).map { i in
                     Just(())
-                        .delay(for: .milliseconds(i * 5), scheduler: DispatchQueue.global(qos: .background))
+                        .delay(for: .milliseconds(i / 100 * 500), scheduler: dispatchQueue)
                         .flatMap { _ in
                             urlSession
                                 .bodyTextTaskPublisher(for: url)
@@ -123,7 +124,7 @@ public struct EasyRacer {
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
         let delayedPublisher = Just(())
-            .delay(for: .seconds(3), scheduler: DispatchQueue.global())
+            .delay(for: .seconds(3), scheduler: dispatchQueue)
             .flatMap { _ in return publisher }
         
         return publisher.merge(with: delayedPublisher)
@@ -280,7 +281,7 @@ public struct EasyRacer {
                     
                     if 300..<400 ~= response.statusCode {
                         return Just(())
-                            .delay(for: .seconds(1), scheduler: DispatchQueue.global(qos: .background))
+                            .delay(for: .seconds(1), scheduler: dispatchQueue)
                             .flatMap { _ in
                                 reportProcessLoad(
                                     startWallTime: endWallTime, startCPUTime: endCPUTime
