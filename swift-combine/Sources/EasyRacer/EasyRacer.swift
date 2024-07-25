@@ -63,10 +63,13 @@ public struct EasyRacer {
         return Publishers
             .MergeMany(
                 (1...10_000).map { i in
-                    urlSession
-                        .bodyTextTaskPublisher(for: url)
-                        .delay(for: .milliseconds(i * 5), scheduler: DispatchQueue.global())
-                        .map { $0 }.replaceError(with: nil)
+                    Just(())
+                        .delay(for: .milliseconds(i * 5), scheduler: DispatchQueue.global(qos: .background))
+                        .flatMap { _ in
+                            urlSession
+                                .bodyTextTaskPublisher(for: url)
+                                .map { $0 }.replaceError(with: nil)
+                        }
                 }
             )
             .compactMap { $0 }.first()
