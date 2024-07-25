@@ -34,9 +34,9 @@ public struct EasyRacer {
         requestsPerSession: 100,
         timeIntervalBetweenRequests: 0.005 // 5ms
     )
-
+    
     func scenario1() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("1")
+        let url: URL = baseURL.appending(path: "1")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -51,7 +51,7 @@ public struct EasyRacer {
     }
     
     func scenario2() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("2")
+        let url: URL = baseURL.appending(path: "2")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -66,7 +66,7 @@ public struct EasyRacer {
     }
     
     func scenario3() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("3")
+        let url: URL = baseURL.appending(path: "3")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -84,7 +84,7 @@ public struct EasyRacer {
     }
     
     func scenario4() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("4")
+        let url: URL = baseURL.appending(path: "4")
         let urlSession1SecTimeout: URLSession = Foundation.URLSession(configuration: {
             let configuration: URLSessionConfiguration = .ephemeral
             configuration.timeoutIntervalForRequest = 1
@@ -104,7 +104,7 @@ public struct EasyRacer {
     }
     
     func scenario5() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("5")
+        let url: URL = baseURL.appending(path: "5")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -119,7 +119,7 @@ public struct EasyRacer {
     }
     
     func scenario6() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("6")
+        let url: URL = baseURL.appending(path: "6")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -135,7 +135,7 @@ public struct EasyRacer {
     }
     
     func scenario7() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("7")
+        let url: URL = baseURL.appending(path: "7")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -153,48 +153,22 @@ public struct EasyRacer {
     }
     
     func scenario8() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("8")
+        let url: URL = baseURL.appending(path: "8")
         @Sendable func doOpenUseAndClose() async throws -> String {
-            guard
-                let urlComps: URLComponents = URLComponents(
-                    url: url, resolvingAgainstBaseURL: false
-                )
-            else {
-                throw URLError(.badURL)
-            }
-            
             // Open
-            var openURLComps = urlComps
-            openURLComps.queryItems = [URLQueryItem(name: "open", value: nil)]
-            
-            guard
-                let openURL: URL = openURLComps.url
-            else {
-                throw URLError(.badURL)
-            }
-            let id = try await urlSession.bodyText(from: openURL)
+            let id = try await urlSession.bodyText(
+                from: url.appending(queryItems: [.init(name: "open", value: nil)])
+            )
             
             // Use
-            var useURLComps = urlComps
-            useURLComps.queryItems = [URLQueryItem(name: "use", value: id)]
-            
-            guard
-                let useURL: URL = useURLComps.url
-            else {
-                throw URLError(.badURL)
-            }
-            let text: String? = try? await urlSession.bodyText(from: useURL)
+            let text: String? = try? await urlSession.bodyText(
+                from: url.appending(queryItems: [.init(name: "use", value: id)])
+            )
             
             // Close
-            var closeURLComps = urlComps
-            closeURLComps.queryItems = [URLQueryItem(name: "close", value: id)]
-            
-            guard
-                let closeURL: URL = closeURLComps.url
-            else {
-                throw URLError(.badURL)
-            }
-            let _ = try await urlSession.data(from: closeURL)
+            let _ = try await urlSession.data(
+                from: url.appending(queryItems: [.init(name: "close", value: id)])
+            )
             
             guard let text: String = text else {
                 throw URLError(.badServerResponse)
@@ -215,7 +189,7 @@ public struct EasyRacer {
     }
     
     func scenario9() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("9")
+        let url: URL = baseURL.appending(path: "9")
         
         let result: String? = await withTaskGroup(of: String?.self) { group in
             defer { group.cancelAll() }
@@ -233,27 +207,13 @@ public struct EasyRacer {
     }
     
     func scenario10() async -> String? {
-        let url: URL = baseURL.appendingPathComponent("10")
+        let url: URL = baseURL.appending(path: "10")
         let id: String = UUID().uuidString
         
-        guard
-            let urlComps: URLComponents = URLComponents(
-                url: url, resolvingAgainstBaseURL: false
-            )
-        else {
-            return nil
-        }
-        
         @Sendable func request() async throws {
-            var blockerURLComps = urlComps
-            blockerURLComps.queryItems = [URLQueryItem(name: id, value: nil)]
-            guard
-                let blockerURL: URL = blockerURLComps.url
-            else {
-                throw URLError(.badServerResponse)
-            }
-            
-            let _ = try await urlSession.data(from: blockerURL)
+            let _ = try await urlSession.data(
+                from: url.appending(queryItems: [.init(name: id, value: nil)])
+            )
         }
         @Sendable func blocking() async throws {
             while true {
@@ -287,15 +247,9 @@ public struct EasyRacer {
             let endCPUTime: TimeInterval = currentCPUTime()
             let totalUsageOfCPU: Double = (endCPUTime - startCPUTime) / (endWallTime - startWallTime)
             
-            var reporterURLComps = urlComps
-            reporterURLComps.queryItems = [URLQueryItem(name: id, value: "\(totalUsageOfCPU)")]
-            guard
-                let reporterURL: URL = reporterURLComps.url
-            else {
-                throw URLError(.badURL)
-            }
-            
-            let (data, response) = try await urlSession.data(from: reporterURL)
+            let (data, response) = try await urlSession.data(
+                from: url.appending(queryItems: [.init(name: id, value: "\(totalUsageOfCPU)")])
+            )
             
             guard
                 let response: HTTPURLResponse = response as? HTTPURLResponse,
