@@ -1,4 +1,3 @@
-import Atomics
 import Combine
 import Foundation
 
@@ -19,54 +18,6 @@ extension URLSession {
             }
             
             return text
-        }
-    }
-}
-
-struct Repeating<Output>: Publisher {
-    typealias Failure = Never
-    
-    private let element: Output
-    
-    init(_ element: Output) {
-        self.element = element
-    }
-    
-    func receive<S>(subscriber: S) where S : Subscriber, Never == S.Failure, Output == S.Input {
-        let subscription: some Subscription = RepeatingSubscription(element, subscriber)
-        subscriber.receive(subscription: subscription)
-    }
-    
-    final class RepeatingSubscription<Downstream: Subscriber>: Subscription where Downstream.Input == Output, Downstream.Failure == Never {
-        private let element: Output
-        private let subscriber: Downstream
-        private var active: ManagedAtomic<Bool> = ManagedAtomic(true)
-        
-        init(_ element: Output, _ subscriber: Downstream) {
-            self.element = element
-            self.subscriber = subscriber
-        }
-        
-        func request(_ demand: Subscribers.Demand) {
-            if active.load(ordering: .relaxed) {
-                Task {
-                    if let count: Int = demand.max {
-                        let nextDemand: Subscribers.Demand? = (0..<count)
-                            .map { _ in subscriber.receive(element) }
-                            .last
-                        if let nextDemand: Subscribers.Demand = nextDemand {
-                            request(nextDemand)
-                        }
-                    } else {
-                        let nextDemand: Subscribers.Demand = subscriber.receive(element)
-                        request(nextDemand.max ?? 0 > 0 ? nextDemand : demand)
-                    }
-                }
-            }
-        }
-        
-        func cancel() {
-            active.store(false, ordering: .relaxed)
         }
     }
 }
@@ -255,9 +206,8 @@ public struct EasyRacer {
     
     func scenario10() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("10")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
         let id: String = UUID().uuidString
-
+        
         guard
             let urlComps: URLComponents = URLComponents(
                 url: url, resolvingAgainstBaseURL: false
@@ -265,7 +215,7 @@ public struct EasyRacer {
         else {
             return Empty().eraseToAnyPublisher()
         }
-
+        
         var blockerURLComps = urlComps
         blockerURLComps.queryItems = [URLQueryItem(name: id, value: nil)]
         guard
@@ -276,15 +226,15 @@ public struct EasyRacer {
         let blocker: some Publisher<String?, Never> = urlSession
             .bodyTextTaskPublisher(for: blockerURL)
             .map { $0 }.replaceError(with: nil)
-
+        
         // Busy-wait by publishing nils as quickly as possible
-        let blocking: some Publisher<String?, Never> = Repeating(nil)
-
+        let blocking: some Publisher<String?, Never> = Publishers.Repeating(nil)
+        
         func currentWallTime() -> TimeInterval {
             var timeval: timeval = timeval()
             // Should never error as parameters are valid
             gettimeofday(&timeval, nil)
-
+            
             return TimeInterval(timeval.tv_sec) + TimeInterval(timeval.tv_usec) / 1_000_000.0
         }
         func currentCPUTime() -> TimeInterval {
@@ -295,7 +245,7 @@ public struct EasyRacer {
             let stime = rusage.ru_stime
             let secs = utime.tv_sec + stime.tv_sec
             let usecs = utime.tv_usec + stime.tv_usec
-
+            
             return TimeInterval(secs) + TimeInterval(usecs) / 1_000_000.0
         }
         func reportProcessLoad(
@@ -304,7 +254,7 @@ public struct EasyRacer {
             let endWallTime: TimeInterval = currentWallTime()
             let endCPUTime: TimeInterval = currentCPUTime()
             let totalUsageOfCPU: Double = (endCPUTime - startCPUTime) / (endWallTime - startWallTime)
-
+            
             var reporterURLComps = urlComps
             reporterURLComps.queryItems = [URLQueryItem(name: id, value: "\(totalUsageOfCPU)")]
             guard
@@ -312,7 +262,7 @@ public struct EasyRacer {
             else {
                 return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
             }
-
+            
             return urlSession
                 .dataTaskPublisher(for: reporterURL)
                 .flatMap { data, response -> AnyPublisher<String?, URLError> in
@@ -323,7 +273,7 @@ public struct EasyRacer {
                         return Fail(error: URLError(.badServerResponse))
                             .eraseToAnyPublisher()
                     }
-
+                    
                     if 300..<400 ~= response.statusCode {
                         return Just(())
                             .delay(for: .seconds(1), scheduler: DispatchQueue.global(qos: .background))
@@ -334,14 +284,14 @@ public struct EasyRacer {
                             }
                             .eraseToAnyPublisher()
                     }
-
+                    
                     guard
                         let text: String = String(data: data, encoding: .utf8)
                     else {
                         return Fail(error: URLError(.cannotDecodeRawData))
                             .eraseToAnyPublisher()
                     }
-
+                    
                     return Just(text).setFailureType(to: URLError.self).eraseToAnyPublisher()
                 }
                 .eraseToAnyPublisher()
@@ -349,13 +299,13 @@ public struct EasyRacer {
         let reporter: some Publisher<String?, Never> = reportProcessLoad(
             startWallTime: currentWallTime(), startCPUTime: currentCPUTime()
         ).replaceError(with: nil)
-
+        
         return blocker.merge(with: blocking).first { $0 != nil }
             .merge(with: reporter)
             .compactMap { $0 }.first { $0 != "" }
             .eraseToAnyPublisher()
     }
-
+    
     public func scenarios() -> AnyPublisher<[String?], Never> {
         let scenarios = [
             (1, scenario1()),
