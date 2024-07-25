@@ -2,11 +2,11 @@ import Combine
 import Foundation
 
 extension URLSession {
-    func bodyTextTaskPublisher(for url: URL) -> Publishers.TryMap<URLSession.DataTaskPublisher, String> {
+    func bodyTextTaskPublisher(for url: URL) -> some Publisher<String, any Error> {
         dataTaskPublisher(for: url).tryMap { data, response in
             guard
                 let response = response as? HTTPURLResponse,
-                (200..<300).contains(response.statusCode)
+                200..<300 ~= response.statusCode
             else {
                 throw URLError(.badServerResponse)
             }
@@ -25,10 +25,19 @@ extension URLSession {
 @main
 public struct EasyRacer {
     let baseURL: URL
+    let urlSession: some URLSession = ScalableURLSession(
+        configuration: {
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.httpMaximumConnectionsPerHost = 1_000
+            configuration.timeoutIntervalForRequest = 120
+            return configuration
+        }(),
+        requestsPerSession: 100
+    )
     
     func scenario1() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("1")
-        let publisher = URLSession(configuration: .ephemeral)
+        let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
         
@@ -39,7 +48,7 @@ public struct EasyRacer {
     
     func scenario2() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("2")
-        let publisher = URLSession(configuration: .ephemeral)
+        let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
         
@@ -50,43 +59,25 @@ public struct EasyRacer {
     
     func scenario3() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("3")
-        // Ideally, we'd use a single URLSession configured to handle 10k connections.
-        // This doesn't seem to work - observed from the scenario server, it'll create
-        // ~110 connections, and then stall.
-        // URLSession is close-sourced, so it's hard to tell what is going on.
-//        let urlSession: URLSession = URLSession(
-//            configuration: {
-//                let urlSessionCfg = URLSessionConfiguration.ephemeral
-//                urlSessionCfg.httpMaximumConnectionsPerHost = 10_000
-//                return urlSessionCfg
-//            }(),
-//            delegate: nil,
-//            delegateQueue: {
-//                let opQueue: OperationQueue = OperationQueue()
-//                opQueue.maxConcurrentOperationCount = 10_000
-//                return opQueue
-//            }()
-//        )
-        let urlSessionCfg = URLSessionConfiguration.ephemeral
-        urlSessionCfg.timeoutIntervalForRequest = 900 // Seems to be required for GitHub Action environment
-        func publisher() -> Publishers.ReplaceError<Publishers.TryMap<URLSession.DataTaskPublisher, String?>> {
-            URLSession(configuration: urlSessionCfg)
-                .bodyTextTaskPublisher(for: url)
-                .map { $0 }.replaceError(with: nil)
-        }
         
         return Publishers
-            .MergeMany((1...10_000).map { _ in publisher() })
+            .MergeMany(
+                (1...10_000).map { _ in
+                    urlSession
+                        .bodyTextTaskPublisher(for: url)
+                        .map { $0 }.replaceError(with: nil)
+                }
+            )
             .compactMap { $0 }.first()
             .eraseToAnyPublisher()
     }
     
     func scenario4() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("4")
-        let publisher = URLSession(configuration: .ephemeral)
+        let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
-        let publisher1SecTimeout = URLSession(
+        let publisher1SecTimeout = Foundation.URLSession(
             configuration: {
                 let configuration: URLSessionConfiguration = .ephemeral
                 configuration.timeoutIntervalForRequest = 1
@@ -102,7 +93,7 @@ public struct EasyRacer {
     
     func scenario5() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("5")
-        let publisher = URLSession(configuration: .ephemeral)
+        let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
         
@@ -113,7 +104,7 @@ public struct EasyRacer {
     
     func scenario6() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("6")
-        let publisher = URLSession(configuration: .ephemeral)
+        let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
         
@@ -124,7 +115,7 @@ public struct EasyRacer {
     
     func scenario7() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("7")
-        let publisher = URLSession(configuration: .ephemeral)
+        let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
         let delayedPublisher = Just(())
@@ -138,7 +129,6 @@ public struct EasyRacer {
     
     func scenario8() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("8")
-        let urlSession: URLSession = URLSession(configuration: .ephemeral)
         
         guard
             let urlComps: URLComponents = URLComponents(
@@ -204,12 +194,7 @@ public struct EasyRacer {
     
     func scenario9() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appendingPathComponent("9")
-        let publisher = URLSession(
-            configuration: {
-                let configuration: URLSessionConfiguration = .ephemeral
-                configuration.httpMaximumConnectionsPerHost = 10 // Default is 6
-                return configuration
-            }())
+        let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
         
@@ -249,20 +234,22 @@ public struct EasyRacer {
         else { return }
         
         let completed = DispatchSemaphore(value: 0)
-        var disposeBag: Set<AnyCancellable> = Set()
-        EasyRacer(baseURL: baseURL).scenarios()
-            .sink(
-                receiveCompletion: { _ in completed.signal() },
-                receiveValue: { results in
-                    for (idx, result) in results.enumerated() {
-                        print("Scenario \(idx + 1): \(result ?? "error")")
+        var subscriptions: Set<AnyCancellable> = Set()
+        withExtendedLifetime(subscriptions) {
+            EasyRacer(baseURL: baseURL).scenarios()
+                .sink(
+                    receiveCompletion: { _ in completed.signal() },
+                    receiveValue: { results in
+                        for (idx, result) in results.enumerated() {
+                            print("Scenario \(idx + 1): \(result ?? "error")")
+                        }
+                        if !results.allSatisfy({ $0 != nil }) {
+                            exit(EXIT_FAILURE)
+                        }
                     }
-                    if !results.allSatisfy({ $0 != nil }) {
-                        exit(EXIT_FAILURE)
-                    }
-                }
-            )
-            .store(in: &disposeBag)
-        completed.wait()
+                )
+                .store(in: &subscriptions)
+            completed.wait()
+        }
     }
 }
