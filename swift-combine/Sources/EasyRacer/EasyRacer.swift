@@ -38,7 +38,7 @@ public struct EasyRacer {
     let dispatchQueue = DispatchQueue(label: "easyracer")
 
     func scenario1() -> AnyPublisher<String, Never> {
-        let url: URL = baseURL.appendingPathComponent("1")
+        let url: URL = baseURL.appending(path: "1")
         let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
@@ -49,7 +49,7 @@ public struct EasyRacer {
     }
     
     func scenario2() -> AnyPublisher<String, Never> {
-        let url: URL = baseURL.appendingPathComponent("2")
+        let url: URL = baseURL.appending(path: "2")
         let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
@@ -60,7 +60,7 @@ public struct EasyRacer {
     }
     
     func scenario3() -> AnyPublisher<String, Never> {
-        let url: URL = baseURL.appendingPathComponent("3")
+        let url: URL = baseURL.appending(path: "3")
         
         return Publishers
             .MergeMany(
@@ -75,7 +75,7 @@ public struct EasyRacer {
     }
     
     func scenario4() -> AnyPublisher<String, Never> {
-        let url: URL = baseURL.appendingPathComponent("4")
+        let url: URL = baseURL.appending(path: "4")
         let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
@@ -94,7 +94,7 @@ public struct EasyRacer {
     }
     
     func scenario5() -> AnyPublisher<String, Never> {
-        let url: URL = baseURL.appendingPathComponent("5")
+        let url: URL = baseURL.appending(path: "5")
         let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
@@ -105,7 +105,7 @@ public struct EasyRacer {
     }
     
     func scenario6() -> AnyPublisher<String, Never> {
-        let url: URL = baseURL.appendingPathComponent("6")
+        let url: URL = baseURL.appending(path: "6")
         let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
@@ -116,7 +116,7 @@ public struct EasyRacer {
     }
     
     func scenario7() -> AnyPublisher<String, Never> {
-        let url: URL = baseURL.appendingPathComponent("7")
+        let url: URL = baseURL.appending(path: "7")
         let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
@@ -130,58 +130,26 @@ public struct EasyRacer {
     }
     
     func scenario8() -> AnyPublisher<String, Never> {
-        let url: URL = baseURL.appendingPathComponent("8")
-        
-        guard
-            let urlComps: URLComponents = URLComponents(
-                url: url, resolvingAgainstBaseURL: false
-            )
-        else {
-            return Empty().eraseToAnyPublisher()
-        }
-        
-        // Build "open" URL
-        var openURLComps = urlComps
-        openURLComps.queryItems = [URLQueryItem(name: "open", value: nil)]
-        
-        guard
-            let openURL: URL = openURLComps.url
-        else {
-            return Empty().eraseToAnyPublisher()
-        }
+        let url: URL = baseURL.appending(path: "8")
         
         // Open
         let publisher = urlSession
-            .bodyTextTaskPublisher(for: openURL)
+            .bodyTextTaskPublisher(
+                for: url.appending(queryItems: [.init(name: "open", value: nil)])
+            )
             .flatMap { id in
                 // Use
-                var useURLComps = urlComps
-                useURLComps.queryItems = [URLQueryItem(name: "use", value: id)]
-                
-                guard
-                    let useURL: URL = useURLComps.url
-                else {
-                    return Fail<String?, any Error>(error: URLError(.badURL))
-                        .eraseToAnyPublisher()
-                }
-                
-                return urlSession
-                    .bodyTextTaskPublisher(for: useURL)
+                urlSession
+                    .bodyTextTaskPublisher(
+                        for: url.appending(queryItems: [.init(name: "use", value: id)])
+                    )
                     .map { $0 }.replaceError(with: nil) // so that we close even if use call errored
                     .flatMap { text in
                         // Close
-                        var closeURLComps = urlComps
-                        closeURLComps.queryItems = [URLQueryItem(name: "close", value: id)]
-                        
-                        guard
-                            let closeURL: URL = closeURLComps.url
-                        else {
-                            return Fail<String?, any Error>(error: URLError(.badURL))
-                                .eraseToAnyPublisher()
-                        }
-                        
-                        return urlSession
-                            .bodyTextTaskPublisher(for: closeURL)
+                        urlSession
+                            .bodyTextTaskPublisher(
+                                for: url.appending(queryItems: [.init(name: "close", value: id)])
+                            )
                             .map { _ in  text }
                             .eraseToAnyPublisher()
                     }
@@ -195,7 +163,7 @@ public struct EasyRacer {
     }
     
     func scenario9() -> AnyPublisher<String, Never> {
-        let url: URL = baseURL.appendingPathComponent("9")
+        let url: URL = baseURL.appending(path: "9")
         let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
@@ -207,26 +175,13 @@ public struct EasyRacer {
     }
     
     func scenario10() -> AnyPublisher<String, Never> {
-        let url: URL = baseURL.appendingPathComponent("10")
+        let url: URL = baseURL.appending(path: "10")
         let id: String = UUID().uuidString
         
-        guard
-            let urlComps: URLComponents = URLComponents(
-                url: url, resolvingAgainstBaseURL: false
-            )
-        else {
-            return Empty().eraseToAnyPublisher()
-        }
-        
-        var blockerURLComps = urlComps
-        blockerURLComps.queryItems = [URLQueryItem(name: id, value: nil)]
-        guard
-            let blockerURL: URL = blockerURLComps.url
-        else {
-            return Empty().eraseToAnyPublisher()
-        }
         let blocker: some Publisher<String?, Never> = urlSession
-            .bodyTextTaskPublisher(for: blockerURL)
+            .bodyTextTaskPublisher(
+                for: url.appending(queryItems: [.init(name: id, value: nil)])
+            )
             .map { $0 }.replaceError(with: nil)
         
         // Busy-wait by publishing nils as quickly as possible
@@ -257,16 +212,10 @@ public struct EasyRacer {
             let endCPUTime: TimeInterval = currentCPUTime()
             let totalUsageOfCPU: Double = (endCPUTime - startCPUTime) / (endWallTime - startWallTime)
             
-            var reporterURLComps = urlComps
-            reporterURLComps.queryItems = [URLQueryItem(name: id, value: "\(totalUsageOfCPU)")]
-            guard
-                let reporterURL: URL = reporterURLComps.url
-            else {
-                return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
-            }
-            
             return urlSession
-                .dataTaskPublisher(for: reporterURL)
+                .dataTaskPublisher(
+                    for: url.appending(queryItems: [.init(name: id, value: "\(totalUsageOfCPU)")])
+                )
                 .flatMap { data, response -> AnyPublisher<String?, URLError> in
                     guard
                         let response: HTTPURLResponse = response as? HTTPURLResponse,
