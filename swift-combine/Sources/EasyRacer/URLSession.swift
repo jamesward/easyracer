@@ -21,9 +21,11 @@ extension Foundation.URLSession: URLSession {
 class ScalableURLSession: URLSession {
     private let configuration: URLSessionConfiguration
     private let requestsPerSession: UInt
+    private let timeIntervalBetweenRequests: TimeInterval
     private let syncQueue: DispatchQueue = .init(
-        label: "sync-queue", attributes: .concurrent
+        label: "urlsession-serialize", attributes: .concurrent
     )
+    private let delayQueue: DispatchQueue = .init(label: "urlsession-delay")
     
     private var currentDelegatee: Foundation.URLSession
     private var currentRequestCount: UInt = 0
@@ -44,18 +46,31 @@ class ScalableURLSession: URLSession {
     
     init(
         configuration: URLSessionConfiguration,
-        requestsPerSession: UInt = 100
+        requestsPerSession: UInt = 100,
+        timeIntervalBetweenRequests: TimeInterval = 0.001
     ) {
         self.configuration = configuration
         self.requestsPerSession = requestsPerSession
+        self.timeIntervalBetweenRequests = timeIntervalBetweenRequests
         self.currentDelegatee = Foundation.URLSession(
             configuration: configuration
         )
     }
     
-    func dataTaskPublisher(for url: URL) -> some Publisher<(data: Data, response: URLResponse), URLError> {
+    func dataTaskPublisher(for url: URL) -> some Publisher<
+        (data: Data, response: URLResponse), URLError
+    > {
         syncQueue.sync(flags: .barrier) {
-            delegatee.dataTaskPublisher(for: url)
+            let delay: TimeInterval = nextRequestNotBefore.timeIntervalSinceNow
+            let requestTime: Date = delay > 0 ? nextRequestNotBefore : Date()
+            nextRequestNotBefore = requestTime
+                .addingTimeInterval(timeIntervalBetweenRequests)
+            
+            return Just(())
+                .delay(for: .seconds(max(0, delay)), scheduler: delayQueue)
+                .flatMap { _ in
+                    self.delegatee.dataTaskPublisher(for: url)
+                }
         }
     }
 }

@@ -32,7 +32,8 @@ public struct EasyRacer {
             configuration.timeoutIntervalForRequest = 120
             return configuration
         }(),
-        requestsPerSession: 100
+        requestsPerSession: 100,
+        timeIntervalBetweenRequests: 0.005 // 5ms
     )
     let dispatchQueue = DispatchQueue(label: "easyracer")
 
@@ -63,14 +64,10 @@ public struct EasyRacer {
         
         return Publishers
             .MergeMany(
-                (1...10_000).map { i in
-                    Just(())
-                        .delay(for: .milliseconds(i / 100 * 500), scheduler: dispatchQueue)
-                        .flatMap { _ in
-                            urlSession
-                                .bodyTextTaskPublisher(for: url)
-                                .map { $0 }.replaceError(with: nil)
-                        }
+                (1...10_000).map { _ in
+                    urlSession
+                        .bodyTextTaskPublisher(for: url)
+                        .map { $0 }.replaceError(with: nil)
                 }
             )
             .compactMap { $0 }.first()
