@@ -79,14 +79,8 @@ public struct EasyRacer {
         let publisher = urlSession
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
-        let publisher1SecTimeout = Foundation.URLSession(
-            configuration: {
-                let configuration: URLSessionConfiguration = .ephemeral
-                configuration.timeoutIntervalForRequest = 1
-                return configuration
-            }())
-            .bodyTextTaskPublisher(for: url)
-            .map { $0 }.replaceError(with: nil)
+        let publisher1SecTimeout = publisher
+            .timeout(.seconds(1), scheduler: dispatchQueue)
         
         return publisher.merge(with: publisher1SecTimeout)
             .compactMap { $0 }.first()
