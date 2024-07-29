@@ -99,6 +99,10 @@ clients = new Mapping<String, Run> {
     }
   }
 
+  ["scala-akkastreams"] = new {
+    steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-akkastreams", "21")
+  }
+
   ["scala-ce3"] = new {
     steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-ox", "21-ea")
   }
