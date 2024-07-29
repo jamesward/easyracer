@@ -19,7 +19,7 @@ clients = new Mapping<String, Run> {
       new {
         run = """
           echo Compiling Elm sources...
-          for num in {1..9}; do
+          for num in {1..10}; do
             elm make --optimize --output=app/EasyRacer/Scenario$num.js src/EasyRacer/Scenario$num.elm
           done
           npm install --no-fund
@@ -97,6 +97,10 @@ clients = new Mapping<String, Run> {
         run = "cargo test"
       }
     }
+  }
+
+  ["scala-akkastreams"] = new {
+    steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-akkastreams", "21")
   }
 
   ["scala-ce3"] = new {
