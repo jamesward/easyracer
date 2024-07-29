@@ -130,17 +130,28 @@ clients = new Mapping<String, Run> {
       }
     }
     new {
+      name = "Set up Docker socket"
+      run = """
+        brew install socat
+        DOCKER_PORT=$(grep tc.host ~/.testcontainers.properties | cut -d: -f3)
+        sudo socat UNIX-LISTEN:/var/run/docker.sock,reuseaddr,fork TCP-CONNECT:127.0.0.1:$DOCKER_PORT &
+        sleep 2
+        sudo chmod a+rw /var/run/docker.sock
+        """
+    }
+    new {
+      name = "Run scenarios"
       run = "swift test -c release"
     }
   }
 
   ["swift-async"] = new {
-    `runs-on` = "macos-14"
+    `runs-on` = "macos-latest"
     steps = swiftSteps
   }
 
   ["swift-combine"] = new {
-    `runs-on` = "macos-14"
+    `runs-on` = "macos-latest"
     steps = swiftSteps
   }
 
