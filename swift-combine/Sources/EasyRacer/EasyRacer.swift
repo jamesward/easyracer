@@ -61,12 +61,14 @@ public struct EasyRacer {
     
     func scenario3() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appending(path: "3")
-        let publisher = urlSession
-            .bodyTextTaskPublisher(for: url)
-            .map { $0 }.replaceError(with: nil)
+        func publisher() -> some Publisher<String?, Never> {
+            urlSession
+                .bodyTextTaskPublisher(for: url)
+                .map { $0 }.replaceError(with: nil)
+        }
         
         return Publishers
-            .MergeMany((1...10_000).map { _ in publisher })
+            .MergeMany((1...10_000).map { _ in publisher() })
             .compactMap { $0 }.first()
             .eraseToAnyPublisher()
     }
