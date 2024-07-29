@@ -61,15 +61,12 @@ public struct EasyRacer {
     
     func scenario3() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appending(path: "3")
+        let publisher = urlSession
+            .bodyTextTaskPublisher(for: url)
+            .map { $0 }.replaceError(with: nil)
         
         return Publishers
-            .MergeMany(
-                (1...10_000).map { _ in
-                    urlSession
-                        .bodyTextTaskPublisher(for: url)
-                        .map { $0 }.replaceError(with: nil)
-                }
-            )
+            .MergeMany((1...10_000).map { _ in publisher })
             .compactMap { $0 }.first()
             .eraseToAnyPublisher()
     }
@@ -132,28 +129,28 @@ public struct EasyRacer {
     func scenario8() -> AnyPublisher<String, Never> {
         let url: URL = baseURL.appending(path: "8")
         
-        // Open
-        let publisher = urlSession
+        let open = urlSession
             .bodyTextTaskPublisher(
                 for: url.appending(queryItems: [.init(name: "open", value: nil)])
             )
+        func use(id: String) -> some Publisher<String, any Error> {
+            urlSession.bodyTextTaskPublisher(
+                for: url.appending(queryItems: [.init(name: "use", value: id)])
+            )
+        }
+        func close(id: String) -> some Publisher<String, any Error> {
+            urlSession.bodyTextTaskPublisher(
+                for: url.appending(queryItems: [.init(name: "close", value: id)])
+            )
+        }
+        
+        let publisher = open
             .flatMap { id in
-                // Use
-                urlSession
-                    .bodyTextTaskPublisher(
-                        for: url.appending(queryItems: [.init(name: "use", value: id)])
-                    )
+                use(id: id)
                     .map { $0 }.replaceError(with: nil) // so that we close even if use call errored
                     .flatMap { text in
-                        // Close
-                        urlSession
-                            .bodyTextTaskPublisher(
-                                for: url.appending(queryItems: [.init(name: "close", value: id)])
-                            )
-                            .map { _ in  text }
-                            .eraseToAnyPublisher()
+                        close(id: id).map { _ in  text }
                     }
-                    .eraseToAnyPublisher()
             }
             .replaceError(with: nil)
         
