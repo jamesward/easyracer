@@ -35,13 +35,13 @@ class EasyRacerClientSpec extends AnyFlatSpec with Matchers with ScalaFutures wi
     super.afterAll()
 
   implicit val defaultPatience: PatienceConfig = PatienceConfig(timeout = Span(30, Seconds))
-  private val es = Executors.newCachedThreadPool()
+  private val es = Executors.newSingleThreadExecutor()
   implicit private val system: ActorSystem = ActorSystem("easyracer")
   implicit private val ec: ExecutionContext = system.dispatcher
   private lazy val httpFlow =
     asyncHttpClient(
       config()
-        .setEventLoopGroup(NioEventLoopGroup(100, es))
+        .setEventLoopGroup(NioEventLoopGroup(1, es))
         .setMaxConnections(12_000)
         .setMaxConnectionsPerHost(12_000)
     ).outgoingConnection("localhost", port)
