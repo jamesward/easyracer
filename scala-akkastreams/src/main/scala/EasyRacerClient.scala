@@ -3,6 +3,8 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri.Query
 import akka.http.scaladsl.model.{HttpResponse, StatusCode, StatusCodes}
 import com.sun.management.OperatingSystemMXBean
+import io.netty.channel.nio.NioEventLoopGroup
+import org.asynchttpclient.Dsl.*
 
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
@@ -13,7 +15,6 @@ import scala.util.Random
 import akka.http.scaladsl.model.{HttpRequest, Uri}
 import akka.stream.scaladsl.{Flow, Source}
 import akka.util.ByteString
-import okhttp3.{Dispatcher, OkHttpClient}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.*
@@ -173,18 +174,18 @@ object EasyRacerClient:
 
 @main def run(): Unit =
   import EasyRacerClient.*
-  implicit val system: ActorSystem = ActorSystem("easyracer")
+  val es = Executors.newWorkStealingPool()
+  implicit val system: ActorSystem = ActorSystem("easyracer", defaultExecutionContext = Some(ExecutionContext.fromExecutorService(es)))
   implicit val ec: ExecutionContext = system.dispatcher
-  val okHttpDispatcher = Dispatcher(Executors.newVirtualThreadPerTaskExecutor())
-  okHttpDispatcher.setMaxRequests(10_000)
-  okHttpDispatcher.setMaxRequestsPerHost(10_000)
-  // Akka HTTP does not handle request cancellation, hence using OkHttp adapted to Akka Streams
+  // Akka HTTP does not handle request cancellation, hence using AsyncHttpClient adapted to Akka Streams
   val httpFlow =
 //    Http().outgoingConnection("localhost", 8080)
-    OkHttpClient().newBuilder()
-      .dispatcher(okHttpDispatcher)
-      .build()
-      .outgoingConnection("localhost", 8080)
+    asyncHttpClient(
+      config()
+        .setEventLoopGroup(NioEventLoopGroup(1, es))
+        .setMaxConnections(10_000)
+        .setMaxConnectionsPerHost(10_000)
+    ).outgoingConnection("localhost", 8080)
   Await.ready(
     Source
       .single(httpFlow)
