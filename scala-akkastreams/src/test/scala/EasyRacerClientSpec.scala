@@ -35,7 +35,7 @@ class EasyRacerClientSpec extends AnyFlatSpec with Matchers with ScalaFutures wi
     super.afterAll()
 
   implicit val defaultPatience: PatienceConfig = PatienceConfig(timeout = Span(30, Seconds))
-  private val es = Executors.newSingleThreadExecutor()
+  private val es = Executors.newWorkStealingPool()
   implicit private val system: ActorSystem = ActorSystem("easyracer", defaultExecutionContext = Some(ExecutionContext.fromExecutorService(es)))
   implicit private val ec: ExecutionContext = system.dispatcher
   private lazy val httpFlow =

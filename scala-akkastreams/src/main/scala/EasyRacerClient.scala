@@ -174,7 +174,7 @@ object EasyRacerClient:
 
 @main def run(): Unit =
   import EasyRacerClient.*
-  val es = Executors.newCachedThreadPool()
+  val es = Executors.newWorkStealingPool()
   implicit val system: ActorSystem = ActorSystem("easyracer", defaultExecutionContext = Some(ExecutionContext.fromExecutorService(es)))
   implicit val ec: ExecutionContext = system.dispatcher
   // Akka HTTP does not handle request cancellation, hence using AsyncHttpClient adapted to Akka Streams
@@ -182,7 +182,7 @@ object EasyRacerClient:
 //    Http().outgoingConnection("localhost", 8080)
     asyncHttpClient(
       config()
-        .setEventLoopGroup(NioEventLoopGroup(100, es))
+        .setEventLoopGroup(NioEventLoopGroup(1, es))
         .setMaxConnections(10_000)
         .setMaxConnectionsPerHost(10_000)
     ).outgoingConnection("localhost", 8080)
