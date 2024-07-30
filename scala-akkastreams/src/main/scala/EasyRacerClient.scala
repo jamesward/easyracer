@@ -6,6 +6,7 @@ import com.sun.management.OperatingSystemMXBean
 
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
+import java.util.concurrent.Executors
 import scala.concurrent.ExecutionContext
 import scala.util.Random
 //import akka.http.scaladsl.Http
@@ -174,7 +175,7 @@ object EasyRacerClient:
   import EasyRacerClient.*
   implicit val system: ActorSystem = ActorSystem("easyracer")
   implicit val ec: ExecutionContext = system.dispatcher
-  val okHttpDispatcher = Dispatcher()
+  val okHttpDispatcher = Dispatcher(Executors.newVirtualThreadPerTaskExecutor())
   okHttpDispatcher.setMaxRequests(10_000)
   okHttpDispatcher.setMaxRequestsPerHost(10_000)
   // Akka HTTP does not handle request cancellation, hence using OkHttp adapted to Akka Streams
