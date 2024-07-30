@@ -24,7 +24,6 @@ class EasyRacerClientSpec extends AnyFlatSpec with Matchers with ScalaFutures wi
     container = GenericContainer(
       "ghcr.io/jamesward/easyracer",
       Seq(8080),
-      command = Seq("--debug"),
       waitStrategy = Wait.forHttp("/"),
       imagePullPolicy = PullPolicy.alwaysPull()
     )
