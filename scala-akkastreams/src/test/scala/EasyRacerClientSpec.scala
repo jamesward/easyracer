@@ -1,7 +1,8 @@
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Sink, Source}
 import com.dimafeng.testcontainers.GenericContainer
-import okhttp3.{Dispatcher, OkHttpClient}
+import io.netty.channel.nio.NioEventLoopGroup
+import org.asynchttpclient.Dsl.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpec
@@ -10,6 +11,7 @@ import org.scalatest.time.{Seconds, Span}
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.images.PullPolicy
 
+import java.util.concurrent.Executors
 import scala.compiletime.uninitialized
 import scala.concurrent.ExecutionContext
 
@@ -22,6 +24,7 @@ class EasyRacerClientSpec extends AnyFlatSpec with Matchers with ScalaFutures wi
     container = GenericContainer(
       "ghcr.io/jamesward/easyracer",
       Seq(8080),
+      command = Seq("--debug"),
       waitStrategy = Wait.forHttp("/"),
       imagePullPolicy = PullPolicy.alwaysPull()
     )
@@ -33,16 +36,16 @@ class EasyRacerClientSpec extends AnyFlatSpec with Matchers with ScalaFutures wi
     super.afterAll()
 
   implicit val defaultPatience: PatienceConfig = PatienceConfig(timeout = Span(30, Seconds))
+  private val es = Executors.newCachedThreadPool()
   implicit private val system: ActorSystem = ActorSystem("easyracer")
   implicit private val ec: ExecutionContext = system.dispatcher
-  private val okHttpDispatcher = Dispatcher()
-  okHttpDispatcher.setMaxRequests(10_000)
-  okHttpDispatcher.setMaxRequestsPerHost(10_000)
   private lazy val httpFlow =
-    OkHttpClient().newBuilder()
-      .dispatcher(okHttpDispatcher)
-      .build()
-      .outgoingConnection("localhost", port)
+    asyncHttpClient(
+      config()
+        .setEventLoopGroup(NioEventLoopGroup(100, es))
+        .setMaxConnections(12_000)
+        .setMaxConnectionsPerHost(12_000)
+    ).outgoingConnection("localhost", port)
 
   EasyRacerClient.scenarios.zipWithIndex.foreach: (flow, number) =>
     s"scenario ${number + 1}" should "work" in:
