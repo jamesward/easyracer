@@ -40,18 +40,6 @@ func TestScenarios(t *testing.T) {
 	scenarioURL := func(scenario int) string {
 		return fmt.Sprintf("%s/%d", baseURL, scenario)
 	}
-	scenarios := []func(func(int) string) string{
-		scenario1,
-		scenario2,
-		scenario3,
-		scenario4,
-		scenario5,
-		scenario6,
-		scenario7,
-		scenario8,
-		scenario9,
-		scenario10,
-	}
 
 	for idx, scenario := range scenarios {
 		name := fmt.Sprintf("scenario%d", idx+1)
