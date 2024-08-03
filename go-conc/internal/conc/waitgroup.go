@@ -2,11 +2,12 @@ package conc
 
 import "github.com/sourcegraph/conc"
 
-type WaitGroup[T any] struct {
-	conc.WaitGroup
+type WaitGroup interface {
+	Go(func())
 }
 
-func (h *WaitGroup[T]) Use(f func(*WaitGroup[T]) T) T {
-	defer h.Wait()
-	return f(h)
+func RunWithWaitGroup[T any](f func(wg WaitGroup) T) T {
+	var wg conc.WaitGroup
+	defer wg.Wait()
+	return f(&wg)
 }

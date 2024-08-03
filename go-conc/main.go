@@ -42,9 +42,8 @@ func httpText(url string, ctx context.Context) (string, error) {
 
 func scenario1(scenarioURL func(int) string) string {
 	url := scenarioURL(1)
-	var wg conc.WaitGroup[string]
 
-	return wg.Use(func(wg *conc.WaitGroup[string]) string {
+	return conc.RunWithWaitGroup(func(wg conc.WaitGroup) string {
 		result := make(chan string)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -64,9 +63,8 @@ func scenario1(scenarioURL func(int) string) string {
 
 func scenario2(scenarioURL func(int) string) string {
 	url := scenarioURL(2)
-	var wg conc.WaitGroup[string]
 
-	return wg.Use(func(wg *conc.WaitGroup[string]) string {
+	return conc.RunWithWaitGroup(func(wg conc.WaitGroup) string {
 		result := make(chan string)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -86,9 +84,8 @@ func scenario2(scenarioURL func(int) string) string {
 
 func scenario3(scenarioURL func(int) string) string {
 	url := scenarioURL(3)
-	var wg conc.WaitGroup[string]
 
-	return wg.Use(func(wg *conc.WaitGroup[string]) string {
+	return conc.RunWithWaitGroup(func(wg conc.WaitGroup) string {
 		result := make(chan string)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -122,9 +119,8 @@ func scenario3(scenarioURL func(int) string) string {
 
 func scenario4(scenarioURL func(int) string) string {
 	url := scenarioURL(4)
-	var wg conc.WaitGroup[string]
 
-	return wg.Use(func(wg *conc.WaitGroup[string]) string {
+	return conc.RunWithWaitGroup(func(wg conc.WaitGroup) string {
 		result := make(chan string)
 		timeoutCtx, timeoutCancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer timeoutCancel()
@@ -148,9 +144,8 @@ func scenario4(scenarioURL func(int) string) string {
 
 func scenario5(scenarioURL func(int) string) string {
 	url := scenarioURL(5)
-	var wg conc.WaitGroup[string]
 
-	return wg.Use(func(wg *conc.WaitGroup[string]) string {
+	return conc.RunWithWaitGroup(func(wg conc.WaitGroup) string {
 		result := make(chan string)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -170,9 +165,8 @@ func scenario5(scenarioURL func(int) string) string {
 
 func scenario6(scenarioURL func(int) string) string {
 	url := scenarioURL(6)
-	var wg conc.WaitGroup[string]
 
-	return wg.Use(func(wg *conc.WaitGroup[string]) string {
+	return conc.RunWithWaitGroup(func(wg conc.WaitGroup) string {
 		result := make(chan string)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -193,9 +187,8 @@ func scenario6(scenarioURL func(int) string) string {
 
 func scenario7(scenarioURL func(int) string) string {
 	url := scenarioURL(7)
-	var wg conc.WaitGroup[string]
 
-	return wg.Use(func(wg *conc.WaitGroup[string]) string {
+	return conc.RunWithWaitGroup(func(wg conc.WaitGroup) string {
 		result := make(chan string)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -218,9 +211,8 @@ func scenario7(scenarioURL func(int) string) string {
 
 func scenario8(scenarioURL func(int) string) string {
 	url := scenarioURL(8)
-	var wg conc.WaitGroup[string]
 
-	return wg.Use(func(wg *conc.WaitGroup[string]) string {
+	return conc.RunWithWaitGroup(func(wg conc.WaitGroup) string {
 		result := make(chan string)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -254,9 +246,8 @@ func scenario8(scenarioURL func(int) string) string {
 
 func scenario9(scenarioURL func(int) string) string {
 	url := scenarioURL(9)
-	var wg conc.WaitGroup[string]
 
-	return wg.Use(func(wg *conc.WaitGroup[string]) string {
+	return conc.RunWithWaitGroup(func(wg conc.WaitGroup) string {
 		result := make(chan string)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -285,9 +276,8 @@ func scenario9(scenarioURL func(int) string) string {
 func scenario10(scenarioURL func(int) string) string {
 	url := scenarioURL(10)
 	id := uuid.New().String()
-	var wg conc.WaitGroup[string]
 
-	return wg.Use(func(wg *conc.WaitGroup[string]) string {
+	return conc.RunWithWaitGroup(func(wg conc.WaitGroup) string {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		// Blocking
