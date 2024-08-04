@@ -61,7 +61,11 @@ object EasyRacerClient:
       val req = Source.single(path).via(scenarioReq).collect:
         case Success((_, body)) => body
 
-      Seq.fill(10_000)(req).reduce(_ merge _).take(1)
+      Seq.fill(10_000)(req)
+        // Uncomment on macOS
+//        .zipWithIndex.map: (req, idx) =>
+//          Source.single(()).delay((idx * 0.5).milliseconds).flatMapConcat(_ => req)
+        .reduce(_ merge _).take(1)
 
   val scenario4: Flow[HttpFlow, String, NotUsed] =
     Flow[HttpFlow].map(scenarioRequestFlow).flatMapConcat: scenarioReq =>
