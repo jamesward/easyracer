@@ -47,10 +47,10 @@ suspend fun scenario3(url: (Int) -> String): String {
     val req = client.getAsFlow(url(3)).map { it.bodyAsText() }
 
     return List(10_000) { req }
-        // For macOS uncomment
-        .mapIndexed { i, flow ->
-            { i }.asFlow().onEach { delay(Duration.ofMillis(it / 2L)) }.flatMapConcat { flow }
-        }
+        // Uncomment the following on macOS
+//        .mapIndexed { i, flow ->
+//            { i }.asFlow().onEach { delay(Duration.ofMillis(it / 2L)) }.flatMapConcat { flow }
+//        }
         .merge().first()
 }
 
