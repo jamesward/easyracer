@@ -50,6 +50,10 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Java.gradleTestSteps(null, "kotlin-coroutines")
   }
 
+  ["kotlin-flow"] = new {
+    steps = GitHubAction.Java.gradleTestSteps(null, "kotlin-flow")
+  }
+
   ["kotlin-splitties"] = new {
     steps = GitHubAction.Java.gradleTestSteps(null, "kotlin-splitties")
   }
