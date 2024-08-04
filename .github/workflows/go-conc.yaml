@@ -1,0 +1,28 @@
+# Generated file. DO NOT EDIT.
+'on':
+  push:
+    paths:
+    - go-conc/**
+    - .github/workflows/go-conc.yaml
+  pull_request:
+    paths:
+    - go-conc/**
+    - .github/workflows/go-conc.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: go-conc/go.mod
+    - run: go test ./...
+    defaults:
+      run:
+        working-directory: go-conc

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -42,15 +43,19 @@ func httpText(url string, ctx context.Context) (string, error) {
 func scenario1(scenarioURL func(int) string) string {
 	url := scenarioURL(1)
 	result := make(chan string)
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	httpTextToChannel := func() {
+		defer wg.Done()
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
+	wg.Add(2)
 	go httpTextToChannel()
 	go httpTextToChannel()
 
@@ -60,15 +65,19 @@ func scenario1(scenarioURL func(int) string) string {
 func scenario2(scenarioURL func(int) string) string {
 	url := scenarioURL(2)
 	result := make(chan string)
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	httpTextToChannel := func() {
+		defer wg.Done()
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
+	wg.Add(2)
 	go httpTextToChannel()
 	go httpTextToChannel()
 
@@ -78,16 +87,20 @@ func scenario2(scenarioURL func(int) string) string {
 func scenario3(scenarioURL func(int) string) string {
 	url := scenarioURL(3)
 	result := make(chan string)
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	for i := 1; i <= 10_000; i++ {
+		wg.Add(1)
 		// On certain (macOS?) machines, creating 100+ concurrent connections at a time
 		// results in connections being dropped due to "Connection reset by peer" error.
 		//
 		// If you are running on such a machine, uncomment the following line:
-		//time.Sleep(500 * time.Microsecond)
+		time.Sleep(500 * time.Microsecond)
 		go func() {
+			defer wg.Done()
 			text, err := httpText(url, ctx)
 			if err != nil {
 				// Connection reset by peer, occurs when connections are created too quickly
@@ -110,17 +123,21 @@ func scenario3(scenarioURL func(int) string) string {
 func scenario4(scenarioURL func(int) string) string {
 	url := scenarioURL(4)
 	result := make(chan string)
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	timeoutCtx, timeoutCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer timeoutCancel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	httpTextToChannel := func(ctx context.Context) {
+		defer wg.Done()
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
+	wg.Add(2)
 	go httpTextToChannel(timeoutCtx)
 	go httpTextToChannel(ctx)
 
@@ -130,15 +147,19 @@ func scenario4(scenarioURL func(int) string) string {
 func scenario5(scenarioURL func(int) string) string {
 	url := scenarioURL(5)
 	result := make(chan string)
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	httpTextToChannel := func() {
+		defer wg.Done()
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
+	wg.Add(2)
 	go httpTextToChannel()
 	go httpTextToChannel()
 
@@ -148,15 +169,19 @@ func scenario5(scenarioURL func(int) string) string {
 func scenario6(scenarioURL func(int) string) string {
 	url := scenarioURL(6)
 	result := make(chan string)
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	httpTextToChannel := func() {
+		defer wg.Done()
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
+	wg.Add(3)
 	go httpTextToChannel()
 	go httpTextToChannel()
 	go httpTextToChannel()
@@ -167,15 +192,19 @@ func scenario6(scenarioURL func(int) string) string {
 func scenario7(scenarioURL func(int) string) string {
 	url := scenarioURL(7)
 	result := make(chan string)
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	httpTextToChannel := func() {
+		defer wg.Done()
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
 		}
 	}
 
+	wg.Add(2)
 	go httpTextToChannel()
 	time.Sleep(3 * time.Second)
 	go httpTextToChannel()
@@ -186,10 +215,13 @@ func scenario7(scenarioURL func(int) string) string {
 func scenario8(scenarioURL func(int) string) string {
 	url := scenarioURL(8)
 	result := make(chan string)
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	openUseAndCloseToChannel := func() {
+		defer wg.Done()
 		openURL := fmt.Sprintf("%s?open", url)
 		resourceID, openErr := httpText(openURL, ctx)
 		if openErr != nil {
@@ -209,6 +241,7 @@ func scenario8(scenarioURL func(int) string) string {
 
 		result <- text
 	}
+	wg.Add(2)
 	go openUseAndCloseToChannel()
 	go openUseAndCloseToChannel()
 
@@ -218,9 +251,12 @@ func scenario8(scenarioURL func(int) string) string {
 func scenario9(scenarioURL func(int) string) string {
 	url := scenarioURL(9)
 	result := make(chan string)
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	httpTextToChannel := func() {
+		defer wg.Done()
 		text, err := httpText(url, ctx)
 		if err == nil {
 			result <- text
@@ -228,6 +264,7 @@ func scenario9(scenarioURL func(int) string) string {
 	}
 
 	for i := 1; i <= 10; i++ {
+		wg.Add(1)
 		go httpTextToChannel()
 	}
 
@@ -242,14 +279,20 @@ func scenario10(scenarioURL func(int) string) string {
 	url := scenarioURL(10)
 	id := uuid.New().String()
 
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
+	wg.Add(1)
 	go func(ctx context.Context) {
+		defer wg.Done()
 		if ctx != nil {
 			for ctx.Err() == nil {
 			}
 		}
 	}(ctx)
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		blockerURL := fmt.Sprintf("%s?%s", url, id)
 		_, err := httpText(blockerURL, ctx)
 		if err == nil {
@@ -303,26 +346,15 @@ func scenario10(scenarioURL func(int) string) string {
 	return result
 }
 
-func scenarios(scenarioURL func(int) string) []string {
-	return []string{
-		scenario1(scenarioURL),
-		scenario2(scenarioURL),
-		scenario3(scenarioURL),
-		scenario4(scenarioURL),
-		scenario5(scenarioURL),
-		scenario6(scenarioURL),
-		scenario7(scenarioURL),
-		scenario8(scenarioURL),
-		scenario9(scenarioURL),
-		scenario10(scenarioURL),
-	}
+var scenarios = []func(func(int) string) string{
+	scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10,
 }
 
 func main() {
 	scenarioURL := func(scenario int) string {
 		return fmt.Sprintf("http://localhost:8080/%d", scenario)
 	}
-	for _, result := range scenarios(scenarioURL) {
-		fmt.Println(result)
+	for _, scenario := range scenarios {
+		fmt.Println(scenario(scenarioURL))
 	}
 }

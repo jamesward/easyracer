@@ -30,6 +30,10 @@ clients = new Mapping<String, Run> {
     }
   }
 
+  ["go-conc"] = new {
+    steps = GitHubAction.Go.testSteps(null, "go-conc/go.mod")
+  }
+
   ["go-stdlib"] = new {
     steps = GitHubAction.Go.testSteps(null, "go-stdlib/go.mod")
   }
