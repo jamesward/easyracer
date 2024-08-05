@@ -2,6 +2,7 @@
 let
   my-python-packages = p: with p; [
     reactivex
+    aiohttp
     testcontainers
     pytest
     pytest-asyncio
