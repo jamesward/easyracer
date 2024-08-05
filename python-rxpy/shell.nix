@@ -1,8 +1,7 @@
 { pkgs ? import <nixpkgs> {} }:
 let
   my-python-packages = p: with p; [
-    rxpy
-    requests
+    reactivex
     testcontainers
     pytest
     pytest-asyncio
