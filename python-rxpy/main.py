@@ -59,7 +59,6 @@ async def scenario4(url: str):
     return rx.merge(
         req().pipe(
             ops.timeout(datetime.timedelta(seconds=1)),
-            ops.catch(rx.throw(asyncio.CancelledError())), # So that aiohttp request is cancelled
             ops.catch(rx.empty())
         ),
         req()
