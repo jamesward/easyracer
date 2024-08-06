@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import hashlib
-import inspect
 import random
 import uuid
 from collections import namedtuple
