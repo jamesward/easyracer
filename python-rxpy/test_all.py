@@ -12,6 +12,8 @@ import main
 
 @pytest.mark.asyncio
 async def test_all():
+    assert len(main.scenarios) == 10
+
     # todo: no way to set pull policy yet
     docker_container = DockerContainer("ghcr.io/jamesward/easyracer").with_exposed_ports(8080)
     with docker_container as easyracer:
@@ -29,7 +31,9 @@ async def test_all():
             def assert_right(actual: str):
                 assert actual == "right"
             for scenario in main.scenarios:
-                scenario_observable = await scenario(lambda num: f"http://localhost:{port}/{num}")
+                num = scenario.__name__[8:]
+                url = f"http://localhost:{port}/{num}"
+                scenario_observable = await scenario(url)
                 scenario_observable.subscribe(
                     on_next=lambda value: assert_right(value),
                     on_completed=lambda: sem.release(),
