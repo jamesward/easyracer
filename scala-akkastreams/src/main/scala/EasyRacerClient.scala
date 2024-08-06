@@ -2,13 +2,14 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri.Query
 import akka.http.scaladsl.model.{HttpResponse, StatusCode, StatusCodes}
+import akka.stream.scaladsl.Keep
 import com.sun.management.OperatingSystemMXBean
 import io.netty.channel.nio.NioEventLoopGroup
 import org.asynchttpclient.Dsl.*
 
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
-import java.util.concurrent.Executors
+import java.util.concurrent.{ExecutorService, Executors}
 import scala.concurrent.ExecutionContext
 import scala.util.Random
 //import akka.http.scaladsl.Http
@@ -23,6 +24,9 @@ import scala.util.{Failure, Success, Try}
 
 object EasyRacerClient:
   type HttpFlow = Flow[HttpRequest, HttpResponse, NotUsed]
+  val es: ExecutorService = Executors.newWorkStealingPool()
+  implicit val system: ActorSystem = ActorSystem("easyracer", defaultExecutionContext = Some(ExecutionContext.fromExecutorService(es)))
+  implicit val ec: ExecutionContext = system.dispatcher
 
   private def scenarioRequestFlow(
     httpFlow: Flow[HttpRequest, HttpResponse, ?]
@@ -114,14 +118,11 @@ object EasyRacerClient:
       val use = Flow[String].map(id => path.withQuery(Query("use" -> id))).via(req)
       val close = Flow[String].map(id => path.withQuery(Query("close" -> id))).via(req)
 
-      val reqRes = open.flatMapConcat:                        // Open
-        case Success(id) =>
-          Source.single(id).via(use).flatMapConcat: result => // Use
-            Source.single(id).via(close).flatMapConcat: _ =>  // Close
-              result match
-                case Success(result) => Source.single(result)
-                case _ => Source.empty
-        case Failure(e) => Source.failed(e)
+      val reqRes = Source.unfoldResourceAsync(
+        create = () => open.runFold("")(_ + _),
+        read   = (id: String) => Source.single(id).via(use).map(_.toOption).runFold(Option(""))(Keep.right),
+        close  = (id: String) => Source.single(id).via(close).run()
+      )
 
       reqRes.merge(reqRes).take(1)
 
@@ -178,21 +179,23 @@ object EasyRacerClient:
 
 @main def run(): Unit =
   import EasyRacerClient.*
-  val es = Executors.newWorkStealingPool()
-  implicit val system: ActorSystem = ActorSystem("easyracer", defaultExecutionContext = Some(ExecutionContext.fromExecutorService(es)))
-  implicit val ec: ExecutionContext = system.dispatcher
   // Akka HTTP does not handle request cancellation, hence using AsyncHttpClient adapted to Akka Streams
+  val ahc = asyncHttpClient(
+    config()
+      .setEventLoopGroup(NioEventLoopGroup(1, es))
+      .setMaxConnections(10_000)
+      .setMaxConnectionsPerHost(10_000)
+  )
   val httpFlow =
 //    Http().outgoingConnection("localhost", 8080)
-    asyncHttpClient(
-      config()
-        .setEventLoopGroup(NioEventLoopGroup(1, es))
-        .setMaxConnections(10_000)
-        .setMaxConnectionsPerHost(10_000)
-    ).outgoingConnection("localhost", 8080)
-  Await.ready(
-    Source(scenarios)
-      .flatMapConcat(Source.single(httpFlow).via(_))
-      .runForeach(println),
-    Duration.Inf
-  )
+    ahc.outgoingConnection("localhost", 8080)
+  try
+    Await.ready(
+      Source(scenarios)
+        .flatMapConcat(Source.single(httpFlow).via(_))
+        .runForeach(println),
+      Duration.Inf
+    )
+  finally
+    ahc.close()
+    system.terminate()
