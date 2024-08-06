@@ -93,6 +93,10 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Nix.runSteps("pytest")
   }
 
+  ["python-rxpy"] = new {
+    steps = GitHubAction.Nix.runSteps("pytest")
+  }
+
   ["rust-tokio"] = new {
     steps {
       new {
