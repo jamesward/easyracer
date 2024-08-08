@@ -8,11 +8,11 @@ import org.asynchttpclient.Dsl.*
 
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
-import java.util.concurrent.{ExecutionException, TimeoutException}
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.concurrent.duration.*
-import scala.util.{Failure, Random, Try}
+import scala.util.Random
 
 
 extension [T](ahcFuture: asynchttpclient.ListenableFuture[T])
