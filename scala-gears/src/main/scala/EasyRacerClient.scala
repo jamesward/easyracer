@@ -1,100 +1,110 @@
 import com.sun.management.OperatingSystemMXBean
-
-import scala.concurrent.duration.*
 import gears.async.*
-import gears.async.default.given
 import gears.async.Future.*
-import okhttp3.*
+import gears.async.default.given
+import io.netty.channel.nio.NioEventLoopGroup
+import org.asynchttpclient
+import org.asynchttpclient.Dsl.*
 
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
-import java.util.concurrent.TimeoutException
+import java.util.concurrent.{ExecutionException, TimeoutException}
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
-import scala.util.Random
+import scala.concurrent.duration.*
+import scala.util.{Failure, Random, Try}
 
 
-case class OkHttpCallCancellable(call: Call) extends Cancellable:
-  def cancel(): Unit =
-    call.cancel()
-    unlink()
-
-  def execute(): Response = call.execute()
-
-extension (call: Call)
-  def link()(using Async): OkHttpCallCancellable =
-    OkHttpCallCancellable(call).link()
-
-
-case class OkHttpResponseCancellable(response: Response) extends Cancellable:
-  def cancel(): Unit =
-    response.close()
-    unlink()
-
-  def code: Int = response.code
-
-  def isSuccessful: Boolean = response.isSuccessful
-
-  def body(): ResponseBody = response.body()
-
-extension (response: Response)
-  def link()(using Async): OkHttpResponseCancellable =
-    OkHttpResponseCancellable(response).link()
+extension [T](ahcFuture: asynchttpclient.ListenableFuture[T])
+  def asyncGet(using Async): T = Future
+    .withResolver[T]: resolver =>
+      ahcFuture.addListener(
+        () =>
+          try
+            resolver.resolve(ahcFuture.get)
+          catch
+            case e: ExecutionException => resolver.reject(e.getCause)
+            case other => resolver.reject(other),
+        null
+      )
+      resolver.onCancel(() => ahcFuture.cancel(true))
+    .link()
+    .await
 
 
 object EasyRacerClient:
-  private val httpClient = OkHttpClient()
+  private val httpClient = asyncHttpClient(
+    config()
+      .setEventLoopGroup(NioEventLoopGroup(1))
+      .setMaxConnections(10_000)
+      .setMaxConnectionsPerHost(10_000)
+  )
+
   private def scenarioRequest(url: String)(using Async) =
-    httpClient.newCall(Request.Builder().url(url).build()).link()
+    httpClient.prepareGet(url).execute()
 
   def scenario1(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(1)
-    def req = Future(scenarioRequest(url).execute().link().body().string())
+    def req = Future(scenarioRequest(url).asyncGet.getResponseBody)
     Seq(req, req).awaitFirstWithCancel
     // Or:
-    // req.orWithCancel(req).await
+//    req.orWithCancel(req).await
     // Or:
-    // Async.race(req, req).await
+//    Async.race(req, req).await
 
   def scenario2(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(2)
-    def req = Future(scenarioRequest(url).execute().link().body().string())
+    def req = Future(scenarioRequest(url).asyncGet.getResponseBody)
     Seq(req, req).awaitFirstWithCancel
     // Or:
-    // req.orWithCancel(req).await
+//    req.orWithCancel(req).await
     // Does not work (Async.race returns first to _complete_ - even if it completes with a failure):
-    // Async.race(req, req).await
+//    Async.race(req, req).await
 
   def scenario3(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(3)
-    val reqs = Seq.fill(10000):
-      Future(scenarioRequest(url).execute().link().body().string())
+    val reqs = (0 until 10_000)
+      .map: idx =>
+        Future:
+          // Uncomment on macOS
+//          AsyncOperations.sleep((idx / 2).milliseconds)
+          scenarioRequest(url).asyncGet.getResponseBody
     reqs.awaitFirstWithCancel
 
   def scenario4(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(4)
-    def req = Future(scenarioRequest(url).execute().link().body().string())
-    Seq(withTimeout(1.second)(req), req).awaitFirstWithCancel
+    def req = Future(Try(scenarioRequest(url).asyncGet.getResponseBody))
+    def timeout(duration: FiniteDuration) = Future:
+      AsyncOperations.sleep(duration)
+      Failure(TimeoutException())
+    Seq(
+      Future(Seq(req, timeout(1.second)).awaitFirstWithCancel.get),
+      Future(req.await.get)
+    ).awaitFirstWithCancel
+    // Does not work - withTimeout does not cancel operation upon timeout
+//    def req = Future(scenarioRequest(url).asyncGet.getResponseBody)
+//    Seq(withTimeout(1.second)(req), req).awaitFirstWithCancel
+
 
   def scenario5(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(5)
     def req = Future:
-      val resp = scenarioRequest(url).execute().link()
-      require(resp.isSuccessful)
-      resp.body().string()
+      val resp = scenarioRequest(url).get
+      require(200 until 400 contains resp.getStatusCode)
+      resp.getResponseBody
     Seq(req, req).awaitFirstWithCancel
 
   def scenario6(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(6)
     def req = Future:
-      val resp = scenarioRequest(url).execute().link()
-      require(resp.isSuccessful)
-      resp.body().string()
+      val resp = scenarioRequest(url).get
+      require(200 until 400 contains resp.getStatusCode)
+      resp.getResponseBody
     Seq(req, req, req).awaitFirstWithCancel
 
   def scenario7(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(7)
-    def req = Future(scenarioRequest(url).execute().link().body().string())
+    def req = Future(scenarioRequest(url).asyncGet.getResponseBody)
     def delayedReq =
       AsyncOperations.sleep(3.seconds)
       req
@@ -102,9 +112,9 @@ object EasyRacerClient:
 
   def scenario8(scenarioUrl: Int => String)(using Async.Spawn): String =
     def req(url: String) =
-      val resp = scenarioRequest(url).execute().link()
-      require(resp.isSuccessful)
-      resp.body().string()
+      val resp = scenarioRequest(url).asyncGet
+      require(200 until 400 contains resp.getStatusCode)
+      resp.getResponseBody
 
     def open = req(s"${scenarioUrl(8)}?open")
     def use(id: String) = req(s"${scenarioUrl(8)}?use=$id")
@@ -120,9 +130,9 @@ object EasyRacerClient:
   def scenario9(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(9)
     def req = Future:
-      val resp = scenarioRequest(url).execute().link()
-      if !resp.isSuccessful then 0L -> ""
-      else System.nanoTime -> resp.body().string()
+      val resp = scenarioRequest(url).asyncGet
+      if !(200 until 400 contains resp.getStatusCode) then 0L -> ""
+      else System.nanoTime -> resp.getResponseBody
 
     Seq.fill(10)(req).awaitAllOrCancel
       .sortBy(_._1).map(_._2).mkString
@@ -131,7 +141,7 @@ object EasyRacerClient:
     val id = Random.nextString(8)
     val messageDigest = MessageDigest.getInstance("SHA-512")
 
-    def req(url: String) = Future(scenarioRequest(url).execute())
+    def req(url: String) = Future(scenarioRequest(url).asyncGet)
 
     def blocking = Future:
       class BlockingCancellable extends Cancellable:
@@ -143,7 +153,7 @@ object EasyRacerClient:
 
         def start(): Unit =
            @tailrec def digest(bytes: Array[Byte]): Unit =
-             if !cancelled.get() then digest(messageDigest.digest(bytes))
+             if !cancelled.get then digest(messageDigest.digest(bytes))
            digest(Random.nextBytes(512))
       new BlockingCancellable().link().start()
     // Or:
@@ -162,13 +172,13 @@ object EasyRacerClient:
     def reporter: String =
       val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
       val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
-      val resp = req(s"${scenarioUrl(10)}?$id=$load").await.link()
-      if resp.code == 302 then
+      val resp = req(s"${scenarioUrl(10)}?$id=$load").await
+      if resp.getStatusCode == 302 then
         AsyncOperations.sleep(1.second)
         reporter
       else
-        require(resp.isSuccessful)
-        resp.body().string()
+        require(200 until 400 contains resp.getStatusCode)
+        resp.getResponseBody
 
     val result = Future(reporter)
     blocker.awaitFirstWithCancel
