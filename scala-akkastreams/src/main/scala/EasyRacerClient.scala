@@ -67,8 +67,8 @@ object EasyRacerClient:
 
       Seq.fill(10_000)(req)
         // Uncomment on macOS
-        .zipWithIndex.map: (req, idx) =>
-          Source.single(()).delay((idx * 0.5).milliseconds).flatMapConcat(_ => req)
+//        .zipWithIndex.map: (req, idx) =>
+//          Source.single(()).delay((idx * 0.5).milliseconds).flatMapConcat(_ => req)
         .reduce(_ merge _).take(1)
 
   val scenario4: Flow[HttpFlow, String, NotUsed] =
