@@ -73,17 +73,8 @@ object EasyRacerClient:
 
   def scenario4(scenarioUrl: Int => String)(using Async.Spawn): String =
     val url = scenarioUrl(4)
-    def req = Future(Try(scenarioRequest(url).asyncGet.getResponseBody))
-    def timeout(duration: FiniteDuration) = Future:
-      AsyncOperations.sleep(duration)
-      Failure(TimeoutException())
-    Seq(
-      Future(Seq(req, timeout(1.second)).awaitFirstWithCancel.get),
-      Future(req.await.get)
-    ).awaitFirstWithCancel
-    // Does not work - withTimeout does not cancel operation upon timeout
-//    def req = Future(scenarioRequest(url).asyncGet.getResponseBody)
-//    Seq(withTimeout(1.second)(req), req).awaitFirstWithCancel
+    def req(using Async) = scenarioRequest(url).asyncGet.getResponseBody
+    Seq(Future(withTimeout(1.second)(req)), Future(req)).awaitFirstWithCancel
 
 
   def scenario5(scenarioUrl: Int => String)(using Async.Spawn): String =
