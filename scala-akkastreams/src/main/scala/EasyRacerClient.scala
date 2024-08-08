@@ -10,7 +10,7 @@ import org.asynchttpclient.Dsl.*
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
 import java.util.concurrent.{ExecutorService, Executors}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 //import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, Uri}
@@ -114,15 +114,17 @@ object EasyRacerClient:
         _.collect:
           case (status, body) if status.isSuccess => body
 
-      val open = Source.single(path.withQuery(Query("open" -> Query.EmptyValue))).via(req)
-      val use = Flow[String].map(id => path.withQuery(Query("use" -> id))).via(req)
+      val open = Source.single(path.withQuery(Query("open" -> Query.EmptyValue))).via(req).collect:
+        case Success(body) => body
+      val use = Flow[String].map(id => path.withQuery(Query("use" -> id))).via(req).map(_.toOption)
       val close = Flow[String].map(id => path.withQuery(Query("close" -> id))).via(req)
 
-      val reqRes = Source.unfoldResourceAsync(
-        create = () => open.runFold("")(_ + _),
-        read   = (id: String) => Source.single(id).via(use).map(_.toOption).runFold(Option(""))(Keep.right),
-        close  = (id: String) => Source.single(id).via(close).run()
-      )
+      val reqRes = Source
+        .unfoldResourceAsync(
+          create = () => open.runFold("")(_ + _).map((_, Iterator(()))),
+          read = (id, one) => one.nextOption().fold(Future.successful(None))(_ => Source.single(id).via(use).runFold(None)(Keep.right)),
+          close = (id, _) => Source.single(id).via(close).run()
+        )
 
       reqRes.merge(reqRes).take(1)
 

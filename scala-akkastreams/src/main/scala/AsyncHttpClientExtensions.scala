@@ -28,7 +28,7 @@ extension (client: AsyncHttpClient)
           )
         case _ =>
           Source.failed(UnsupportedOperationException()) // Only support what we need
-      .map: (ahcResp: Response) =>
+      .map: ahcResp =>
         HttpResponse(
           status = ahcResp.getStatusCode,
           headers = Nil,
