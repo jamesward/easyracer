@@ -124,7 +124,6 @@ let scenario10 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObse
         |> Observable.bind (fun resp -> resp.Content.ReadAsStringAsync() |> Async.AwaitTask |> Observable.ofAsync)
 
     let proc = Process.GetCurrentProcess()
-    printfn "process: %s" (proc.ProcessName)
 
     let rec reportProcessLoad (startWallTime: DateTime) (startCpuTime: TimeSpan) =
         let endWallTime = DateTime.Now
