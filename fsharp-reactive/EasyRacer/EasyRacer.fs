@@ -94,10 +94,9 @@ let scenario9 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObser
     |> Observable.mergeSeq
     |> Observable.fold (+) ""
 
-let scenarios (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObservable<string> =
+let scenarios (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObservable<string> seq =
     [ scenario1; scenario2; scenario3; scenario4; scenario5; scenario6; scenario7; scenario8; scenario9 ]
     |> Seq.map ((|>) scenarioGet)
-    |> Observable.concatSeq
 
 [<EntryPoint>]
 let main _ =
@@ -109,7 +108,8 @@ let main _ =
         (fun resp _ -> async { return Observable.single resp })
 
     scenarios scenarioGet
-    |> Observable.map (printfn "%s")
+    |> Observable.concatSeq
+    |> Observable.iter (printfn "%s")
     |> Observable.last
     |> Async.AwaitObservable
     |> Async.RunSynchronously
