@@ -135,12 +135,14 @@ let scenario10 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObse
             * (double Environment.ProcessorCount)
 
         scenarioGet $"/10?{id}={cpuLoad}"
-        |> Observable.filter (fun resp ->
-            resp.StatusCode >= HttpStatusCode.OK
-            && resp.StatusCode < HttpStatusCode.BadRequest)
         |> Observable.bind (function
             | resp when resp.IsSuccessStatusCode ->
                 resp.Content.ReadAsStringAsync() |> Async.AwaitTask |> Observable.ofAsync
+            | resp when
+                resp.StatusCode < HttpStatusCode.OK
+                || resp.StatusCode >= HttpStatusCode.BadRequest
+                ->
+                Observable.single ($"bad HTTP status: {resp.StatusCode}")
             | resp ->
                 Observable.delay (TimeSpan.FromSeconds 1) (Observable.single ())
                 |> Observable.bind (fun () -> reportProcessLoad endWallTime endCpuTime))
