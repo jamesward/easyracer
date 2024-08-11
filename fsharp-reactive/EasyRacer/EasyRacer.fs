@@ -107,8 +107,8 @@ let scenario9 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObser
 let scenario10 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObservable<string> =
     let id = Guid.NewGuid()
     let sha512 = SHA512.Create()
-
     let random = Random()
+    let proc = Process.GetCurrentProcess()
 
     let blocking =
         Observable.repeatValue ()
@@ -122,8 +122,6 @@ let scenario10 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObse
         scenarioGet $"/10?{id}"
         |> Observable.filter (fun resp -> resp.IsSuccessStatusCode)
         |> Observable.bind (fun resp -> resp.Content.ReadAsStringAsync() |> Async.AwaitTask |> Observable.ofAsync)
-
-    let proc = Process.GetCurrentProcess()
 
     let rec reportProcessLoad (startWallTime: DateTime) (startCpuTime: TimeSpan) =
         let endWallTime = DateTime.Now
