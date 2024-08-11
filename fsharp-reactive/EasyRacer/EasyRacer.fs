@@ -114,7 +114,7 @@ let scenario10 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObse
         Observable.repeatValue ()
         |> Observable.scanInit
             [| for _ in 0..512 do
-                   yield (byte 0) |]
+                   yield (byte (random.Next 256)) |]
             (fun bytes _ -> sha512.ComputeHash(bytes))
         |> Observable.map BitConverter.ToString
 
