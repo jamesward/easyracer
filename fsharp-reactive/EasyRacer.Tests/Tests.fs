@@ -35,10 +35,7 @@ type ScenarioTests(fixture: TestcontainersFixture) =
     [<Theory>]
     [<MemberData(nameof (scenarios))>]
     member this.``Response should be "right" for scenario``(num: int) =
-        // [<Fact>]
-        // member this.scenario1() =
         async {
-            let! _ = Async.Sleep 10_000
             use http = new HttpClient()
             let baseUrl = $"http://localhost:{fixture.port}"
 
@@ -47,7 +44,7 @@ type ScenarioTests(fixture: TestcontainersFixture) =
                     (fun cancellation -> http.GetAsync(baseUrl + path, cancellation) |> Async.AwaitTask)
                     (fun resp _ -> async { return Observable.single resp })
 
-            let! actual = Array.get scenarios 0 scenarioGet |> Async.AwaitObservable
+            let! actual = Array.get scenarios (num - 1) scenarioGet |> Async.AwaitObservable
 
             Assert.Equal("right", actual)
         }
