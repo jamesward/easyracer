@@ -15,7 +15,11 @@ type TestcontainersFixture() =
         ContainerBuilder()
             .WithImage("ghcr.io/jamesward/easyracer")
             .WithPortBinding(this.port)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(fun r -> r.ForPort(uint16 this.port)))
+            .WithWaitStrategy(
+                Wait
+                    .ForUnixContainer()
+                    .UntilHttpRequestIsSucceeded(fun r -> r.ForPort(uint16 this.port))
+            )
             .Build()
 
     member this.port: int = 8080
