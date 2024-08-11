@@ -64,8 +64,7 @@ let scenario7 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObser
         |> Observable.bind (fun resp -> resp.Content.ReadAsStringAsync() |> Async.AwaitTask |> Observable.ofAsync)
 
     let reqWithDelay =
-        Observable.delay (TimeSpan.FromSeconds 3) (Observable.single ())
-        |> Observable.bind (fun () -> req)
+        Observable.delay (TimeSpan.FromSeconds 3) (Observable.defer (fun () -> req))
 
     Observable.merge req reqWithDelay |> Observable.take 1
 
@@ -142,8 +141,9 @@ let scenario10 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObse
                 ->
                 Observable.single ($"bad HTTP status: {resp.StatusCode}")
             | resp ->
-                Observable.delay (TimeSpan.FromSeconds 1) (Observable.single ())
-                |> Observable.bind (fun () -> reportProcessLoad endWallTime endCpuTime))
+                Observable.delay
+                    (TimeSpan.FromSeconds 1)
+                    (Observable.defer (fun () -> reportProcessLoad endWallTime endCpuTime)))
 
     let reporter = reportProcessLoad DateTime.Now proc.TotalProcessorTime
 
