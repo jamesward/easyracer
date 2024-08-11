@@ -11,23 +11,16 @@ open System.Net.Sockets
 open Xunit
 
 type TestcontainersFixture() =
-    let _port =
-        use listener = new TcpListener(IPAddress.Loopback, 0)
-        listener.Start()
-        let ipEndPoint: IPEndPoint = downcast listener.LocalEndpoint
-        let port = ipEndPoint.Port
-        port
-        // Does not work
-        // this.container.GetMappedPublicPort(8080)
-
     member this.container =
         ContainerBuilder()
             .WithImage("ghcr.io/jamesward/easyracer")
-            .WithPortBinding(8080, this.port)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(fun r -> r.ForPort(8080us)))
+            .WithPortBinding(this.port)
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(fun r -> r.ForPort(uint16 this.port)))
             .Build()
 
-    member this.port: int = _port
+    member this.port: int = 8080
+    // Does not work
+    // this.container.GetMappedPublicPort(8080)
 
     interface IAsyncLifetime with
         member this.InitializeAsync() = this.container.StartAsync()
