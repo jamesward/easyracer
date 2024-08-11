@@ -30,6 +30,10 @@ clients = new Mapping<String, Run> {
     }
   }
 
+  ["fsharp-reactive"] = new {
+    steps = GitHubAction.Dotnet.testSteps(null, "8.0.x", "./fsharp-reactive/EasyRacer.Tests")
+  }
+
   ["go-conc"] = new {
     steps = GitHubAction.Go.testSteps(null, "go-conc/go.mod")
   }

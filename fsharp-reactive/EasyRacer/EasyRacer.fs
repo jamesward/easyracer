@@ -101,16 +101,16 @@ let scenario9 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObser
 
     Seq.replicate 10 req |> Observable.mergeSeq |> Observable.fold (+) ""
 
-let scenarios: ((string -> IObservable<HttpResponseMessage>) -> IObservable<string>) seq =
-    [ scenario1
-      scenario2
-      scenario3
-      scenario4
-      scenario5
-      scenario6
-      scenario7
-      scenario8
-      scenario9 ]
+let scenarios: ((string -> IObservable<HttpResponseMessage>) -> IObservable<string>) array =
+    [| scenario1
+       scenario2
+       scenario3
+       scenario4
+       scenario5
+       scenario6
+       scenario7
+       scenario8
+       scenario9 |]
 
 [<EntryPoint>]
 let main _ =
