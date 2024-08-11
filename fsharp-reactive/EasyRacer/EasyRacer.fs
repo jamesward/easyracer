@@ -1,7 +1,10 @@
 open FSharp.Control.Reactive
 open FSharpx.Control.Observable
 open System
+open System.Diagnostics
+open System.Net
 open System.Net.Http
+open System.Security.Cryptography
 
 let scenario1 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObservable<string> =
     let req =
@@ -101,6 +104,57 @@ let scenario9 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObser
 
     Seq.replicate 10 req |> Observable.mergeSeq |> Observable.fold (+) ""
 
+let scenario10 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObservable<string> =
+    let id = Guid.NewGuid()
+    let sha512 = SHA512.Create()
+
+    let random = Random()
+
+    let blocking =
+        Observable.repeatValue ()
+        |> Observable.scanInit
+            [| for _ in 0..512 do
+                   yield (byte 0) |]
+            (fun bytes _ -> sha512.ComputeHash(bytes))
+        |> Observable.map BitConverter.ToString
+
+    let blocker =
+        scenarioGet $"/10?{id}"
+        |> Observable.filter (fun resp -> resp.IsSuccessStatusCode)
+        |> Observable.bind (fun resp -> resp.Content.ReadAsStringAsync() |> Async.AwaitTask |> Observable.ofAsync)
+
+    let proc = Process.GetCurrentProcess()
+    printfn "process: %s" (proc.ProcessName)
+
+    let rec reportProcessLoad (startWallTime: DateTime) (startCpuTime: TimeSpan) =
+        let endWallTime = DateTime.Now
+        let endCpuTime = proc.TotalProcessorTime
+
+        let cpuLoad =
+            endCpuTime.Add(startCpuTime.Negate()).TotalMilliseconds
+            / endWallTime.Subtract(startWallTime).TotalMilliseconds
+            * (double Environment.ProcessorCount)
+
+        scenarioGet $"/10?{id}={cpuLoad}"
+        |> Observable.filter (fun resp ->
+            resp.StatusCode >= HttpStatusCode.OK
+            && resp.StatusCode < HttpStatusCode.BadRequest)
+        |> Observable.bind (function
+            | resp when resp.IsSuccessStatusCode ->
+                resp.Content.ReadAsStringAsync() |> Async.AwaitTask |> Observable.ofAsync
+            | resp ->
+                Observable.delay (TimeSpan.FromSeconds 1) (Observable.single ())
+                |> Observable.bind (fun () -> reportProcessLoad endWallTime endCpuTime))
+
+    let reporter = reportProcessLoad DateTime.Now proc.TotalProcessorTime
+
+    Observable.merge blocking blocker
+    |> Observable.filter (fun text -> text = "")
+    |> Observable.take 1
+    |> Observable.merge (reporter)
+    |> Observable.filter (fun text -> text <> "")
+    |> Observable.take 1
+
 let scenarios: ((string -> IObservable<HttpResponseMessage>) -> IObservable<string>) array =
     [| scenario1
        scenario2
@@ -110,7 +164,8 @@ let scenarios: ((string -> IObservable<HttpResponseMessage>) -> IObservable<stri
        scenario6
        scenario7
        scenario8
-       scenario9 |]
+       scenario9
+       scenario10 |]
 
 [<EntryPoint>]
 let main _ =
