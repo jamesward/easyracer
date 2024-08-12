@@ -13,6 +13,7 @@ from reactivex import operators as ops
 from reactivex.scheduler.eventloop import AsyncIOThreadSafeScheduler
 
 
+# Add >> to reactivex.Observable
 rx.Observable.__rshift__ = lambda self, op: self.pipe(op)
 
 
