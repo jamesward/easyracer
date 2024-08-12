@@ -191,18 +191,15 @@ async def scenario10(base_url: str) -> rx.Observable[str]:
                 ops.flat_map(handle_response)
             )
 
-    def res_req():
-        return rx.merge(
-            rx.merge(blocking(), blocker()).pipe(
-                ops.first(lambda value: value is not None),
-                ops.map(lambda _: None)
-            ),
-            reporter()
-        ).pipe(
+    return rx.merge(
+        rx.merge(blocking(), blocker()).pipe(
             ops.first(lambda value: value is not None),
-        )
-
-    return rx.merge(res_req(), res_req()).pipe(ops.first())
+            ops.map(lambda _: None)
+        ),
+        reporter()
+    ).pipe(
+        ops.first(lambda value: value is not None),
+    )
 
 
 scenarios: list[Callable[[str], Coroutine[Any, Any, rx.Observable[str]]]] = [
