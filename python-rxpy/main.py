@@ -8,13 +8,12 @@ from typing import Callable, Coroutine, Any
 
 import aiohttp
 import psutil
-import reactivex
 import reactivex as rx
 from reactivex import operators as ops
 from reactivex.scheduler.eventloop import AsyncIOThreadSafeScheduler
 
 
-reactivex.Observable.__rshift__ = lambda self, op: self.pipe(op)
+rx.Observable.__rshift__ = lambda self, op: self.pipe(op)
 
 
 # Note: Request creation code is intentionally not shared across scenarios
