@@ -27,6 +27,8 @@ async def scenario1(url: str) -> rx.Observable[str]:
     def req(): return rx.from_future(asyncio.ensure_future(_req()))
 
     return rx.merge(req(), req()) >> ops.first()
+    # Or:
+    # return rx.merge(req(), req()).pipe(ops.first())
 
 
 async def scenario2(url: str):
@@ -38,6 +40,10 @@ async def scenario2(url: str):
     def req(): return rx.from_future(asyncio.ensure_future(http_get())) >> ops.catch(rx.empty())
 
     return rx.merge(req(), req()) >> ops.first()
+    # Or:
+    # def req(): return rx.from_future(asyncio.ensure_future(http_get())).pipe(ops.catch(rx.empty()))
+    #
+    # return rx.merge(req(), req()).pipe(ops.first())
 
 
 async def scenario3(url: str):
@@ -49,6 +55,8 @@ async def scenario3(url: str):
     def req(): return rx.from_future(asyncio.ensure_future(_req()))
 
     return rx.merge(*[req() for req in [req] * 10_000]) >> ops.first()
+    # Or:
+    # return rx.merge(*[req() for req in [req] * 10_000]).pipe(ops.first())
 
 
 async def scenario4(url: str):
@@ -63,6 +71,14 @@ async def scenario4(url: str):
         req() >> ops.timeout(datetime.timedelta(seconds=1)) >> ops.catch(rx.empty()),
         req()
     ) >> ops.first()
+    # Or:
+    # return rx.merge(
+    #     req().pipe(
+    #         ops.timeout(datetime.timedelta(seconds=1)),
+    #         ops.catch(rx.empty())
+    #     ),
+    #     req()
+    # ).pipe(ops.first())
 
 
 async def scenario5(url: str):
@@ -75,6 +91,10 @@ async def scenario5(url: str):
     def req(): return rx.from_future(asyncio.ensure_future(_req())) >> ops.catch(rx.empty())
 
     return rx.merge(req(), req()) >> ops.first()
+    # Or:
+    # def req(): return rx.from_future(asyncio.ensure_future(_req())).pipe(ops.catch(rx.empty()))
+    # 
+    # return rx.merge(req(), req()).pipe(ops.first())
 
 
 async def scenario6(url: str):
@@ -87,6 +107,10 @@ async def scenario6(url: str):
     def req(): return rx.from_future(asyncio.ensure_future(_req())) >> ops.catch(rx.empty())
 
     return rx.merge(req(), req(), req()) >> ops.first()
+    # Or:
+    # def req(): return rx.from_future(asyncio.ensure_future(_req())).pipe(ops.catch(rx.empty()))
+    # 
+    # return rx.merge(req(), req(), req()).pipe(ops.first())
 
 
 async def scenario7(url: str) -> rx.Observable[str]:
@@ -99,6 +123,13 @@ async def scenario7(url: str) -> rx.Observable[str]:
     hedge_req = rx.of(()) >> ops.delay(datetime.timedelta(seconds=3)) >> ops.flat_map(lambda _: req())
 
     return rx.merge(req(), hedge_req) >> ops.first()
+    # Or:
+    # hedge_req = rx.of(()).pipe(
+    #     ops.delay(datetime.timedelta(seconds=3)),
+    #     ops.flat_map(lambda _: req())
+    # )
+    # 
+    # return rx.merge(req(), hedge_req).pipe(ops.first())
 
 
 async def scenario8(base_url: str) -> rx.Observable[str]:
@@ -124,6 +155,24 @@ async def scenario8(base_url: str) -> rx.Observable[str]:
         )
 
     return rx.merge(res_req(), res_req()) >> ops.first()
+    # Or:
+    # def res_req():
+    #     return open_req().pipe(
+    #         ops.flat_map(
+    #             lambda res: use_req(res).pipe(
+    #                 ops.catch(rx.of(None)),
+    #                 ops.flat_map(
+    #                     lambda result: close_req(res).pipe(
+    #                         ops.flat_map(
+    #                             lambda _: rx.empty() if result is None else rx.of(result)
+    #                         )
+    #                     )
+    #                 )
+    #             )
+    #         )
+    #     )
+    # 
+    # return rx.merge(res_req(), res_req()).pipe(ops.first())
 
 
 async def scenario9(url: str):
@@ -136,6 +185,12 @@ async def scenario9(url: str):
     def req(): return rx.from_future(asyncio.ensure_future(_req())) >> ops.catch(rx.empty())
 
     return rx.merge(*[req() for req in [req] * 10]) >> ops.reduce(lambda x, y: x + y)
+    # Or:
+    # def req(): return rx.from_future(asyncio.ensure_future(_req())).pipe(ops.catch(rx.empty()))
+    # 
+    # return rx.merge(*[req() for req in [req] * 10]).pipe(
+    #     ops.reduce(lambda x, y: x + y)
+    # )
 
 
 async def scenario10(base_url: str) -> rx.Observable[str]:
@@ -154,10 +209,14 @@ async def scenario10(base_url: str) -> rx.Observable[str]:
         m.update(bs)
         return m.digest()
 
-    def blocking():
-        return (rx.repeat_value(())
-                >> ops.scan(lambda accum, _: _busy(accum), seed=random.randbytes(512))
-                >> ops.map(lambda _: None))
+    def blocking(): return rx.repeat_value(()) \
+        >> ops.scan(lambda accum, _: _busy(accum), seed=random.randbytes(512)) \
+        >> ops.map(lambda _: None)
+    # Or:
+    # def blocking(): return rx.repeat_value(()).pipe(
+    #     ops.scan(lambda accum, _: _busy(accum), seed=random.randbytes(512)),
+    #     ops.map(lambda _: None)
+    # )
 
     def blocker(): return rx.from_future(asyncio.ensure_future(_req(f"{base_url}?{req_id}")))
 
@@ -168,12 +227,23 @@ async def scenario10(base_url: str) -> rx.Observable[str]:
                     return rx.of(response.body_text)
                 case 302:
                     return rx.of(()) >> ops.delay(datetime.timedelta(seconds=1)) >> ops.flat_map(reporter())
+                    # Or:
+                    # return rx.of(()).pipe(
+                    #     ops.delay(datetime.timedelta(seconds=1)),
+                    #     ops.flat_map(reporter())
+                    # )
 
         with p.oneshot():
             load = p.cpu_percent()
             return rx.from_future(
                 asyncio.ensure_future(_req(f"{base_url}?{req_id}={load}"))
             ) >> ops.flat_map(handle_response)
+            # Or:
+            # return rx.from_future(
+            #     asyncio.ensure_future(_req(f"{base_url}?{req_id}={load}"))
+            # ).pipe(
+            #     ops.flat_map(handle_response)
+            # )
 
     return rx.merge(
         rx.merge(
@@ -181,6 +251,16 @@ async def scenario10(base_url: str) -> rx.Observable[str]:
         ) >> ops.first(lambda value: value is not None) >> ops.map(lambda _: None),
         reporter()
     ) >> ops.first(lambda value: value is not None)
+    # Or:
+    # return rx.merge(
+    #     rx.merge(blocking(), blocker()).pipe(
+    #         ops.first(lambda value: value is not None),
+    #         ops.map(lambda _: None)
+    #     ),
+    #     reporter()
+    # ).pipe(
+    #     ops.first(lambda value: value is not None),
+    # )
 
 
 scenarios: list[Callable[[str], Coroutine[Any, Any, rx.Observable[str]]]] = [
