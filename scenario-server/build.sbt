@@ -15,7 +15,7 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio-concurrent" % zioVersion,
   "dev.zio" %% "zio-direct" % "1.0.0-RC7",
   "dev.zio" %% "zio-logging" % "2.3.1",
-  "dev.zio" %% "zio-http" % "3.0.0-RC9",
+  "dev.zio" %% "zio-http" % "3.0.0-RC10",
   "dev.zio" %% "zio-test" % zioVersion % Test,
   "dev.zio" %% "zio-test-sbt" % zioVersion % Test
 )
