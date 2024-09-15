@@ -14,7 +14,7 @@ from reactivex.scheduler.eventloop import AsyncIOThreadSafeScheduler
 
 
 # Note: Request creation code is intentionally not shared across scenarios
-async def scenario1(url: str) -> rx.Observable[str]:
+def scenario1(url: str) -> rx.Observable[str]:
     async def _req():
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -25,7 +25,7 @@ async def scenario1(url: str) -> rx.Observable[str]:
     return rx.merge(req(), req()).pipe(ops.first())
 
 
-async def scenario2(url: str):
+def scenario2(url: str):
     async def http_get():
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -36,7 +36,7 @@ async def scenario2(url: str):
     return rx.merge(req(), req()).pipe(ops.first())
 
 
-async def scenario3(url: str):
+def scenario3(url: str):
     async def _req():
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -47,7 +47,7 @@ async def scenario3(url: str):
     return rx.merge(*[req() for req in [req] * 10_000]).pipe(ops.first())
 
 
-async def scenario4(url: str):
+def scenario4(url: str):
     async def _req():
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -64,7 +64,7 @@ async def scenario4(url: str):
     ).pipe(ops.first())
 
 
-async def scenario5(url: str):
+def scenario5(url: str):
     async def _req():
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -76,7 +76,7 @@ async def scenario5(url: str):
     return rx.merge(req(), req()).pipe(ops.first())
 
 
-async def scenario6(url: str):
+def scenario6(url: str):
     async def _req():
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -88,7 +88,7 @@ async def scenario6(url: str):
     return rx.merge(req(), req(), req()).pipe(ops.first())
 
 
-async def scenario7(url: str) -> rx.Observable[str]:
+def scenario7(url: str) -> rx.Observable[str]:
     async def _req():
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -103,7 +103,7 @@ async def scenario7(url: str) -> rx.Observable[str]:
     return rx.merge(req(), hedge_req).pipe(ops.first())
 
 
-async def scenario8(base_url: str) -> rx.Observable[str]:
+def scenario8(base_url: str) -> rx.Observable[str]:
     async def _req(url: str):
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -135,7 +135,7 @@ async def scenario8(base_url: str) -> rx.Observable[str]:
     return rx.merge(res_req(), res_req()).pipe(ops.first())
 
 
-async def scenario9(url: str):
+def scenario9(url: str):
     async def _req():
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -149,7 +149,7 @@ async def scenario9(url: str):
     )
 
 
-async def scenario10(base_url: str) -> rx.Observable[str]:
+def scenario10(base_url: str) -> rx.Observable[str]:
     req_id = uuid.uuid4()
     p = psutil.Process()
     Response = namedtuple("Response", ["status", "body_text"])
@@ -217,19 +217,12 @@ scenarios: list[Callable[[str], Coroutine[Any, Any, rx.Observable[str]]]] = [
 
 
 async def main():
-    scheduler = AsyncIOThreadSafeScheduler(asyncio.get_event_loop())
-    sem = asyncio.Semaphore(0)
-
     for scenario in scenarios:
         num = scenario.__name__[8:]
         url = f"http://localhost:8080/{num}"
-        scenario_observable = await scenario(url)
-        scenario_observable.subscribe(
-            on_next=lambda value: print(f"{scenario.__name__}: {value}"),
-            on_completed=lambda: sem.release(),
-            scheduler=scheduler
+        await scenario(url) >> ops.do_action(
+            lambda value: print(f"{scenario.__name__}: {value}")
         )
-        await sem.acquire()
 
 
 if __name__ == "__main__":
