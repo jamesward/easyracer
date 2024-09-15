@@ -10,7 +10,6 @@ import aiohttp
 import psutil
 import reactivex as rx
 from reactivex import operators as ops
-from reactivex.scheduler.eventloop import AsyncIOThreadSafeScheduler
 
 
 # Note: Request creation code is intentionally not shared across scenarios
