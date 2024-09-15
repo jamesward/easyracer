@@ -1,7 +1,4 @@
-import asyncio
-
 import pytest
-from reactivex.scheduler.eventloop import AsyncIOThreadSafeScheduler
 from testcontainers.core.generic import DockerContainer
 
 import main
@@ -25,21 +22,11 @@ async def test_all():
 
         #@wait_container_is_ready()
         async def connected():
-            scheduler = AsyncIOThreadSafeScheduler(asyncio.get_event_loop())
-            sem = asyncio.Semaphore(0)
-
             def assert_right(actual: str):
                 assert actual == "right"
             for scenario in main.scenarios:
                 num = scenario.__name__[8:]
                 url = f"http://localhost:{port}/{num}"
-                scenario_observable = await scenario(url)
-                scenario_observable.subscribe(
-                    on_next=lambda value: assert_right(value),
-                    on_completed=lambda: sem.release(),
-                    scheduler=scheduler
-                )
-                await sem.acquire()
-
+                assert_right(await scenario(url))
 
         await connected()
