@@ -1,7 +1,7 @@
 scalaVersion := "3.5.0"
 
 libraryDependencies ++= Seq(
-  "com.softwaremill.ox" %% "core" % "0.3.8",
+  "com.softwaremill.ox" %% "core" % "0.3.9",
   "com.softwaremill.sttp.client3" %% "core" % "3.9.8",
   "org.scalatest" %% "scalatest" % "3.2.19" % Test,
   "org.slf4j" % "slf4j-simple" % "2.0.16" % Test,
