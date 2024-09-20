@@ -1,4 +1,4 @@
-scalaVersion := "3.5.0"
+scalaVersion := "3.5.1"
 
 libraryDependencies ++= Seq(
   "io.getkyo" %% "kyo-core" % "0.10.0",
