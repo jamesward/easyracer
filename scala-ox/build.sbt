@@ -1,4 +1,4 @@
-scalaVersion := "3.5.0"
+scalaVersion := "3.5.1"
 
 libraryDependencies ++= Seq(
   "com.softwaremill.ox" %% "core" % "0.3.9",
