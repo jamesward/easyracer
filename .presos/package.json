@@ -1,7 +1,7 @@
 {
   "devDependencies": {
-    "@gerhobbelt/markdown-it-code-snippet-enhanced": "^2.0.1-2",
-    "markdown-it-mark": "^4.0.0",
-    "@marp-team/marp-cli": "^3.4.0"
+    "@gerhobbelt/markdown-it-code-snippet-enhanced": "latest",
+    "markdown-it-mark": "latest",
+    "@marp-team/marp-cli": "latest"
   }
 }

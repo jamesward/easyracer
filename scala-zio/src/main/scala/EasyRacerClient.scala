@@ -16,7 +16,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario1(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(1)
-      val req = Client.request(Request.get(url))
+      val req = Client.batched(Request.get(url))
       val winner = req.race(req).run
       winner.body.asString.run
 
@@ -24,7 +24,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario2(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(2)
-      val req = Client.request(Request.get(url))
+      val req = Client.batched(Request.get(url))
       val winner = req.race(req).run
       winner.body.asString.run
 
@@ -32,7 +32,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario3(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(3)
-      val reqs = Seq.fill(10000)(Client.request(Request.get(url)))
+      val reqs = Seq.fill(10000)(Client.batched(Request.get(url)))
       val winner = ZIO.raceAll(reqs.head, reqs.tail).run
       winner.body.asString.run
 
@@ -40,7 +40,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario4(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(4)
-      val req = Client.request(Request.get(url))
+      val req = Client.batched(Request.get(url))
       val winner = req.timeoutFail(TimeoutException())(1.seconds).race(req).run
       winner.body.asString.run
 
@@ -48,7 +48,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario5(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(5)
-      val req = Client.request(Request.get(url)).filterOrFail(_.status.isSuccess)(Error())
+      val req = Client.batched(Request.get(url)).filterOrFail(_.status.isSuccess)(Error())
       val winner = req.race(req).run
       winner.body.asString.run
 
@@ -56,7 +56,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario6(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(6)
-      val req = Client.request(Request.get(url)).filterOrFail(_.status.isSuccess)(Error())
+      val req = Client.batched(Request.get(url)).filterOrFail(_.status.isSuccess)(Error())
       val winner = ZIO.raceAll(req, Seq(req, req)).run
       winner.body.asString.run
 
@@ -64,7 +64,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario7(scenarioUrl: Int => String) =
     defer:
       val url = scenarioUrl(7)
-      val req = Client.request(Request.get(url))
+      val req = Client.batched(Request.get(url))
       val winner = req.race(req.delay(4.seconds)).run
       winner.body.asString.run
 
@@ -72,7 +72,7 @@ object EasyRacerClient extends ZIOAppDefault:
   def scenario8(scenarioUrl: Int => String) =
     def req(url: String) =
       defer:
-        val resp = Client.request(Request.get(url)).filterOrFail(_.status.isSuccess)(Error()).run
+        val resp = Client.batched(Request.get(url)).filterOrFail(_.status.isSuccess)(Error()).run
         resp.body.asString.run
 
     val open = req(scenarioUrl(8) + "?open")
@@ -88,7 +88,7 @@ object EasyRacerClient extends ZIOAppDefault:
     val req =
       defer:
         val url = scenarioUrl(9)
-        val resp = Client.request(Request.get(url)).filterOrFail(_.status.isSuccess)(Error()).run
+        val resp = Client.batched(Request.get(url)).filterOrFail(_.status.isSuccess)(Error()).run
         val body = resp.body.asString.run
         val now = Clock.nanoTime.run
         now -> body
@@ -109,7 +109,7 @@ object EasyRacerClient extends ZIOAppDefault:
       val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
       val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
       defer:
-        val resp = Client.request(Request.get(scenarioUrl(10) + s"?$id=$load")).run
+        val resp = Client.batched(Request.get(scenarioUrl(10) + s"?$id=$load")).run
         if resp.status.isRedirection then
           reporter(id).delay(1.second).run
         else if resp.status.isSuccess then
@@ -129,7 +129,7 @@ object EasyRacerClient extends ZIOAppDefault:
           result = messageDigest.digest(result)
 
       val blocker =
-        Client.request(Request.get(scenarioUrl(10) + s"?$id")).race(blocking) *> ZIO.never
+        Client.batched(Request.get(scenarioUrl(10) + s"?$id")).race(blocking) *> ZIO.never
 
       blocker.fork.run
       reporter(id).run

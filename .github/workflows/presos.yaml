@@ -23,6 +23,12 @@ jobs:
       - run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf lambdaconf_2024.md
         working-directory: .presos
 
+      - run: npx @marp-team/marp-cli --engine ./engine.mjs devoxx_2024.md
+        working-directory: .presos
+
+      - run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf devoxx_2024.md
+        working-directory: .presos
+
       - run: |
           mkdir _site
           cp .presos/*.html _site/
