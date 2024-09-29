@@ -12,7 +12,7 @@ import scala.annotation.tailrec
 import scala.util.Random
 
 
-object EasyRacerClient:
+object EasyRacerClient extends OxApp.Simple:
   private val backend = HttpClientSyncBackend()
   private def scenarioRequest(uri: Uri): Request[String, Any] = basicRequest.get(uri).response(asStringAlways)
 
@@ -62,10 +62,9 @@ object EasyRacerClient:
     def use(id: String) = req(uri"${scenarioUrl(8)}?use=$id")
     def close(id: String) = req(uri"${scenarioUrl(8)}?close=$id")
 
-    def reqRes =
-      val id = open
-      try use(id)
-      finally close(id)
+    def reqRes = supervised:
+      val id = useInScope(open)(close)
+      use(id)
 
     race(reqRes, reqRes)
 
@@ -114,10 +113,10 @@ object EasyRacerClient:
     val (_, result) = par(blocker, reporter)
     result
 
-@main def run(): Unit =
-  import EasyRacerClient.*
-  def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
-  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
-  //def scenarios: Seq[(Int => Uri) => String] = Seq(scenario10)
-  scenarios.foreach: s =>
-    println(s(scenarioUrl))
+
+  def run(using Ox): Unit =
+    def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
+    def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
+//    def scenarios: Seq[(Int => Uri) => String] = Seq(scenario8)
+    scenarios.foreach: s =>
+      println(s(scenarioUrl))
