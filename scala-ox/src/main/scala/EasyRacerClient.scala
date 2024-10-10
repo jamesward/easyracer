@@ -19,33 +19,33 @@ object EasyRacerClient extends OxApp.Simple:
   def scenario1(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(1)
     def req = scenarioRequest(url).send(backend).body
-    race(req, req)
+    raceSuccess(req, req)
 
   def scenario2(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(2)
     def req = scenarioRequest(url).send(backend)
-    race(req, req).body
+    raceSuccess(req, req).body
 
   def scenario3(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(3)
     val reqs = Seq.fill(10000): () =>
       scenarioRequest(url).send(backend)
-    race(reqs).body
+    raceSuccess(reqs).body
 
   def scenario4(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(4)
     def req = scenarioRequest(url).send(backend).body
-    race(timeout(1.second)(req), req)
+    raceSuccess(timeout(1.second)(req), req)
 
   def scenario5(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(5)
     def req = basicRequest.get(url).response(asString.getRight).send(backend).body
-    race(req, req)
+    raceSuccess(req, req)
 
   def scenario6(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(6)
     def req = basicRequest.get(url).response(asString.getRight).send(backend).body
-    race(req, req, req)
+    raceSuccess(req, req, req)
 
   def scenario7(scenarioUrl: Int => Uri): String =
     val url = scenarioUrl(7)
@@ -53,7 +53,7 @@ object EasyRacerClient extends OxApp.Simple:
     def delayedReq =
       Thread.sleep(4000)
       req
-    race(req, delayedReq)
+    raceSuccess(req, delayedReq)
 
   def scenario8(scenarioUrl: Int => Uri): String =
     def req(url: Uri) = basicRequest.get(url).response(asString.getRight).send(backend).body
@@ -66,7 +66,7 @@ object EasyRacerClient extends OxApp.Simple:
       val id = useInScope(open)(close)
       use(id)
 
-    race(reqRes, reqRes)
+    raceSuccess(reqRes, reqRes)
 
   def scenario9(scenarioUrl: Int => Uri): String =
     def req =
@@ -95,7 +95,7 @@ object EasyRacerClient extends OxApp.Simple:
 
     def blocker =
       val url = scenarioUrl(10).addQuerySegment(QuerySegment.Plain(id))
-      race(req(url), blocking())
+      raceSuccess(req(url), blocking())
 
     @tailrec
     def reporter: String =
