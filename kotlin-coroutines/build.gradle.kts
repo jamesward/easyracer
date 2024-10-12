@@ -1,6 +1,6 @@
 plugins {
     application
-    kotlin("jvm") version "2.0.20"
+    kotlin("jvm") version "2.0.21"
 }
 
 repositories {
@@ -17,8 +17,8 @@ application {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
-    implementation("io.ktor:ktor-client-core:2.3.12")
-    implementation("io.ktor:ktor-client-java:2.3.12")
+    implementation("io.ktor:ktor-client-core:3.0.0")
+    implementation("io.ktor:ktor-client-java:3.0.0")
 
     testImplementation("io.kotest:kotest-runner-junit5:5.9.1")
     testImplementation("io.kotest:kotest-assertions-core:5.9.1")
