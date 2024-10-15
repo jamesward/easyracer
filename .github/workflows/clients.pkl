@@ -1,6 +1,6 @@
 // pkl eval --multiple-file-output-path . clients.pkl
 
-import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.13#/GitHubAction.pkl"
+import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.14#/GitHubAction.pkl"
 //import "../../../pklgha/src/GitHubAction.pkl"
 
 
@@ -44,6 +44,10 @@ clients = new Mapping<String, Run> {
 
   ["java-loom"] = new {
     steps = GitHubAction.Java.gradleTestSteps(null, "java-loom")
+  }
+
+  ["java-jox"] = new {
+    steps = GitHubAction.Java.gradleTestSteps(null, "java-jox")
   }
 
   ["javascript-stdlib"] = new {
