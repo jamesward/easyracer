@@ -219,9 +219,9 @@ public class Main {
                         .map(StructuredTaskScope.Subtask::get)
                         .filter(r -> r.response.statusCode() == 200)
                         .sorted(Comparator.comparing(TimedResponse::instant)).collect(
-                            StringBuilder::new,
-                            (acc, timedResponse) -> acc.append(timedResponse.response.body()),
-                            StringBuilder::append
+                                StringBuilder::new,
+                                (acc, timedResponse) -> acc.append(timedResponse.response.body()),
+                                StringBuilder::append
                         ).toString();
             }
         }
@@ -262,12 +262,10 @@ public class Main {
                     var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
                     if ((resp.statusCode() >= 200) && (resp.statusCode() < 300)) {
                         return resp.body();
-                    }
-                    else if ((resp.statusCode() >= 300) && (resp.statusCode() < 400)) {
+                    } else if ((resp.statusCode() >= 300) && (resp.statusCode() < 400)) {
                         Thread.sleep(1000);
                         return recursive.func.get();
-                    }
-                    else {
+                    } else {
                         throw new RuntimeException(resp.body());
                     }
                 } catch (IOException | InterruptedException e) {
@@ -284,7 +282,7 @@ public class Main {
         }
 
         List<String> results() throws ExecutionException, InterruptedException {
-            return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9());
+            return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10());
             //return List.of(scenario10());
         }
     }

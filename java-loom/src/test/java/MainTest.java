@@ -21,6 +21,7 @@ public class MainTest {
             var url = new URI("http://" + scenarioServer.getHost() + ":" + scenarioServer.getFirstMappedPort());
             var scenarios = new Main.Scenarios(url);
             assertThat(scenarios.results(), CoreMatchers.everyItem(equalTo("right")));
+            assertThat(scenarios.results().size(), CoreMatchers.equalTo(10));
         }
     }
 }
