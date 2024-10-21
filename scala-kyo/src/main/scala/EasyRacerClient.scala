@@ -1,5 +1,7 @@
 import com.sun.management.OperatingSystemMXBean
 import kyo.*
+import kyo.Requests.Backend
+import kyo.debug.Debug
 import sttp.client3.*
 import sttp.model.Uri.QuerySegment
 import sttp.model.{ResponseMetadata, Uri}
@@ -11,79 +13,85 @@ import java.time.Instant
 
 object EasyRacerClient extends KyoApp:
 
-  def scenario1(scenarioUrl: Int => Uri): String < Fibers =
+  def scenario1(scenarioUrl: Int => Uri) =
     val url = scenarioUrl(1)
-    val req = Requests.run(Requests[String](_.get(url)))
-    Fibers.race(req, req)
+    val req = Requests(_.get(url))
+    Async.race(req, req)
 
-  def scenario2(scenarioUrl: Int => Uri): String < Fibers =
+  def scenario2(scenarioUrl: Int => Uri) =
     val url = scenarioUrl(2)
-    val req = Requests.run(Requests[String](_.get(url)))
-    Fibers.race(req, req)
+    val req = Requests(_.get(url))
+    Async.race(req, req)
 
-  def scenario3(scenarioUrl: Int => Uri): String < Fibers =
+  def scenario3(scenarioUrl: Int => Uri) =
     val url = scenarioUrl(3)
     val reqs = Seq.fill(10000):
-      Requests.run(Requests[String](_.get(url)))
-    Fibers.race(reqs)
+      Requests(_.get(url))
+    Async.race(reqs)
 
-  def scenario4(scenarioUrl: Int => Uri): String < Fibers =
+  def scenario4(scenarioUrl: Int => Uri) =
     val url = scenarioUrl(4)
-    val req = Requests.run(Requests[String](_.get(url)))
-    Fibers.race(Fibers.timeout(1.seconds)(req), req)
+    val req = Requests(_.get(url))
+    val reqWithTimeout = Async.timeout(1.seconds)(req)
+    Async.race(req, reqWithTimeout)
 
-  def scenario5(scenarioUrl: Int => Uri): String < Fibers =
+  def scenario5(scenarioUrl: Int => Uri) =
     val url = scenarioUrl(5)
-    val req = Requests.run(Requests[String](_.get(url)))
-    Fibers.race(req, req)
+    val req = Requests(_.get(url))
+    Async.race(req, req)
 
-  def scenario6(scenarioUrl: Int => Uri): String < Fibers =
+  def scenario6(scenarioUrl: Int => Uri) =
     val url = scenarioUrl(6)
-    val req = Requests.run(Requests[String](_.get(url)))
-    Fibers.race(Seq(req, req, req))
+    val req = Requests(_.get(url))
+    Async.race(req, req, req)
 
-  def scenario7(scenarioUrl: Int => Uri): String < Fibers =
+  def scenario7(scenarioUrl: Int => Uri) =
     val url = scenarioUrl(7)
-    val req = Requests.run(Requests[String](_.get(url)))
-    val delayedReq = Fibers.delay(4.seconds)(req)
-    Fibers.race(req, delayedReq)
+    val req = Requests(_.get(url))
+    val delayedReq = Async.delay(4.seconds)(req)
+    Async.race(req, delayedReq)
 
-  def scenario8(scenarioUrl: Int => Uri): String < Fibers =
-    def req(uri: Uri) = Requests.run(Requests[String](_.get(uri)))
+  def scenario8(scenarioUrl: Int => Uri) =
+    def req(uri: Uri) = Requests(_.get(uri))
 
     case class MyResource(id: String):
-      def close: Unit < IOs =
-        Fibers.run(req(uri"${scenarioUrl(8)}?close=$id")).unit
+      def close: Unit < IO =
+        req(uri"${scenarioUrl(8)}?close=$id").unit
 
     val myResource = defer:
       val id = await:
         req(uri"${scenarioUrl(8)}?open")
       await:
-        Resources.acquireRelease(MyResource(id))(_.close)
+        Resource.acquireRelease(MyResource(id))(_.close)
 
-    val reqRes = Resources.run:
+    val reqRes = Resource.run:
       defer:
         val resource = await(myResource)
         await:
           req(uri"${scenarioUrl(8)}?use=${resource.id}")
 
-    Fibers.race(reqRes, reqRes)
+    Async.race(reqRes, reqRes)
 
-  def scenario9(scenarioUrl: Int => Uri): String < Fibers =
+  /*
+  def scenario9(scenarioUrl: Int => Uri) =
     val url = scenarioUrl(9)
+
+    val req: String < Emit[String] =
+      defer:
+        val body = await(Requests(_.get(url)))
+        Emit(body)
+
+    /*
     val req = IOs.attempt:
       defer:
         val body = await(Requests.run(Requests[String](_.get(url))))
         val now = await(Clocks.now)
         now -> body
+     */
 
     val reqs = Seq.fill(10)(req)
 
-    defer:
-      val successes = await(Fibers.parallel(reqs)).collect:
-        case scala.util.Success(value) => value
-
-      successes.sortBy { (completedTime, _) => completedTime }.map { (_, body) => body }.mkString
+    reqs.mkString()
 
   def scenario10(scenarioUrl: Int => Uri): String < Fibers =
     // always puts the body into the response, even if it is empty, and includes the responseMetadata
@@ -130,12 +138,12 @@ object EasyRacerClient extends KyoApp:
       val id = await(Randoms.nextStringAlphanumeric(8))
       val (_, result) = await(Fibers.parallel(blocker(id), reporter(id)))
       result
-
+  */
 
   def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
 
-  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
-  //def scenarios: Seq[(Int => Uri) => String < Fibers] = Seq(scenario10)
+//  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
+  def scenarios = Seq(scenario1)
 
   run:
-    Seqs.collect(scenarios.map(s => s(scenarioUrl)))
+    Kyo.collect(scenarios.map(s => s(scenarioUrl)))
