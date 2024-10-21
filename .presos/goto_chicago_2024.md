@@ -1,11 +1,7 @@
-## Structured Concurrency: Managing the Hierarchical Cancelation and Error Handling
-
-#### Ryan Knight
-*Developer @ Grand Cloud*
-<a href="https://twitter.com/knight_cloud" class="twitter-follow-button" data-size="large">@knight_cloud</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+## Structured Concurrency: Managing the Hierarchical Cancellation and Error Handling
 
 #### James Ward
-*Developer Advocate @ AWS*
+*DX for Q Developer @ AWS*
 <a href="https://twitter.com/_JamesWard" class="twitter-follow-button" data-size="large">@_JamesWard</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 ---
@@ -17,15 +13,55 @@ Why concurrency is / has been hard (shared mutable state, mutexes, etc)
 Hierarchical Concurrency (diagram)
 -->
 
+<pre class="mermaid">
+graph TD
+    A[Main Task] --> B[Parent Scope]
+    B --> C[Child Task 1]
+    B --> D[Child Task 2]
+    B --> E[Child Task 3]
+    C --> F[Complete]
+    D --> G[Complete]
+    E --> H[Complete]
+    F --> I[All Child Tasks Complete]
+    G --> I
+    H --> I
+    I --> J[Parent Scope Completes]
+    J --> K[Main Task Continues]
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#ccf,stroke:#333,stroke-width:2px
+    style C fill:#cfc,stroke:#333,stroke-width:2px
+    style D fill:#cfc,stroke:#333,stroke-width:2px
+    style E fill:#cfc,stroke:#333,stroke-width:2px
+    style J fill:#ccf,stroke:#333,stroke-width:2px
+    style K fill:#f9f,stroke:#333,stroke-width:2px
+</pre>
+
 ---
 
-## Generally Supports:
+## Races
 
-* Cancellation e.g. Races (loser cancellation)
-* Resource management
-* Efficient thread utilization (i.e. reactive, non-blocking)
-* Explicit timeouts
-* Semantic Errors
+<pre class="mermaid">
+graph TD
+    A[Main Task] --> B[Parent Scope]
+    B --> C[Child Task 1]
+    B --> D[Child Task 2]
+    B --> E[Child Task 3]
+    C --> F[Complete]
+    D --> G[Cancelled]
+    E --> H[Cancelled]
+    F --> I[Result of Child Task 1]
+    I --> J[Parent Scope Completes]
+    J --> K[Main Task Continues]
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#ccf,stroke:#333,stroke-width:2px
+    style C fill:#cfc,stroke:#333,stroke-width:2px
+    style D fill:#cfc,stroke:#333,stroke-width:2px
+    style E fill:#cfc,stroke:#333,stroke-width:2px
+    style J fill:#ccf,stroke:#333,stroke-width:2px
+    style K fill:#f9f,stroke:#333,stroke-width:2px
+</pre>
 
 ---
 
@@ -47,17 +83,17 @@ Hierarchical Concurrency (diagram)
 
 ## Approaches to Structured Concurrency
 
+* Scoped Driven
+  - Java Loom (JEP 453)
+* Direct Style (Imperative / Monad free!)
+  - Jox & Scala Ox
+    - Built on Loom, JDK21+ only
+  - Rust (Future based syntax)
 * Effect Oriented
   - Scala ZIO
     - Monadic Effect
   - Scala Kyo
     - Algebraic Effects / single monad
-* Direct Style (Imperative / Monad free!)
-  - Scala Ox
-    - Built on Loom, JDK21+ only
-  - Rust (Future based syntax)
-* Scoped Driven
-  - Java Loom
 
 ---
 
@@ -72,11 +108,6 @@ Hierarchical Concurrency (diagram)
 * Loser cancellation (but not validated in this scenario)
     * Cancellation means stopping and cleaning up
 
-* Ox
-    * non effect oriented
-    * race isn’t on a datatype
-    * def instead of val
-    * Loom
 * Java
     * Scopes to define SC
         * ShutdownOnSuccess is the race
@@ -94,7 +125,19 @@ Hierarchical Concurrency (diagram)
 @[code lang=scala transclude={19-22}](@/../scala-ox/src/main/scala/EasyRacerClient.scala)
 
 <!--
+Higher level abstraction on Loom
+No special datatype or syntax
+-->
 
+---
+
+## Scenario 1 - Java Jox
+
+@[code lang=java transclude={35-41}](@/../java-jox/src/main/java/Main.java)
+
+<!--
+Higher level abstraction on Loom
+No special datatype or syntax
 -->
 
 ---
@@ -137,6 +180,58 @@ Hierarchical Concurrency (diagram)
 
 ---
 
+## Race Shutdown on Success
+
+<pre class="mermaid">
+graph TD
+    A[Main Task] --> B[Parent Scope]
+    B --> C[Child Task 1]
+    B --> D[Child Task 2]
+    B --> E[Child Task 3]
+    C --> F[Complete]
+    D --> G[Error]
+    E --> H[Cancelled]
+    F --> I[Result of Child Task 1]
+    I --> J[Parent Scope Completes]
+    J --> K[Main Task Continues]
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#ccf,stroke:#333,stroke-width:2px
+    style C fill:#cfc,stroke:#333,stroke-width:2px
+    style D fill:#cfc,stroke:#333,stroke-width:2px
+    style E fill:#cfc,stroke:#333,stroke-width:2px
+    style J fill:#ccf,stroke:#333,stroke-width:2px
+    style K fill:#f9f,stroke:#333,stroke-width:2px
+</pre>
+
+---
+
+## Race Shutdown on Error
+
+<pre class="mermaid">
+graph TD
+    A[Main Task] --> B[Parent Scope]
+    B --> C[Child Task 1]
+    B --> D[Child Task 2]
+    B --> E[Child Task 3]
+    C --> F[Error]
+    D --> G[Cancelled]
+    E --> H[Cancelled]
+    F --> I[Error of Child Task 1]
+    I --> J[Parent Scope Completes]
+    J --> K[Main Task Continues]
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#ccf,stroke:#333,stroke-width:2px
+    style C fill:#cfc,stroke:#333,stroke-width:2px
+    style D fill:#cfc,stroke:#333,stroke-width:2px
+    style E fill:#cfc,stroke:#333,stroke-width:2px
+    style J fill:#ccf,stroke:#333,stroke-width:2px
+    style K fill:#f9f,stroke:#333,stroke-width:2px
+</pre>
+
+---
+
 ## Scenario 2 - Java Loom
 
 @[code lang=java transclude={46-54}](@/../java-loom/src/main/java/Main.java)
@@ -150,10 +245,6 @@ Hierarchical Concurrency (diagram)
 ## Scenario 2 - Kotlin Splitties
 
 @[code lang=kotlin transclude={38-51}](@/../kotlin-splitties/src/main/kotlin/Main.kt)
-
-<!--
-
--->
 
 ---
 
@@ -170,6 +261,16 @@ Hierarchical Concurrency (diagram)
 ## Scenario 3 - Java Loom
 
 @[code lang=java transclude={57-70}](@/../java-loom/src/main/java/Main.java)
+
+<!--
+
+-->
+
+---
+
+## Scenario 3 - Java Jox
+
+@[code lang=java transclude={53-60}](@/../java-jox/src/main/java/Main.java)
 
 <!--
 
@@ -203,36 +304,22 @@ Hierarchical Concurrency (diagram)
 
 ---
 
-## Scenario 5
+## Scenario 4 - Java Jox
 
-### Race 2 concurrent requests where a non-200 response is a loser
-
-<!--
-* Modifying the task based on the value it produces
-* Different HTTP clients handle response codes differently and some mapping of non-2xx to fail the request is sometimes necessary
--->
-
----
-
-## Scenario 5 - Java Loom
-
-@[code lang=java transclude={93-113}](@/../java-loom/src/main/java/Main.java)
+@[code lang=java transclude={63-69}](@/../java-jox/src/main/java/Main.java)
 
 <!--
 
 -->
 
 ---
-
 
 ## Scenario 7
 
-### Start a request, wait at least 3 seconds then start a second request (hedging)
+### Hedging: Start a request, wait at least 3 seconds then start a second request (hedging), and race the two
 
 <!--
-* Hedging is a common use case for race
-* why & example of hedging. P99
-* Different approaches to a “delay” and like timeout, it shouldn’t block the main thread
+
 -->
 
 ---
@@ -240,10 +327,6 @@ Hierarchical Concurrency (diagram)
 ## Scenario 7 - Java Loom
 
 @[code lang=java transclude={140-151}](@/../java-loom/src/main/java/Main.java)
-
-<!--
-
--->
 
 ---
 
@@ -263,7 +346,7 @@ Hierarchical Concurrency (diagram)
 ---
 ## Scenario 8 - Scala Ox
 
-@[code lang=scala transclude={58-70}](@/../scala-ox/src/main/scala/EasyRacerClient.scala)
+@[code lang=scala transclude={58-69}](@/../scala-ox/src/main/scala/EasyRacerClient.scala)
 
 <!--
 
@@ -273,7 +356,7 @@ Hierarchical Concurrency (diagram)
 
 ## Scenario 8 - Java Loom
 
-@[code lang=java transclude={154-200}](@/../java-loom/src/main/java/Main.java)
+@[code lang=java transclude={155-182}](@/../java-loom/src/main/java/Main.java)
 
 <!--
 
@@ -281,11 +364,71 @@ Hierarchical Concurrency (diagram)
 
 ---
 
-## ScopedValue
+## Scenario 8 - Java Loom
 
+@[code lang=java transclude={184-199}](@/../java-loom/src/main/java/Main.java)
 
 <!--
-TODO
+
 -->
 
 ---
+
+## Scenario 9
+
+### Make 10 concurrent requests where 5 return a 200 response with a letter. Assemble the letters in the order they were received.
+
+<!--
+
+-->
+
+---
+
+## Scenario 9 - Java Loom
+
+@[code lang=java transclude={202-227}](@/../java-loom/src/main/java/Main.java)
+
+<!--
+
+-->
+
+---
+
+## Scenario 9 - Kotlin Coroutines
+
+@[code lang=kotlin transclude={163-175}](@/../kotlin-coroutines/src/main/kotlin/Main.kt)
+
+<!--
+
+-->
+
+---
+
+## So what?
+
+- Concurrency is hard
+- Higher level abstractions are helpful
+- Effects: Most flexibility (Race anything, Resource Management, Standard Error Handling, Abstraction over Scheduler, OOTB High-Level Combinators)
+
+
+<style>
+  pre.mermaid {
+    all: unset;
+    
+  }
+  .flowchart {
+    max-height: -webkit-fill-available;
+  }
+</style>
+
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.3.0/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+  startOnLoad: true,
+  flowchart: {
+    width: '100%'
+  }
+});
+
+window.addEventListener('vscode.markdown.updateContent', function() { mermaid.init() });
+</script>

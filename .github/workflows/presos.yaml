@@ -23,10 +23,10 @@ jobs:
       - run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf lambdaconf_2024.md
         working-directory: .presos
 
-      - run: npx @marp-team/marp-cli --engine ./engine.mjs devoxx_2024.md
+      - run: npx @marp-team/marp-cli --engine ./engine.mjs goto_chicago_2024.md
         working-directory: .presos
 
-      - run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf devoxx_2024.md
+      - run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf goto_chicago_2024.md
         working-directory: .presos
 
       - run: |
