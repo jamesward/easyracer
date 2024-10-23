@@ -1,0 +1,15 @@
+product: jvm/app
+
+repositories:
+  - https://repo1.maven.org/maven2
+
+dependencies:
+  - org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0
+  - io.ktor:ktor-client-core:3.0.0
+  - io.ktor:ktor-client-java:3.0.0
+  - org.slf4j:slf4j-simple:2.0.16: runtime-only
+
+test-dependencies:
+  - io.kotest:kotest-runner-junit5:5.9.1
+  - io.kotest:kotest-assertions-core:5.9.1
+  - io.kotest.extensions:kotest-extensions-testcontainers:2.0.2
