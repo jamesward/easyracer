@@ -134,6 +134,12 @@ object EasyRacerClient extends ZIOAppDefault:
       blocker.fork.run
       reporter(id).run
 
+  def scenario11(scenarioUrl: Int => String) =
+    defer:
+      val url = scenarioUrl(11)
+      val req = Client.batched(Request.get(url))
+      val winner = req.race(req).race(req).run
+      winner.body.asString.run
 
   def scenarios(scenarioUrl: Int => String) = Seq(
     scenario1,
@@ -146,9 +152,11 @@ object EasyRacerClient extends ZIOAppDefault:
     scenario8,
     scenario9,
     scenario10,
+    scenario11,
   ).map(_.apply(scenarioUrl))
 
-  //def scenarios(scenarioUrl: Int => String) = Seq(scenario9).map(_.apply(scenarioUrl))
+//  def scenarios(scenarioUrl: Int => String) = Seq(scenario11).map(_.apply(scenarioUrl))
+
   def all(scenarioUrl: Int => String) = ZIO.collectAll(scenarios(scenarioUrl))
 
   val clientConfig = Client.Config.default.disabledConnectionPool
@@ -157,8 +165,8 @@ object EasyRacerClient extends ZIOAppDefault:
     def scenarioUrl(scenario: Int) = s"http://localhost:8080/$scenario"
     all(scenarioUrl).debug.filterOrDie(_.forall(_ == "right"))(Error("not all right")).provide(
       ZLayer.succeed(clientConfig),
+      Client.live,
       ZLayer.succeed(NettyConfig.default),
       DnsResolver.default,
-      Client.live,
       Scope.default,
     )

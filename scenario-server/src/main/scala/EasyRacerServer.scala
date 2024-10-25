@@ -307,6 +307,21 @@ object EasyRacerServer extends ZIOAppDefault:
                           else
                             Response.text("right")
 
+  /*
+  Race 2 requests with a third request
+  */
+  def scenario11(session: Session[Unit])(@unused request: Request): ZIO[Any, Nothing, Response] =
+    defer:
+      val (num, promise) = session.add().run
+      if num == 3 then
+        promise.succeed(()).run
+        Response.text("right")
+      else
+        promise.await.run
+        ZIO.interrupt.run
+
+    .onExit: _ =>
+      session.remove()
 
   def app(scenarios: Seq[Request => ZIO[Any, Nothing, Response]]): Routes[Any, Nothing] =
     val index = Routes:
@@ -358,6 +373,7 @@ object EasyRacerServer extends ZIOAppDefault:
           scenario8(Session.make().run),
           scenario9(Session.make().run),
           scenario10(ConcurrentMap.empty.run),
+          scenario11(Session.make().run),
         )
 
     val server =

@@ -236,9 +236,22 @@ public class Main {
             });
         }
 
+
+        public String scenario11() throws ExecutionException, InterruptedException {
+            var req = HttpRequest.newBuilder(url.resolve("/11")).build();
+            return race(
+                    () -> client.send(req, HttpResponse.BodyHandlers.ofString()),
+                    () -> race(
+                            () -> client.send(req, HttpResponse.BodyHandlers.ofString()),
+                            () -> client.send(req, HttpResponse.BodyHandlers.ofString())
+                    )
+            ).body();
+        }
+
+
         List<String> results() throws ExecutionException, InterruptedException {
-            return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10());
-//            return List.of(scenario10());
+            return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
+//            return List.of(scenario11());
         }
     }
 
