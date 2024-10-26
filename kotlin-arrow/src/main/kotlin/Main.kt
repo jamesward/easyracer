@@ -194,6 +194,21 @@ suspend fun HttpClient.scenario10(url: (Int) -> String): String {
   ) { _, result -> result }
 }
 
+suspend fun HttpClient.scenario11(url: (Int) -> String): String {
+  suspend fun req(): String =
+    ignoreException { get(url(11)).bodyAsText() }
+
+  return raceN({
+    req()
+  }, {
+    raceN({
+      req()
+    }, {
+      req()
+    }).merge()
+  }).merge()
+}
+
 fun HttpClient.scenarios() = listOf(
   ::scenario1,
   ::scenario2,
@@ -205,10 +220,11 @@ fun HttpClient.scenarios() = listOf(
   ::scenario8,
   ::scenario9,
   ::scenario10,
+  ::scenario11,
 )
 
 //fun HttpClient.scenarios() = listOf(
-//  ::scenario10
+//  ::scenario11
 //)
 
 suspend fun results(url: (Int) -> String) = resourceScope {
