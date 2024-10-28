@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
     testImplementation("org.testcontainers:testcontainers:1.20.3")
     testImplementation("org.testcontainers:junit-jupiter:1.20.3")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.16")
