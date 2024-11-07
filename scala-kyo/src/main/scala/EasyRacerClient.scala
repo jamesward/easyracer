@@ -1,14 +1,13 @@
 import com.sun.management.OperatingSystemMXBean
 import kyo.*
-import kyo.Requests.Backend
-import kyo.debug.Debug
 import sttp.client3.*
 import sttp.model.Uri.QuerySegment
 import sttp.model.{ResponseMetadata, Uri}
 
+import scala.collection.immutable.SortedMap
+
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
-import java.time.Instant
 
 
 object EasyRacerClient extends KyoApp:
@@ -55,8 +54,8 @@ object EasyRacerClient extends KyoApp:
     def req(uri: Uri) = Requests(_.get(uri))
 
     case class MyResource(id: String):
-      def close: Unit < IO =
-        req(uri"${scenarioUrl(8)}?close=$id").unit
+      def close: Unit < Async =
+        Abort.run(req(uri"${scenarioUrl(8)}?close=$id")).unit
 
     val myResource = defer:
       val id = await:
@@ -72,54 +71,51 @@ object EasyRacerClient extends KyoApp:
 
     Async.race(reqRes, reqRes)
 
-  /*
+  // todo: maybe some kind of queue instead to avoid the instant
   def scenario9(scenarioUrl: Int => Uri) =
     val url = scenarioUrl(9)
 
-    val req: String < Emit[String] =
-      defer:
-        val body = await(Requests(_.get(url)))
-        Emit(body)
-
-    /*
-    val req = IOs.attempt:
-      defer:
-        val body = await(Requests.run(Requests[String](_.get(url))))
-        val now = await(Clocks.now)
-        now -> body
-     */
+    val req =
+      Abort.run:
+        defer:
+          val body = await(Requests(_.get(url)))
+          val now = await(Clock.now)
+          now -> body
 
     val reqs = Seq.fill(10)(req)
 
-    reqs.mkString()
+    defer:
+      val successes = SortedMap.from:
+        await(Async.parallel(reqs)).map(_.toMaybe).flatten
 
-  def scenario10(scenarioUrl: Int => Uri): String < Fibers =
+      successes.values.mkString
+
+  def scenario10(scenarioUrl: Int => Uri) =
     // always puts the body into the response, even if it is empty, and includes the responseMetadata
-    def req(uriModifier: Uri => Uri): (String, ResponseMetadata) < Fibers =
+    def req(uriModifier: Uri => Uri): (String, ResponseMetadata) < (Abort[FailedRequest] & Async) =
       val uri = uriModifier(scenarioUrl(10))
-      Requests.run:
-        Requests[(String, ResponseMetadata)]:
-          _.get(uri).response:
-            asString.mapWithMetadata: (stringEither, responseMetadata) =>
-              Right(stringEither.fold(identity, identity) -> responseMetadata)
+      Requests:
+        _.get(uri).response:
+          asString.mapWithMetadata: (stringEither, responseMetadata) =>
+            Right(stringEither.fold(identity, identity) -> responseMetadata)
 
     val messageDigest = MessageDigest.getInstance("SHA-512")
 
     // recursive digesting
-    def blocking(bytesEffect: Seq[Byte] < IOs): Seq[Byte] < IOs =
-      IOs:
+    def blocking(bytesEffect: Seq[Byte] < (Abort[FailedRequest] & Async)): Seq[Byte] < (Abort[FailedRequest] & Async) =
+      IO:
         bytesEffect.map: bytes =>
           blocking(messageDigest.digest(bytes.toArray).toSeq)
 
     // runs blocking code while the request is open
-    def blocker(id: String): String < Fibers =
-      Fibers.race(
+    def blocker(id: String): String < (Abort[FailedRequest] & Async) =
+      Async.race(
         req(_.addQuerySegment(QuerySegment.Plain(id))).map { (body, _) => body },
-        blocking(Randoms.nextBytes(512)).map(_ => ""),
+        blocking(Random.nextBytes(512)).map(_ => ""),
       )
 
     // sends CPU usage every second until the server says to stop
-    def reporter(id: String): String < Fibers =
+    def reporter(id: String): String < (Abort[FailedRequest] & Async) =
       val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
       val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
 
@@ -128,22 +124,21 @@ object EasyRacerClient extends KyoApp:
           await(req(_.addQuerySegment(QuerySegment.KeyValue(id, load.toString))))
 
         if responseMetadata.isRedirect then
-          await(Fibers.delay(1.seconds)(reporter(id)))
+          await(Async.delay(1.seconds)(reporter(id)))
         else if responseMetadata.isSuccess then
           maybeResponseBody
         else
-          await(Fibers.get(IOs.fail(Error(maybeResponseBody))))
+          await(Abort.fail(FailedRequest(maybeResponseBody)))
 
     defer:
-      val id = await(Randoms.nextStringAlphanumeric(8))
-      val (_, result) = await(Fibers.parallel(blocker(id), reporter(id)))
+      val id = await(Random.nextStringAlphanumeric(8))
+      val (_, result) = await(Async.parallel(blocker(id), reporter(id)))
       result
-  */
 
   def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
 
-//  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
-  def scenarios = Seq(scenario1)
+  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
+//  def scenarios = Seq(scenario10)
 
   run:
     Kyo.collect(scenarios.map(s => s(scenarioUrl)))

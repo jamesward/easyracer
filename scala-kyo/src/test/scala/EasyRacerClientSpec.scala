@@ -36,4 +36,5 @@ class EasyRacerClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfte
 
   EasyRacerClient.scenarios.zipWithIndex.foreach: (fn, number) =>
     s"scenario ${number + 1}" should "work" in:
-      IOs.run(KyoApp.runFiber(fn(scenarioUrl)).toFuture).map(_.get).map(_ shouldBe "right")
+      import AllowUnsafe.embrace.danger
+      KyoApp.Unsafe.runAndBlock(1.minute)(fn(scenarioUrl)).getOrThrow.shouldBe("right")
