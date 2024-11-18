@@ -21,7 +21,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     implementation("io.ktor:ktor-client-core:3.0.1")
     implementation("io.ktor:ktor-client-java:3.0.1")
-    implementation("io.arrow-kt:arrow-fx-coroutines:2.0.0-alpha.4")
+    implementation("io.arrow-kt:arrow-fx-coroutines:2.0.0-beta.2")
     runtimeOnly("org.slf4j:slf4j-simple:2.0.16")
 
     testImplementation("io.kotest:kotest-runner-junit5:5.9.1")
