@@ -86,7 +86,7 @@ object EasyRacerClient extends KyoApp:
 
     defer:
       val successes = SortedMap.from:
-        await(Async.parallel(reqs)).map(_.toMaybe).flatten
+        await(Async.parallel(10)(reqs)).map(_.toMaybe).flatten
 
       successes.values.mkString
 
@@ -138,7 +138,7 @@ object EasyRacerClient extends KyoApp:
   def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
 
   def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
-//  def scenarios = Seq(scenario10)
+//  def scenarios = Seq(scenario9)
 
   run:
     Kyo.collect(scenarios.map(s => s(scenarioUrl)))
