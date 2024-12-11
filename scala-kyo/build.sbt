@@ -1,4 +1,4 @@
-scalaVersion := "3.5.2"
+scalaVersion := "3.6.2"
 
 libraryDependencies ++= Seq(
   "io.getkyo" %% "kyo-core" % "0.15.1",
@@ -12,7 +12,7 @@ libraryDependencies ++= Seq(
 Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oD")
 
 scalacOptions ++= Seq(
-    "-Wvalue-discard",
-    "-Wnonunit-statement",
-    "-Wconf:msg=(discarded.*value|pure.*statement):error"
+  "-Wvalue-discard",
+  "-Wnonunit-statement",
+  "-Wconf:msg=(discarded.*value|pure.*statement):error"
 )

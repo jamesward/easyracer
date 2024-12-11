@@ -2,7 +2,7 @@ enablePlugins(GraalVMNativeImagePlugin)
 
 name := "easyracer-server"
 
-scalaVersion := "3.5.2"
+scalaVersion := "3.6.2"
 
 fork := true
 
