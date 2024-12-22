@@ -256,7 +256,7 @@ public struct EasyRacer {
             .bodyTextTaskPublisher(for: url)
             .map { $0 }.replaceError(with: nil)
         
-        return publisher.merge(with: publisher.merge(with: publisher))
+        return publisher.merge(with: publisher).merge(with: publisher)
             .compactMap { $0 }.first()
             .eraseToAnyPublisher()
     }
