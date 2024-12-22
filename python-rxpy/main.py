@@ -262,6 +262,19 @@ def scenario10(base_url: str) -> rx.Observable[str]:
     # )
 
 
+def scenario11(url: str) -> rx.Observable[str]:
+    async def _req():
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                return await response.text()
+
+    def req(): return rx.from_future(asyncio.ensure_future(_req()))
+
+    return rx.merge(rx.merge(req(), req()), req()) >> ops.first()
+    # Or:
+    # return rx.merge(rx.merge(req(), req()), req()).pipe(ops.first())
+
+
 scenarios: list[Callable[[str], Coroutine[Any, Any, rx.Observable[str]]]] = [
     scenario1,
     scenario2,
@@ -273,6 +286,7 @@ scenarios: list[Callable[[str], Coroutine[Any, Any, rx.Observable[str]]]] = [
     scenario8,
     scenario9,
     scenario10,
+    scenario11,
 ]
 
 
