@@ -139,6 +139,10 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-ox", "21-ea")
   }
 
+  ["scala-soundness"] = new {
+    steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-soundness", "21")
+  }
+
   ["scala-zio"] = new {
     steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-zio", null)
   }
