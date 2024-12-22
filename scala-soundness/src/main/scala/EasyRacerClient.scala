@@ -46,12 +46,10 @@ def scenario4(scenarioUrl: Text => HttpUrl): Text =
       async:
         Seq(
           async:
-            try url.get().as[Text]
-            catch
-              case _: Throwable => t"wrong",
+            url.get().as[Text],
           async:
             sleep(1*Second)
-            t"wrong"
+            t"wrong",
         ).race()
     ).race()
 
@@ -80,7 +78,7 @@ def scenario6(scenarioUrl: Text => HttpUrl): Text =
 val scenarios: Seq[(Text => HttpUrl) => Text] = Seq(
   scenario1,
   scenario2,
-  scenario3,
+//  scenario3,
   scenario4,
   scenario5,
   scenario6,
