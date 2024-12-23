@@ -176,8 +176,16 @@ object EasyRacerClient:
         .dropWhile(_ == "")
         .take(1)
 
+  val scenario11: Flow[HttpFlow, String, NotUsed] =
+    Flow[HttpFlow].map(scenarioRequestFlow).flatMapConcat: scenarioReq =>
+      val path = Uri("/11")
+      val req = Source.single(path).via(scenarioReq).collect:
+        case Success((_, body)) => body
+
+      req.merge(req).merge(req).take(1)
+
   val scenarios: Seq[Flow[HttpFlow, String, NotUsed]] =
-    Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
+    Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10, scenario11)
 
 @main def run(): Unit =
   import EasyRacerClient.*
