@@ -19,7 +19,7 @@ clients = new Mapping<String, Run> {
       new {
         run = """
           echo Compiling Elm sources...
-          for num in {1..10}; do
+          for num in {1..11}; do
             elm make --optimize --output=app/EasyRacer/Scenario$num.js src/EasyRacer/Scenario$num.elm
           done
           npm install --no-fund
@@ -31,7 +31,7 @@ clients = new Mapping<String, Run> {
   }
 
   ["fsharp-reactive"] = new {
-    steps = GitHubAction.Dotnet.testSteps(null, "8.0.x", "./fsharp-reactive/EasyRacer.Tests")
+    steps = GitHubAction.Dotnet.testSteps(null, "9.0.x", "./fsharp-reactive/EasyRacer.Tests")
   }
 
   ["go-conc"] = new {

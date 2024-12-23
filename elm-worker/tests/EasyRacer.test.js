@@ -15,7 +15,7 @@ describe("EasyRacer", () => {
     await container.stop();
   });
 
-  for (const idx of Array(10).keys()) {
+  for (const idx of Array(11).keys()) {
     const scenarioNum = idx + 1;
     it("scenario " + scenarioNum, async () => {
       const name = "Scenario" + scenarioNum;
