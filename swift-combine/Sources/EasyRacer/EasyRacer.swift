@@ -250,6 +250,17 @@ public struct EasyRacer {
             .eraseToAnyPublisher()
     }
     
+    func scenario11() -> AnyPublisher<String, Never> {
+        let url: URL = baseURL.appending(path: "11")
+        let publisher = urlSession
+            .bodyTextTaskPublisher(for: url)
+            .map { $0 }.replaceError(with: nil)
+        
+        return publisher.merge(with: publisher).merge(with: publisher)
+            .compactMap { $0 }.first()
+            .eraseToAnyPublisher()
+    }
+    
     public func scenarios() -> AnyPublisher<[String?], Never> {
         let scenarios = [
             (1, scenario1()),
@@ -261,6 +272,7 @@ public struct EasyRacer {
             (8, scenario8()),
             (9, scenario9()),
             (10, scenario10()),
+            (11, scenario11()),
             (3, scenario3()), // This has to come last, as it frequently causes other scenarios to fail
         ]
         return scenarios.publisher
