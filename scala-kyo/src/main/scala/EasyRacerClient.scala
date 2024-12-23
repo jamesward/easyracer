@@ -135,10 +135,15 @@ object EasyRacerClient extends KyoApp:
       val (_, result) = await(Async.parallel(blocker(id), reporter(id)))
       result
 
+  def scenario11(scenarioUrl: Int => Uri) =
+    val url = scenarioUrl(11)
+    val req = Requests(_.get(url))
+    Async.race(Async.race(req, req), req)
+
   def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
 
-  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
-//  def scenarios = Seq(scenario9)
+  def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10, scenario11)
+//  def scenarios = Seq(scenario11)
 
   run:
     Kyo.collect(scenarios.map(s => s(scenarioUrl)))

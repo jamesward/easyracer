@@ -281,9 +281,27 @@ public class Main {
             }
         }
 
+        public String scenario11() throws ExecutionException, InterruptedException {
+            var req = HttpRequest.newBuilder(url.resolve("/11")).build();
+
+            try (var outerScope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+                outerScope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
+                outerScope.fork(() -> {
+                    try (var innerScope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+                        innerScope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
+                        innerScope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
+                        innerScope.join();
+                        return innerScope.result();
+                    }
+                });
+                outerScope.join();
+                return outerScope.result().body();
+            }
+        }
+
         List<String> results() throws ExecutionException, InterruptedException {
-            return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10());
-            //return List.of(scenario10());
+            return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
+//            return List.of(scenario11());
         }
     }
 

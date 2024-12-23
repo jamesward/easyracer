@@ -113,10 +113,15 @@ object EasyRacerClient extends OxApp.Simple:
     val (_, result) = par(blocker, reporter)
     result
 
+  def scenario11(scenarioUrl: Int => Uri): String =
+    val url = scenarioUrl(11)
+    def req = scenarioRequest(url).send(backend).body
+    raceSuccess(raceSuccess(req, req), req)
+
 
   def run(using Ox): Unit =
     def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
-    def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10)
-//    def scenarios: Seq[(Int => Uri) => String] = Seq(scenario8)
+    def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10, scenario11)
+//    def scenarios: Seq[(Int => Uri) => String] = Seq(scenario11)
     scenarios.foreach: s =>
       println(s(scenarioUrl))
