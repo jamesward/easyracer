@@ -48,7 +48,7 @@ final class EasyRacerTests: XCTestCase {
                 .sink(
                     receiveCompletion: { _ in completed.signal() },
                     receiveValue: { results in
-                        XCTAssertEqual(results.count, 10, "Number of Scenarios")
+                        XCTAssertEqual(results.count, 11, "Number of Scenarios")
                         for (idx, result) in results.enumerated() {
                             XCTAssertEqual(result, "right", "Scenario \(idx + 1)")
                         }
