@@ -19,7 +19,7 @@ application {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
-    implementation("io.ktor:ktor-client-core:3.0.2")
+    implementation("io.ktor:ktor-client-core:3.0.3")
     implementation("io.ktor:ktor-client-java:3.0.2")
     implementation("io.arrow-kt:arrow-fx-coroutines:2.0.0")
     runtimeOnly("org.slf4j:slf4j-simple:2.0.16")
