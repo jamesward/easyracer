@@ -226,12 +226,18 @@ suspend fun scenario11(url: (Int) -> String): String = coroutineScope {
         }
     try {
         select {
-            async {
-                select {
-                    async { req() }.onAwait { it }
-                    async { req() }.onAwait { it }
-                }
-            }
+            try {
+                async {
+                    try {
+                        select {
+                            async { req() }.onAwait { it }
+                            async { req() }.onAwait { it }
+                        }
+                    } finally {
+                        coroutineContext.cancelChildren()
+                    }
+                }.onAwait { it }
+            } catch (_: Exception) {}
             async { req() }.onAwait { it }
         }.bodyAsText()
     } finally {
