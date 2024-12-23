@@ -154,6 +154,13 @@ let scenario10 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObse
     |> Observable.filter (fun text -> text <> "")
     |> Observable.take 1
 
+let scenario11 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObservable<string> =
+    let req =
+        scenarioGet "/11"
+        |> Observable.bind (fun resp -> resp.Content.ReadAsStringAsync() |> Async.AwaitTask |> Observable.ofAsync)
+
+    Observable.merge req req |> Observable.merge req |> Observable.take 1
+
 let scenarios: ((string -> IObservable<HttpResponseMessage>) -> IObservable<string>) array =
     [| scenario1
        scenario2
@@ -164,7 +171,8 @@ let scenarios: ((string -> IObservable<HttpResponseMessage>) -> IObservable<stri
        scenario7
        scenario8
        scenario9
-       scenario10 |]
+       scenario10
+       scenario11 |]
 
 [<EntryPoint>]
 let main _ =
