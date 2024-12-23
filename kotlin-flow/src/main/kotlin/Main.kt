@@ -135,7 +135,7 @@ suspend fun scenario10(url: (Int) -> String): String {
 }
 
 suspend fun scenario11(url: (Int) -> String): String {
-    val req = client.getAsFlow(url(11)).map { it.bodyAsText() }
+    val req = client.getAsFlow(url(11)).catch {}.map { it.bodyAsText() }
 
     return merge(merge(req, req), req).first()
 }
