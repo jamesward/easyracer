@@ -89,7 +89,7 @@ def scenario7(scenarioUrl: Text => HttpUrl): Text =
 val scenarios: Seq[(Text => HttpUrl) => Text] = Seq(
   scenario1,
   scenario2,
-//  scenario3,
+  scenario3,
   scenario4,
   scenario5,
   scenario6,
