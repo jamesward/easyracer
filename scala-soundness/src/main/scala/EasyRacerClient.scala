@@ -98,6 +98,21 @@ def scenario9(scenarioUrl: Text => HttpUrl): Text =
     .map(_.sortBy(_._1).map(_._2).reduce(_ + _))
     .await()
 
+def scenario11(scenarioUrl: Text => HttpUrl): Text =
+  val url = scenarioUrl(t"11")
+  supervise:
+    Seq(
+      async:
+        Seq(
+          async:
+            url.get().as[Text],
+          async:
+            url.get().as[Text],
+        ).race(),
+      async:
+        url.get().as[Text],
+    ).race()
+
 val scenarios: Seq[(Text => HttpUrl) => Text] = Seq(
   scenario1,
   scenario2,
@@ -107,6 +122,7 @@ val scenarios: Seq[(Text => HttpUrl) => Text] = Seq(
   scenario6,
   scenario7,
   scenario9,
+  scenario11,
 )
 @main def runAllScenarios(): Unit = application(Nil):
   def scenarioUrl(scenario: Text): HttpUrl = url"http://localhost:8080/$scenario"
