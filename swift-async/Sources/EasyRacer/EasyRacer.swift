@@ -292,6 +292,28 @@ public struct EasyRacer {
         return await blockerResult.flatMap { result }
     }
     
+    func scenario11() async -> String? {
+        let url: URL = baseURL.appending(path: "11")
+        
+        let result: String? = await withTaskGroup(of: String?.self) { group in
+            defer { group.cancelAll() }
+            
+            group.addTask {
+                await withTaskGroup(of: String?.self) { subgroup in
+                    subgroup.addTask { try? await urlSession.bodyText(from: url) }
+                    subgroup.addTask { try? await urlSession.bodyText(from: url) }
+                    
+                    return await subgroup.first { $0 != nil }.flatMap { $0 }
+                }
+            }
+            group.addTask { try? await urlSession.bodyText(from: url) }
+            
+            return await group.first { $0 != nil }.flatMap { $0 }
+        }
+        
+        return result
+    }
+    
     public func scenarios() async -> [String?] {
         [
             (1, await scenario1()),
@@ -303,6 +325,7 @@ public struct EasyRacer {
             (8, await scenario8()),
             (9, await scenario9()),
             (10, await scenario10()),
+            (11, await scenario11()),
             (3, await scenario3()), // This has to come last, as it frequently causes other scenarios to fail
         ].sorted { $0.0 < $1.0 }.map { $0.1 }
     }
