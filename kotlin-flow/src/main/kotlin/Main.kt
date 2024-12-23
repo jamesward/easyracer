@@ -134,6 +134,12 @@ suspend fun scenario10(url: (Int) -> String): String {
     return merge(blocker, reporter()).filterNotNull().first()
 }
 
+suspend fun scenario11(url: (Int) -> String): String {
+    val req = client.getAsFlow(url(11)).catch {}.map { it.bodyAsText() }
+
+    return merge(merge(req, req), req).first()
+}
+
 val scenarios = listOf(
     ::scenario1,
     ::scenario2,
@@ -145,6 +151,7 @@ val scenarios = listOf(
     ::scenario8,
     ::scenario9,
     ::scenario10,
+    ::scenario11,
 )
 
 suspend fun results(url: (Int) -> String) = scenarios.map {
