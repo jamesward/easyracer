@@ -175,8 +175,17 @@ object EasyRacerClient:
     blocker.awaitFirstWithCancel
     result.await
 
+  def scenario11(scenarioUrl: Int => String)(using Async.Spawn): String =
+    val url = scenarioUrl(11)
+
+    def req = Future(scenarioRequest(url).asyncGet.getResponseBody)
+
+      req.orWithCancel(req).orWithCancel(req).await
+  // Or:
+//      Async.race(Async.race(req, req), req).await
+
   def scenarios: Seq[(Int => String) => Async.Spawn ?=> String] = Seq(
-    scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10
+    scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10, scenario11
   )
 
 @main def run(): Unit =
