@@ -636,6 +636,71 @@ public struct EasyRacer {
         reportProcessLoad(startWallTime: currentWallTime(), startCPUTime: currentCPUTime())
     }
     
+    func scenario11(scenarioHandler: @escaping @Sendable (String?) -> Void) {
+        let url: URL = baseURL.appendingPathComponent("11")
+        let urlSession: URLSession = URLSession(configuration: .ephemeral)
+        let outerRequestsGroup: DispatchGroup = DispatchGroup()
+        let innerRequestsGroup: DispatchGroup = DispatchGroup()
+        let expectedResponsesGroup: DispatchGroup = DispatchGroup()
+        var result: String? = nil
+        let resultLock: NSLock = NSLock()
+        expectedResponsesGroup.enter() // Expecting one response
+        
+        // Set up HTTP requests without executing
+        let innerDataTasks: [URLSessionDataTask] = (1...2)
+            .map { _ in
+                urlSession.bodyTextTask(with: url) { bodyText in
+                    if case let .success(text) = bodyText {
+                        resultLock.lock()
+                        defer { resultLock.unlock() }
+                        
+                        if result == nil {
+                            result = text
+                            expectedResponsesGroup.leave()
+                        }
+                    }
+                    innerRequestsGroup.leave()
+                }
+            }
+        let outerDataTask: URLSessionDataTask = urlSession.bodyTextTask(with: url) { bodyText in
+            if case let .success(text) = bodyText {
+                resultLock.lock()
+                defer { resultLock.unlock() }
+                
+                if result == nil {
+                    result = text
+                    expectedResponsesGroup.leave()
+                }
+            }
+            outerRequestsGroup.leave()
+        }
+        
+        // Executing requests, adding them to the DispatchGroup
+        outerRequestsGroup.enter()
+        for dataTask in innerDataTasks {
+            innerRequestsGroup.enter()
+            dataTask.resume()
+        }
+        innerRequestsGroup.notify(queue: .global()) {
+            outerRequestsGroup.leave()
+        }
+        outerRequestsGroup.enter()
+        outerDataTask.resume()
+        
+        // Got what we wanted, cancel remaining requests
+        expectedResponsesGroup.notify(queue: .global()) {
+            for dataTask in innerDataTasks {
+                dataTask.cancel()
+            }
+            outerDataTask.cancel()
+        }
+        
+        // Send result
+        outerRequestsGroup.notify(queue: .global()) {
+            scenarioHandler(result)
+        }
+    }
+    
     // Runs scenarios one by one, blocking until they are all complete
     public func scenarios(scenariosHandler: @escaping @Sendable ([String?]) -> Void) {
         let scenarios = [
@@ -649,6 +714,7 @@ public struct EasyRacer {
             (8, scenario8),
             (9, scenario9),
             (10, scenario10),
+            (11, scenario11),
         ]
         let completions: DispatchSemaphore = DispatchSemaphore(value: 0)
         func sortResultsAndNotify(results: [(Int, String?)]) {
