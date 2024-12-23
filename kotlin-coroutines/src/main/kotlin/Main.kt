@@ -217,6 +217,28 @@ suspend fun scenario10(url: (Int) -> String): String = coroutineScope {
     reporter()
 }
 
+suspend fun scenario11(url: (Int) -> String): String = coroutineScope {
+    suspend fun req(): HttpResponse =
+        try {
+            client.get(url(11))
+        } catch (_: Exception) {
+            awaitCancellation()
+        }
+    try {
+        select {
+            async {
+                select {
+                    async { req() }.onAwait { it }
+                    async { req() }.onAwait { it }
+                }
+            }
+            async { req() }.onAwait { it }
+        }.bodyAsText()
+    } finally {
+        coroutineContext.cancelChildren()
+    }
+}
+
 val scenarios = listOf(
     ::scenario1,
     ::scenario2,
@@ -228,6 +250,7 @@ val scenarios = listOf(
     ::scenario8,
     ::scenario9,
     ::scenario10,
+    ::scenario11,
 )
 
 suspend fun results(url: (Int) -> String) = scenarios.map {
