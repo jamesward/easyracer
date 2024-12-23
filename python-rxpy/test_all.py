@@ -9,7 +9,7 @@ import main
 
 @pytest.mark.asyncio
 async def test_all():
-    assert len(main.scenarios) == 10
+    assert len(main.scenarios) == 11
 
     # todo: no way to set pull policy yet
     docker_container = DockerContainer("ghcr.io/jamesward/easyracer").with_exposed_ports(8080)
