@@ -91,7 +91,9 @@ def scenario9(scenarioUrl: Text => HttpUrl): Text =
   supervise:
     Seq.fill(10):
       async:
-        System.nanoTime() -> url.get().as[Text]
+        try url.get().as[Text]
+        catch case _ => t""
+      .map(System.nanoTime() -> _)
     .sequence
     .map(_.sortBy(_._1).map(_._2).reduce(_ + _))
     .await()
