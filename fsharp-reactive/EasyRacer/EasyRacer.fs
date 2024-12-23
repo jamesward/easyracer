@@ -35,7 +35,7 @@ let scenario4 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObser
 
     let reqWithTimeout =
         req
-        |> Observable.timeoutSpan (TimeSpan.FromSeconds 1)
+        |> Observable.timeoutSpan (TimeSpan.FromSeconds 1.0)
         |> Observable.take 1
         |> Observable.catch Observable.empty
 
@@ -64,7 +64,7 @@ let scenario7 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObser
         |> Observable.bind (fun resp -> resp.Content.ReadAsStringAsync() |> Async.AwaitTask |> Observable.ofAsync)
 
     let reqWithDelay =
-        Observable.delay (TimeSpan.FromSeconds 3) (Observable.single ())
+        Observable.delay (TimeSpan.FromSeconds 3.0) (Observable.single ())
         |> Observable.bind (fun () -> req)
 
     Observable.merge req reqWithDelay |> Observable.take 1
@@ -142,7 +142,7 @@ let scenario10 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObse
                 ->
                 Observable.single ($"bad HTTP status: {resp.StatusCode}")
             | resp ->
-                Observable.delay (TimeSpan.FromSeconds 1) (Observable.single ())
+                Observable.delay (TimeSpan.FromSeconds 1.0) (Observable.single ())
                 |> Observable.bind (fun () -> reportProcessLoad endWallTime endCpuTime))
 
     let reporter = reportProcessLoad DateTime.Now proc.TotalProcessorTime
