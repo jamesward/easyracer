@@ -1,3 +1,5 @@
+import capricious.RandomSize
+import com.sun.management.OperatingSystemMXBean
 import contingency.strategies.throwUnsafely
 import soundness.*
 import soundness.executives.direct
@@ -8,6 +10,9 @@ import soundness.parameterInterpretation.posix
 import soundness.stdioSources.virtualMachine.ansi
 import soundness.threadModels.virtual
 import soundness.unhandledErrors.silent
+
+import java.lang.management.ManagementFactory
+import java.security.MessageDigest
 
 def scenario1(scenarioUrl: Text => HttpUrl): Text =
   val url = scenarioUrl(t"1")
@@ -54,7 +59,7 @@ def scenario4(scenarioUrl: Text => HttpUrl): Text =
     ).race()
 
 def scenario5(scenarioUrl: Text => HttpUrl): Text =
-  val url = scenarioUrl(t"2")
+  val url = scenarioUrl(t"5")
   supervise:
     Seq(
       async:
@@ -64,7 +69,7 @@ def scenario5(scenarioUrl: Text => HttpUrl): Text =
     ).race()
 
 def scenario6(scenarioUrl: Text => HttpUrl): Text =
-  val url = scenarioUrl(t"2")
+  val url = scenarioUrl(t"6")
   supervise:
     Seq(
       async:
@@ -86,6 +91,22 @@ def scenario7(scenarioUrl: Text => HttpUrl): Text =
         url.get().as[Text],
     ).race()
 
+def scenario8(scenarioUrl: Text => HttpUrl): Text =
+  def open = scenarioUrl(t"8").copy(query = t"open").get().as[Text]
+  def use(id: Text) = scenarioUrl(t"8").copy(query = t"use=$id").get().as[Text]
+  def close(id: Text) = scenarioUrl(t"8").copy(query = t"close=$id").get().as[Text]
+
+  def reqRes: Text =
+    val id = open
+    try use(id)
+    finally close(id)
+
+  supervise:
+    Seq(
+      async(reqRes),
+      async(reqRes),
+    ).race()
+
 def scenario9(scenarioUrl: Text => HttpUrl): Text =
   val url = scenarioUrl(t"9")
   supervise:
@@ -97,6 +118,43 @@ def scenario9(scenarioUrl: Text => HttpUrl): Text =
     .sequence
     .map(_.sortBy(_._1).map(_._2).reduce(_ + _))
     .await()
+
+def scenario10(scenarioUrl: Text => HttpUrl): Text =
+  val id = random[Int]()
+  val messageDigest = MessageDigest.getInstance("SHA-512")
+
+  def blocking: Text =
+    given RandomSize = new RandomSize:
+      override def generate(random: Random): Int = 512
+    @tailrec def digest(bytes: Array[Byte]): Text =
+      if !Thread.interrupted() then digest(messageDigest.digest(bytes))
+      else t""
+
+    digest(random[IArray[Byte]]().toArray)
+
+  def blocker(using Monitor) =
+    Seq(
+      async:
+        scenarioUrl(t"10").copy(query = t"$id").get().as[Text],
+      async:
+        blocking
+    ).race()
+
+  @tailrec def reporter(using Monitor): Text =
+    val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
+    val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
+    val resp = scenarioUrl(t"10").copy(query = t"$id=${load.toString}").get()
+    if resp.status == HttpStatus.Found then
+      sleep(1*Second)
+      reporter
+    else
+      resp.as[Text]
+
+  supervise:
+    Seq(
+      async(reporter),
+      async(blocker),
+    ).race()
 
 def scenario11(scenarioUrl: Text => HttpUrl): Text =
   val url = scenarioUrl(t"11")
@@ -121,7 +179,9 @@ val scenarios: Seq[(Text => HttpUrl) => Text] = Seq(
   scenario5,
   scenario6,
   scenario7,
+  scenario8,
   scenario9,
+//  scenario10,
   scenario11,
 )
 @main def runAllScenarios(): Unit = application(Nil):
