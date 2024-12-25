@@ -126,8 +126,11 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text =
   def blocking: Text =
     given RandomSize = (_: Random) => 512
     @tailrec def digest(bytes: Array[Byte]): Text =
-      if !Thread.interrupted() then digest(messageDigest.digest(bytes))
-      else t""
+      // Per parasite README, this is supposedly how you check for cancellation:
+      // https://github.com/propensive/parasite?tab=readme-ov-file#cancelation
+      // But it doesn't appear to be defined anywhere
+      // acquiesce()
+      digest(messageDigest.digest(bytes))
 
     digest(IArray.genericWrapArray(random[IArray[Byte]]()).toArray)
 
