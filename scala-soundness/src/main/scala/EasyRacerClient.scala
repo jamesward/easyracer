@@ -16,6 +16,8 @@ import java.security.MessageDigest
 
 def scenario1(scenarioUrl: Text => HttpUrl): Text =
   val url = scenarioUrl(t"1")
+  // TODO:
+  // Loser HTTP request isn't cancelled, figure out why and fix 
   supervise:
     Seq(
       async:
@@ -82,6 +84,8 @@ def scenario6(scenarioUrl: Text => HttpUrl): Text =
 
 def scenario7(scenarioUrl: Text => HttpUrl): Text =
   val url = scenarioUrl(t"7")
+  // TODO:
+  // Loser HTTP request isn't cancelled, figure out why and fix 
   supervise:
     Seq(
       async:
@@ -126,9 +130,10 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text =
   def blocking: Text =
     given RandomSize = (_: Random) => 512
     @tailrec def digest(bytes: Array[Byte]): Text =
+      // TODO
       // Per parasite README, this is supposedly how you check for cancellation:
       // https://github.com/propensive/parasite?tab=readme-ov-file#cancelation
-      // But it doesn't appear to be defined anywhere
+      // But it doesn't appear to be implemented anywhere
       // acquiesce()
       digest(messageDigest.digest(bytes))
 
