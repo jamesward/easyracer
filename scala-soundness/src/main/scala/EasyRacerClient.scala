@@ -129,7 +129,7 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text =
       if !Thread.interrupted() then digest(messageDigest.digest(bytes))
       else t""
 
-    digest(random[IArray[Byte]]().toArray)
+    digest(IArray.genericWrapArray(random[IArray[Byte]]()).toArray)
 
   def blocker(using Monitor) =
     Seq(
