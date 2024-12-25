@@ -124,8 +124,7 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text =
   val messageDigest = MessageDigest.getInstance("SHA-512")
 
   def blocking: Text =
-    given RandomSize = new RandomSize:
-      override def generate(random: Random): Int = 512
+    given RandomSize = (_: Random) => 512
     @tailrec def digest(bytes: Array[Byte]): Text =
       if !Thread.interrupted() then digest(messageDigest.digest(bytes))
       else t""
