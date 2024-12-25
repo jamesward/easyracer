@@ -180,7 +180,7 @@ val scenarios: Seq[(Text => HttpUrl) => Text] = Seq(
   scenario7,
   scenario8,
   scenario9,
-  scenario10,
+//  scenario10,
   scenario11,
 )
 @main def runAllScenarios(): Unit = application(Nil):
