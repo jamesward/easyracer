@@ -1,5 +1,6 @@
 import capricious.RandomSize
 import com.sun.management.OperatingSystemMXBean
+import parasite.ConcurrencyError.Reason.Timeout
 import soundness.*
 import soundness.executives.direct
 import soundness.internetAccess.enabled
@@ -42,7 +43,7 @@ def scenario4(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Concur
             sleep(1*Second)
             t"1 second delay",
         ).race()
-    ).race()
+    ).sequence.await().head
   // TODO Does not work:
 //  supervise:
 //    Seq(
@@ -104,13 +105,13 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Concu
 
   def blocking: Text =
     given RandomSize = (_: Random) => 512
-    @tailrec def digest(bytes: Array[Byte]): Text =
+    @tailrec def digest(bytes: Array[Byte]): Text raises ConcurrencyError =
       // TODO
       // Per parasite README, this is supposedly how you check for cancellation:
       // https://github.com/propensive/parasite?tab=readme-ov-file#cancelation
       // But it doesn't appear to be implemented yet
       // acquiesce() // Does not compile
-      if Thread.interrupted() then t"interrupted"
+      if Thread.interrupted() then abort(ConcurrencyError(Timeout))
       else digest(messageDigest.digest(bytes))
 
     digest(IArray.genericWrapArray(random[IArray[Byte]]()).toArray)
