@@ -111,7 +111,7 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Concu
       // TODO
       // Per parasite README, this is supposedly how you check for cancellation:
       // https://github.com/propensive/parasite?tab=readme-ov-file#cancelation
-      // But it doesn't appear to be implemented anywhere
+      // But it doesn't appear to be implemented yet
       // acquiesce() // Does not compile
       digest(messageDigest.digest(bytes))
 
