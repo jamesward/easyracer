@@ -1,6 +1,5 @@
 import capricious.RandomSize
 import com.sun.management.OperatingSystemMXBean
-import contingency.strategies.throwUnsafely
 import soundness.*
 import soundness.executives.direct
 import soundness.internetAccess.enabled
@@ -9,29 +8,29 @@ import soundness.orphanDisposal.cancel
 import soundness.parameterInterpretation.posix
 import soundness.stdioSources.virtualMachine.ansi
 import soundness.threadModels.virtual
-import soundness.unhandledErrors.silent
+import soundness.unhandledErrors.stackTrace
 
 import java.lang.management.ManagementFactory
 import java.security.MessageDigest
 
-def scenario1(scenarioUrl: Text => HttpUrl): Text =
+def scenario1(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   def req = scenarioUrl(t"1").get().as[Text]
   // TODO:
   // Loser HTTP request isn't cancelled, figure out why and fix 
   supervise:
     Seq(async(req), async(req)).race()
 
-def scenario2(scenarioUrl: Text => HttpUrl): Text =
+def scenario2(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   def req = scenarioUrl(t"2").get().as[Text]
   supervise:
     Seq(async(req), async(req)).race()
 
-def scenario3(scenarioUrl: Text => HttpUrl): Text =
+def scenario3(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   def req = scenarioUrl(t"3").get().as[Text]
   supervise:
     Seq.fill(10_000)(async(req)).race()
 
-def scenario4(scenarioUrl: Text => HttpUrl): Text =
+def scenario4(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   def req = scenarioUrl(t"4").get().as[Text]
   supervise:
     Seq(
@@ -55,17 +54,17 @@ def scenario4(scenarioUrl: Text => HttpUrl): Text =
 //        .await(1*Second),
 //    ).race()
 
-def scenario5(scenarioUrl: Text => HttpUrl): Text =
+def scenario5(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   def req = scenarioUrl(t"5").get().as[Text]
   supervise:
     Seq(async(req), async(req)).race()
 
-def scenario6(scenarioUrl: Text => HttpUrl): Text =
+def scenario6(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   def req = scenarioUrl(t"6").get().as[Text]
   supervise:
     Seq(async(req), async(req), async(req)).race()
 
-def scenario7(scenarioUrl: Text => HttpUrl): Text =
+def scenario7(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   def req = scenarioUrl(t"7").get().as[Text]
   // TODO:
   // Loser HTTP request isn't cancelled, figure out why and fix 
@@ -77,7 +76,7 @@ def scenario7(scenarioUrl: Text => HttpUrl): Text =
         req,
     ).race()
 
-def scenario8(scenarioUrl: Text => HttpUrl): Text =
+def scenario8(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   def open = scenarioUrl(t"8").copy(query = t"open").get().as[Text]
   def use(id: Text) = scenarioUrl(t"8").copy(query = t"use=$id").get().as[Text]
   def close(id: Text) = scenarioUrl(t"8").copy(query = t"close=$id").get().as[Text]
@@ -90,7 +89,7 @@ def scenario8(scenarioUrl: Text => HttpUrl): Text =
   supervise:
     Seq(async(reqRes), async(reqRes)).race()
 
-def scenario9(scenarioUrl: Text => HttpUrl): Text =
+def scenario9(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   val url = scenarioUrl(t"9")
   supervise:
     Seq.fill(10):
@@ -102,7 +101,7 @@ def scenario9(scenarioUrl: Text => HttpUrl): Text =
     .map(_.sortBy(_._1).map(_._2).reduce(_ + _))
     .await()
 
-def scenario10(scenarioUrl: Text => HttpUrl): Text =
+def scenario10(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   val id = random[Int]()
   val messageDigest = MessageDigest.getInstance("SHA-512")
 
@@ -142,7 +141,7 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text =
       async(blocker),
     ).race()
 
-def scenario11(scenarioUrl: Text => HttpUrl): Text =
+def scenario11(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   def req = scenarioUrl(t"11").get().as[Text]
   supervise:
     Seq(
@@ -150,7 +149,7 @@ def scenario11(scenarioUrl: Text => HttpUrl): Text =
       async(req),
     ).race()
 
-val scenarios: Seq[(Text => HttpUrl) => Text] = Seq(
+val scenarios: Seq[(Text => HttpUrl) => Text raises HttpError raises ConcurrencyError] = Seq(
   scenario1,
   scenario2,
   scenario3,
@@ -167,8 +166,11 @@ val scenarios: Seq[(Text => HttpUrl) => Text] = Seq(
   def scenarioUrl(scenario: Text): HttpUrl = url"http://localhost:8080/$scenario"
 
   scenarios
-    .map:
-      _(scenarioUrl)
+    .map: scenario =>
+      mend:
+        case HttpError(status, _)     => t"wrong: HTTP error ${status.code}"
+        case ConcurrencyError(reason) => t"wrong: concurrency error $reason"
+      .within(scenario(scenarioUrl))
     .foreach:
       Out.println(_)
   Exit.Ok
