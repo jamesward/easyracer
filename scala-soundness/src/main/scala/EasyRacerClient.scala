@@ -40,18 +40,15 @@ def scenario4(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Concur
           async(req),
           async:
             sleep(1*Second)
-            t"wrong",
+            t"1 second delay",
         ).race()
     ).race()
   // TODO Does not work:
 //  supervise:
 //    Seq(
+//      async(req),
 //      async:
-//        url.get().as[Text],
-//      async:
-//        async:
-//          url.get().as[Text]
-//        .await(1*Second),
+//        async(req).await(1*Second),
 //    ).race()
 
 def scenario5(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
@@ -113,7 +110,8 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Concu
       // https://github.com/propensive/parasite?tab=readme-ov-file#cancelation
       // But it doesn't appear to be implemented yet
       // acquiesce() // Does not compile
-      digest(messageDigest.digest(bytes))
+      if Thread.interrupted() then t"interrupted"
+      else digest(messageDigest.digest(bytes))
 
     digest(IArray.genericWrapArray(random[IArray[Byte]]()).toArray)
 
@@ -136,10 +134,9 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Concu
       resp.as[Text]
 
   supervise:
-    Seq(
-      async(reporter),
-      async(blocker),
-    ).race()
+    val result = async(reporter)
+    async(blocker).await()
+    result.await()
 
 def scenario11(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
   def req = scenarioUrl(t"11").get().as[Text]
@@ -159,7 +156,7 @@ val scenarios: Seq[(Text => HttpUrl) => Text raises HttpError raises Concurrency
   scenario7,
   scenario8,
   scenario9,
-//  scenario10,
+  scenario10,
   scenario11,
 )
 @main def runAllScenarios(): Unit = application(Nil):
