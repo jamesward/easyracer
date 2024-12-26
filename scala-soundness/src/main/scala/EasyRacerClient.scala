@@ -15,84 +15,66 @@ import java.lang.management.ManagementFactory
 import java.security.MessageDigest
 
 def scenario1(scenarioUrl: Text => HttpUrl): Text =
-  val url = scenarioUrl(t"1")
+  def req = scenarioUrl(t"1").get().as[Text]
   // TODO:
   // Loser HTTP request isn't cancelled, figure out why and fix 
   supervise:
-    Seq(
-      async:
-        url.get().as[Text],
-      async:
-        url.get().as[Text],
-    ).race()
+    Seq(async(req), async(req)).race()
 
 def scenario2(scenarioUrl: Text => HttpUrl): Text =
-  val url = scenarioUrl(t"2")
+  def req = scenarioUrl(t"2").get().as[Text]
   supervise:
-    Seq(
-      async:
-        url.get().as[Text],
-      async:
-        url.get().as[Text],
-    ).race()
+    Seq(async(req), async(req)).race()
 
 def scenario3(scenarioUrl: Text => HttpUrl): Text =
-  val url = scenarioUrl(t"3")
+  def req = scenarioUrl(t"3").get().as[Text]
   supervise:
-    Seq.fill(10_000):
-      async:
-        url.get().as[Text]
-    .race()
+    Seq.fill(10_000)(async(req)).race()
 
 def scenario4(scenarioUrl: Text => HttpUrl): Text =
-  val url = scenarioUrl(t"4")
+  def req = scenarioUrl(t"4").get().as[Text]
   supervise:
     Seq(
-      async:
-        url.get().as[Text],
+      async(req),
       async:
         Seq(
-          async:
-            url.get().as[Text],
+          async(req),
           async:
             sleep(1*Second)
             t"wrong",
         ).race()
     ).race()
+  // TODO Does not work:
+//  supervise:
+//    Seq(
+//      async:
+//        url.get().as[Text],
+//      async:
+//        async:
+//          url.get().as[Text]
+//        .await(1*Second),
+//    ).race()
 
 def scenario5(scenarioUrl: Text => HttpUrl): Text =
-  val url = scenarioUrl(t"5")
+  def req = scenarioUrl(t"5").get().as[Text]
   supervise:
-    Seq(
-      async:
-        url.get().as[Text],
-      async:
-        url.get().as[Text],
-    ).race()
+    Seq(async(req), async(req)).race()
 
 def scenario6(scenarioUrl: Text => HttpUrl): Text =
-  val url = scenarioUrl(t"6")
+  def req = scenarioUrl(t"6").get().as[Text]
   supervise:
-    Seq(
-      async:
-        url.get().as[Text],
-      async:
-        url.get().as[Text],
-      async:
-        url.get().as[Text],
-    ).race()
+    Seq(async(req), async(req), async(req)).race()
 
 def scenario7(scenarioUrl: Text => HttpUrl): Text =
-  val url = scenarioUrl(t"7")
+  def req = scenarioUrl(t"7").get().as[Text]
   // TODO:
   // Loser HTTP request isn't cancelled, figure out why and fix 
   supervise:
     Seq(
-      async:
-        url.get().as[Text],
+      async(req),
       async:
         sleep(4*Second)
-        url.get().as[Text],
+        req,
     ).race()
 
 def scenario8(scenarioUrl: Text => HttpUrl): Text =
@@ -106,10 +88,7 @@ def scenario8(scenarioUrl: Text => HttpUrl): Text =
     finally close(id)
 
   supervise:
-    Seq(
-      async(reqRes),
-      async(reqRes),
-    ).race()
+    Seq(async(reqRes), async(reqRes)).race()
 
 def scenario9(scenarioUrl: Text => HttpUrl): Text =
   val url = scenarioUrl(t"9")
@@ -134,7 +113,7 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text =
       // Per parasite README, this is supposedly how you check for cancellation:
       // https://github.com/propensive/parasite?tab=readme-ov-file#cancelation
       // But it doesn't appear to be implemented anywhere
-      // acquiesce()
+      // acquiesce() // Does not compile
       digest(messageDigest.digest(bytes))
 
     digest(IArray.genericWrapArray(random[IArray[Byte]]()).toArray)
@@ -164,18 +143,11 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text =
     ).race()
 
 def scenario11(scenarioUrl: Text => HttpUrl): Text =
-  val url = scenarioUrl(t"11")
+  def req = scenarioUrl(t"11").get().as[Text]
   supervise:
     Seq(
-      async:
-        Seq(
-          async:
-            url.get().as[Text],
-          async:
-            url.get().as[Text],
-        ).race(),
-      async:
-        url.get().as[Text],
+      async(Seq(async(req), async(req)).race()),
+      async(req),
     ).race()
 
 val scenarios: Seq[(Text => HttpUrl) => Text] = Seq(
