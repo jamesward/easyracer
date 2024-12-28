@@ -98,7 +98,7 @@ func scenario3(scenarioURL func(int) string) string {
 		// results in connections being dropped due to "Connection reset by peer" error.
 		//
 		// If you are running on such a machine, uncomment the following line:
-		time.Sleep(500 * time.Microsecond)
+		//time.Sleep(500 * time.Microsecond)
 		go func() {
 			defer wg.Done()
 			text, err := httpText(url, ctx)
@@ -346,8 +346,39 @@ func scenario10(scenarioURL func(int) string) string {
 	return result
 }
 
+func scenario11(scenarioURL func(int) string) string {
+	url := scenarioURL(11)
+	result := make(chan string)
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	httpTextToChannel := func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		text, err := httpText(url, ctx)
+		if err == nil {
+			result <- text
+		}
+	}
+	innerGroup := func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		var innerWg sync.WaitGroup
+		defer innerWg.Wait()
+
+		innerWg.Add(2)
+		go httpTextToChannel(&innerWg)
+		go httpTextToChannel(&innerWg)
+	}
+
+	wg.Add(2)
+	go innerGroup(&wg)
+	go httpTextToChannel(&wg)
+
+	return <-result
+}
+
 var scenarios = []func(func(int) string) string{
-	scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10,
+	scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10, scenario11,
 }
 
 func main() {
