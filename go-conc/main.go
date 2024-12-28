@@ -373,7 +373,7 @@ func scenario11(scenarioURL func(int) string) string {
 }
 
 var scenarios = []func(func(int) string) string{
-	scenario1, scenario2, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10, scenario11,
+	scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10, scenario11,
 }
 
 func main() {
