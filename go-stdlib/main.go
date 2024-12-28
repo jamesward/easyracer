@@ -353,7 +353,7 @@ func scenario11(scenarioURL func(int) string) string {
 	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	httpTextToChannel := func(wg *sync.WaitGroup, ctx context.Context) {
+	httpTextToChannel := func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		text, err := httpText(url, ctx)
 		if err == nil {
@@ -362,19 +362,17 @@ func scenario11(scenarioURL func(int) string) string {
 	}
 	innerGroup := func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		innerCtx, innerCancel := context.WithCancel(context.Background())
-		defer innerCancel()
 		var innerWg sync.WaitGroup
 		defer innerWg.Wait()
 
 		innerWg.Add(2)
-		go httpTextToChannel(&innerWg, innerCtx)
-		go httpTextToChannel(&innerWg, innerCtx)
+		go httpTextToChannel(&innerWg)
+		go httpTextToChannel(&innerWg)
 	}
 
 	wg.Add(2)
 	go innerGroup(&wg)
-	go httpTextToChannel(&wg, ctx)
+	go httpTextToChannel(&wg)
 
 	return <-result
 }
