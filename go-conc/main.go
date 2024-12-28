@@ -343,8 +343,37 @@ func scenario10(scenarioURL func(int) string) string {
 	})
 }
 
+func scenario11(scenarioURL func(int) string) string {
+	url := scenarioURL(11)
+
+	return conc.RunWithWaitGroup(func(wg conc.WaitGroup) string {
+		result := make(chan string)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		httpTextToChannel := func() {
+			text, err := httpText(url, ctx)
+			if err == nil {
+				result <- text
+			}
+		}
+		innerGroup := func() {
+			conc.RunWithWaitGroup(func(wg conc.WaitGroup) any {
+				wg.Go(httpTextToChannel)
+				wg.Go(httpTextToChannel)
+
+				return nil
+			})
+		}
+
+		wg.Go(innerGroup)
+		wg.Go(httpTextToChannel)
+
+		return <-result
+	})
+}
+
 var scenarios = []func(func(int) string) string{
-	scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10,
+	scenario1, scenario2, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10, scenario11,
 }
 
 func main() {
