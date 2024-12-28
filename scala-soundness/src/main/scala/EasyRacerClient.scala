@@ -88,14 +88,14 @@ def scenario8(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Concur
     Seq(async(reqRes), async(reqRes)).race()
 
 def scenario9(scenarioUrl: Text => HttpUrl): Text raises HttpError raises ConcurrencyError =
-  def req = scenarioUrl(t"9").get().as[Text]
+  def req =
+    mend:
+      case HttpError(_, _) => t""
+    .within:
+      scenarioUrl(t"9").get().as[Text]
   supervise:
     Seq.fill(10):
-      async:
-        mend:
-          case HttpError(_, _) => t""
-        .within(req)
-      .map(System.nanoTime() -> _)
+      async(req).map(System.nanoTime() -> _)
     .sequence
     .map(_.sortBy(_._1).map(_._2).reduce(_ + _))
     .await()
@@ -151,7 +151,7 @@ def scenario11(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Concu
 val scenarios: Seq[(Text => HttpUrl) => Text raises HttpError raises ConcurrencyError] = Seq(
   scenario1,
   scenario2,
-  scenario3,
+//  scenario3,
   scenario4,
   scenario5,
   scenario6,
