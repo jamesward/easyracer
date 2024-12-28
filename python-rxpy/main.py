@@ -294,9 +294,10 @@ async def main():
     for scenario in scenarios:
         num = scenario.__name__[8:]
         url = f"http://localhost:8080/{num}"
-        await scenario(url) >> ops.do_action(
+        printer = scenario(url) >> ops.do_action(
             lambda value: print(f"{scenario.__name__}: {value}")
         )
+        await printer
 
 
 if __name__ == "__main__":
