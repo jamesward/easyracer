@@ -152,7 +152,7 @@ def scenario11(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Concu
 val scenarios: Seq[(Text => HttpUrl) => Text raises HttpError raises ConcurrencyError] = Seq(
   scenario1,
   scenario2,
-//  scenario3,
+  scenario3,
   scenario4,
   scenario5,
   scenario6,
