@@ -110,7 +110,7 @@ export function program(port: number) {
             yield* scenario1(port),
             yield* scenario2(port),
             yield* scenario3(port),
-            yield* scenario4(port).pipe(Effect.delay("10 seconds")), // wait for scenario3 connections to actually close,
+            yield* scenario4(port).pipe(Effect.delay("30 seconds")), // wait for scenario3 connections to actually close,
             yield* scenario5(port),
             yield* scenario6(port),
             yield* scenario7(port),
