@@ -1,7 +1,7 @@
 with import <nixpkgs> {};
 mkShell {
   buildInputs = [
-    pkgs.nodejs_21
+    pkgs.nodejs_23
     pkgs.vscode
   ];
 }
