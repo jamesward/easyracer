@@ -1,5 +1,5 @@
 import {GenericContainer, StartedTestContainer, Wait} from "testcontainers";
-import {Effect} from "effect";
+import {Array, Effect} from "effect";
 import {program} from "../src/lib";
 
 describe("all work", () => {
@@ -16,7 +16,7 @@ describe("all work", () => {
     it("works", async () => {
         const httpPort = container.getFirstMappedPort()
         const results = await Effect.runPromise(program(httpPort))
-        expect(results).toEqual(["right", "right", "right", "right"])
+        expect(results).toEqual(Array.replicate("right", 8))
     }, 600_000)
 
     afterAll(async () => {
