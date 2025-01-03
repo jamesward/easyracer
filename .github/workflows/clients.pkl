@@ -195,7 +195,7 @@ clients = new Mapping<String, Run> {
   }
 
   ["typescript-effect"] = new {
-    steps = GitHubAction.Node.testSteps(null, "21.6.0", "typescript-effect/package-lock.json")
+    steps = GitHubAction.Node.testSteps(null, "23.2.0", "typescript-effect/package-lock.json")
   }
 }
 
