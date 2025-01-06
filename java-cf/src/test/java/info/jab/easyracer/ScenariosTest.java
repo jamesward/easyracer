@@ -27,7 +27,7 @@ public class ScenariosTest {
 
             //Then
             assertThat(results).allMatch(result -> result.equals("right"));
-            assertThat(results).hasSize(1);
+            assertThat(results).hasSize(2);
         }
     }
 

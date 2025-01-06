@@ -9,8 +9,8 @@
   <version>0.1.0</version>
 
   <properties>
+    <java.version>23</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.release>21</maven.compiler.release>
   </properties>
 
   <dependencyManagement>
@@ -68,14 +68,55 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-params</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>3.5.0</version>
+          <executions>
+              <execution>
+                  <id>enforce</id>
+                  <configuration>
+                      <rules>
+                          <dependencyConvergence />
+                          <banDuplicatePomDependencyVersions />
+                          <requireMavenVersion>
+                              <version>3.9.9</version>
+                          </requireMavenVersion>
+                          <requireJavaVersion>
+                              <version>23</version>
+                          </requireJavaVersion>
+                          <bannedDependencies>
+                              <excludes>
+                                  <exclude>org.projectlombok:lombok</exclude>
+                              </excludes>
+                          </bannedDependencies>
+                      </rules>
+                      <fail>true</fail>
+                  </configuration>
+                  <goals>
+                      <goal>enforce</goal>
+                  </goals>
+              </execution>
+          </executions>
+      </plugin>    
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.13.0</version>
+          <configuration>
+              <compilerArgument>-Xlint:all</compilerArgument><!-- -Werror -->
+              <compilerArgument>--enable-preview</compilerArgument>
+              <release>${java.version}</release>
+          </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
