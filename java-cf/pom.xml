@@ -16,37 +16,41 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-          <groupId>org.testcontainers</groupId>
-          <artifactId>testcontainers-bom</artifactId>
-          <version>1.20.4</version>
-          <type>pom</type>
-          <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.junit</groupId>
-        <artifactId>junit-bom</artifactId>
-        <version>5.11.0</version>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>1.20.4</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
-          <groupId>org.assertj</groupId>
-          <artifactId>assertj-bom</artifactId>
-          <version>3.27.2</version>
-          <type>pom</type>
-          <scope>import</scope>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.11.4</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
       <dependency>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-bom</artifactId>
-          <version>2.0.16</version>
-          <type>pom</type>
-          <scope>import</scope>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-bom</artifactId>
+        <version>3.27.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-bom</artifactId>
+        <version>2.1.0-alpha1</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
 
   <dependencies>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
@@ -61,7 +65,7 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
       <scope>test</scope>
-    </dependency>    
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
@@ -77,45 +81,50 @@
   <build>
     <plugins>
       <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-enforcer-plugin</artifactId>
-          <version>3.5.0</version>
-          <executions>
-              <execution>
-                  <id>enforce</id>
-                  <configuration>
-                      <rules>
-                          <dependencyConvergence />
-                          <banDuplicatePomDependencyVersions />
-                          <requireMavenVersion>
-                              <version>3.9.9</version>
-                          </requireMavenVersion>
-                          <requireJavaVersion>
-                              <version>23</version>
-                          </requireJavaVersion>
-                          <bannedDependencies>
-                              <excludes>
-                                  <exclude>org.projectlombok:lombok</exclude>
-                              </excludes>
-                          </bannedDependencies>
-                      </rules>
-                      <fail>true</fail>
-                  </configuration>
-                  <goals>
-                      <goal>enforce</goal>
-                  </goals>
-              </execution>
-          </executions>
-      </plugin>    
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <id>enforce</id>
+            <configuration>
+              <rules>
+                <dependencyConvergence />
+                <banDuplicatePomDependencyVersions />
+                <requireMavenVersion>
+                  <version>3.9.9</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>23</version>
+                </requireJavaVersion>
+                <bannedDependencies>
+                  <excludes>
+                    <exclude>org.projectlombok:lombok</exclude>
+                  </excludes>
+                </bannedDependencies>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.13.0</version>
-          <configuration>
-              <compilerArgument>-Xlint:all</compilerArgument><!-- -Werror -->
-              <compilerArgument>--enable-preview</compilerArgument>
-              <release>${java.version}</release>
-          </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <compilerArgument>-Xlint:all</compilerArgument><!-- -Werror -->
+          <compilerArgument>--enable-preview</compilerArgument>
+          <release>${java.version}</release>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>versions-maven-plugin</artifactId>
+        <version>2.18.0</version>
       </plugin>
     </plugins>
   </build>
