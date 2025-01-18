@@ -15,5 +15,6 @@ kill -9 $(lsof -ti:55073)
 
 ## Interesting links
 
+- [Requirements to implement the scenarios](../README.md)
 - https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/CompletableFuture.html
 - https://docs.oracle.com/en/java/javase/21/docs/api/java.net.http/java/net/http/HttpClient.html

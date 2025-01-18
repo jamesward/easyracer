@@ -76,7 +76,7 @@ public class Scenarios {
         );
         
         return futures.stream()
-            .map(future -> future.handle((result, ex) -> Objects.isNull(ex) ? result.body() : "left"))
+            .map(future -> future.handle((result, ex) -> Objects.isNull(ex) && result.statusCode() == 200 ? result.body() : "left"))
             .map(CompletableFuture::join)
             .filter(cf -> cf.equals("right"))
             .findFirst()
