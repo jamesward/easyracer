@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 public class Scenarios {
 
@@ -71,8 +72,26 @@ public class Scenarios {
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/5")).build();
 
         var futures = List.of(
-            client.sendAsync(request, config),
-            client.sendAsync(request, config)
+            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS),
+            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS)
+        );
+        
+        return futures.stream()
+            .map(future -> future.handle((result, ex) -> Objects.isNull(ex) && result.statusCode() == 200 ? result.body() : "left"))
+            .map(CompletableFuture::join)
+            .filter(cf -> cf.equals("right"))
+            .findFirst()
+            .orElseThrow();
+    }
+
+    public String scenario6() throws ExecutionException, InterruptedException {
+        logger.info("scenario6");
+        HttpRequest request = HttpRequest.newBuilder(url.resolve("/6")).build();
+
+        var futures = List.of(
+            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS),
+            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS),
+            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS)
         );
         
         return futures.stream()
@@ -84,6 +103,6 @@ public class Scenarios {
     }
 
     List<String> results() throws ExecutionException, InterruptedException, IOException {
-        return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5());
+        return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6());
     }
 }
