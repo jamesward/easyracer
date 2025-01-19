@@ -4,6 +4,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -13,6 +14,8 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.Comparator;
+import java.util.stream.IntStream;
 
 public class Scenarios {
 
@@ -72,7 +75,7 @@ public class Scenarios {
     }
 
     public String scenario5() throws ExecutionException, InterruptedException {
-        logger.info("scenario5");
+        logger.info("Scenario 5");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/5")).build();
 
         var futures = List.of(
@@ -147,9 +150,7 @@ public class Scenarios {
         }
 
         HttpResponse<String> make() throws Exception {
-            logger.info("make");
             var resp = client.send(useReq.apply(id, url), config);
-            logger.info("resp: " + resp);
             if (resp.statusCode() == 200) {
                 return resp;
             } else {
@@ -226,7 +227,30 @@ public class Scenarios {
             .orElseThrow();
     }
 
+    public String scenario9() throws ExecutionException, InterruptedException {
+        logger.info("Scenario 9");
+        HttpRequest request = HttpRequest.newBuilder(url.resolve("/9")).build();
+
+        record TimedResponse(Instant instant, HttpResponse<String> response) {}
+        
+        Comparator<TimedResponse> timeComparator = Comparator.comparing(TimedResponse::instant);
+        
+        var futures = IntStream.range(0, 10)
+            .mapToObj(_ -> client.sendAsync(request, config).thenApply(response -> new TimedResponse(Instant.now(), response)))
+            .toList();
+        
+        return futures.stream()
+            .map(CompletableFuture::join)
+            .filter(r -> r.response.statusCode() == 200)
+            .sorted(timeComparator)
+            .collect(
+                StringBuilder::new,
+                (acc, timedResponse) -> acc.append(timedResponse.response.body()),
+                StringBuilder::append)
+            .toString();
+    }
+
     List<String> results() throws ExecutionException, InterruptedException, IOException {
-        return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8());
+        return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9());
     }
 }
