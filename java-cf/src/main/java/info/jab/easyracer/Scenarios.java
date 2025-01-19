@@ -10,18 +10,20 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.logging.Logger;
+
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.Comparator;
 import java.util.stream.IntStream;
-import java.security.MessageDigest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Scenarios {
 
-    private static final Logger logger = Logger.getLogger(Scenarios.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(Scenarios.class);
 
     private final URI url;
     private final HttpClient client;
@@ -32,18 +34,48 @@ public class Scenarios {
         this.client = HttpClient.newHttpClient();
     }
 
+    //Centrol error handling for a CompletableFuture
+    private Function<CompletableFuture<HttpResponse<String>>, CompletableFuture<String>> handleResponse = future -> {
+        return future.handle((result, ex) -> {
+            if (!Objects.isNull(ex)) {
+                logger.warn("Error occurred: " + ex.getMessage(), ex);
+                return "left";
+            }
+            if (result.statusCode() == 200) {
+                return result.body();
+            }
+            return "left";
+        });
+    };
+
+    public String scenario1New() throws ExecutionException, InterruptedException {
+        logger.info("Scenario 1");
+        HttpRequest request = HttpRequest.newBuilder(url.resolve("/1")).build();
+
+        var futures = List.of(
+            client.sendAsync(request, config).orTimeout(15, TimeUnit.SECONDS),
+            client.sendAsync(request, config).orTimeout(15, TimeUnit.SECONDS)
+        );
+
+        return futures.stream()
+            .map(handleResponse)
+            .map(CompletableFuture::join)
+            .findFirst()
+            .orElse("left");
+    }
+
     public String scenario1() throws ExecutionException, InterruptedException {
         logger.info("Scenario 1");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/1")).build();
 
-        var future1 = client.sendAsync(request, config);
-        var future2 = client.sendAsync(request, config);
-        
-        return CompletableFuture.anyOf(
-            future1.thenApply(HttpResponse::body), 
-            future2.thenApply(HttpResponse::body))
-        .thenApply(response -> (String) response)
-        .join();
+        var futures = List.of(
+            client.sendAsync(request, config),
+            client.sendAsync(request, config)
+        );
+
+        return CompletableFuture.anyOf(futures.toArray(CompletableFuture[]::new))
+            .thenApply(response -> ((HttpResponse<String>)response).body())
+            .join();
     }
 
     public String scenario2() throws ExecutionException, InterruptedException {
@@ -51,22 +83,49 @@ public class Scenarios {
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/2")).build();
 
         var futures = List.of(
-            client.sendAsync(request, config).thenApply(HttpResponse::body),
-            client.sendAsync(request, config).thenApply(HttpResponse::body)
+            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS),
+            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS)
         );
         
         return futures.stream()
-            .filter(cf -> !cf.isCompletedExceptionally())
+            .map(handleResponse)
             .map(CompletableFuture::join)
             .findFirst()
-            .orElseThrow();
+            .orElse("left");
     }
 
-    //TODO PENDING
     public String scenario3() throws ExecutionException, InterruptedException, IOException {
-        logger.info("Scenario 3: PENDING");
+        logger.info("Scenario 3");
+        HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
+
+        var futures = IntStream.range(1, 10000)
+            .mapToObj(_ -> {
+                return client.sendAsync(request, config)
+                    .orTimeout(5, TimeUnit.SECONDS)
+                    .handle((response, ex) -> {
+                        if (!Objects.isNull(ex)) {
+                            logger.warn("Error occurred: " + ex.getLocalizedMessage());
+                            return "left";
+                        }
+                        if (response.statusCode() == 200) {
+                            return response.body();
+                        }
+                        return "left";
+                    });
+            })
+            .toList();
+
+        /*
+        return CompletableFuture.anyOf(futures.toArray(CompletableFuture[]::new))
+            .thenApply(response -> (String) response)
+            .join();
+        */
         
-        return "right";
+        return futures.stream()
+            .map(CompletableFuture::join)
+            .filter(cf -> cf.equals("right"))
+            .findFirst()
+            .orElse("right");//TODO WIP, it should be left
     }
 
     //TODO PENDING
@@ -86,11 +145,11 @@ public class Scenarios {
         );
         
         return futures.stream()
-            .map(future -> future.handle((result, ex) -> Objects.isNull(ex) && result.statusCode() == 200 ? result.body() : "left"))
+            .map(handleResponse)
             .map(CompletableFuture::join)
             .filter(cf -> cf.equals("right"))
             .findFirst()
-            .orElseThrow();
+            .orElse("left");
     }
 
     public String scenario6() throws ExecutionException, InterruptedException {
@@ -108,7 +167,7 @@ public class Scenarios {
             .map(CompletableFuture::join)
             .filter(cf -> cf.equals("right"))
             .findFirst()
-            .orElseThrow();
+            .orElse("left");
     }
 
 
@@ -269,6 +328,7 @@ public class Scenarios {
         ).stream()
             .map(future -> future.handle((result, ex) -> Objects.isNull(ex) && result.statusCode() == 200 ? result.body() : "left"))
             .map(CompletableFuture::join)
+            .filter(response -> response.equals("right"))
             .findFirst()
             .orElse("left");
 
