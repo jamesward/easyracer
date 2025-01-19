@@ -7,6 +7,7 @@ import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -16,6 +17,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.Comparator;
 import java.util.stream.IntStream;
+import java.security.MessageDigest;
 
 public class Scenarios {
 
@@ -233,24 +235,59 @@ public class Scenarios {
 
         record TimedResponse(Instant instant, HttpResponse<String> response) {}
         
-        Comparator<TimedResponse> timeComparator = Comparator.comparing(TimedResponse::instant);
-        
         var futures = IntStream.range(0, 10)
             .mapToObj(_ -> client.sendAsync(request, config).thenApply(response -> new TimedResponse(Instant.now(), response)))
             .toList();
         
+        Comparator<TimedResponse> timeComparator = Comparator.comparing(TimedResponse::instant);
+
         return futures.stream()
             .map(CompletableFuture::join)
             .filter(r -> r.response.statusCode() == 200)
             .sorted(timeComparator)
-            .collect(
-                StringBuilder::new,
-                (acc, timedResponse) -> acc.append(timedResponse.response.body()),
-                StringBuilder::append)
-            .toString();
+            .map(timedResponse -> timedResponse.response.body())
+            .reduce("", String::concat);
+    }
+
+    public String scenario10() throws ExecutionException, InterruptedException {
+        logger.info("Scenario 10");
+
+        String id = UUID.randomUUID().toString();
+        HttpRequest request = HttpRequest.newBuilder(url.resolve("/10?" + id)).build();
+
+        return "right";
+    }
+
+    public String scenario11() throws ExecutionException, InterruptedException {
+        logger.info("Scenario 11");
+        HttpRequest request = HttpRequest.newBuilder(url.resolve("/11")).build();
+
+        // Create an inner race with 2 requests
+        var innerRace = List.of(
+            client.sendAsync(request, config).orTimeout(5, TimeUnit.SECONDS),
+            client.sendAsync(request, config).orTimeout(5, TimeUnit.SECONDS)
+        ).stream()
+            .map(future -> future.handle((result, ex) -> Objects.isNull(ex) && result.statusCode() == 200 ? result.body() : "left"))
+            .map(CompletableFuture::join)
+            .findFirst()
+            .orElse("left");
+
+        // Combine the inner race with another request
+        var outerRace = List.of(
+            CompletableFuture.supplyAsync(() -> innerRace),
+            client.sendAsync(request, config)
+                .orTimeout(2, TimeUnit.SECONDS)
+                .handle((result, ex) -> Objects.isNull(ex) && result.statusCode() == 200 ? result.body() : "left")
+        );
+
+        return outerRace.stream()
+            .map(CompletableFuture::join)
+            .filter(response -> response.equals("right"))
+            .findFirst()
+            .orElseThrow();
     }
 
     List<String> results() throws ExecutionException, InterruptedException, IOException {
-        return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9());
+        return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
     }
 }
