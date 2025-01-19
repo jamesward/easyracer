@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletionException;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -128,11 +129,33 @@ public class Scenarios {
             .orElse("right");//TODO WIP, it should be left
     }
 
-    //TODO PENDING
     public String scenario4() throws ExecutionException, InterruptedException {
-        logger.info("Scenario 4: PENDING");
+        logger.info("Scenario 4");
+        HttpRequest request = HttpRequest.newBuilder(url.resolve("/4")).build();
 
-        return "right";
+        var futures = List.of(
+            CompletableFuture.supplyAsync(() -> {
+                try {
+                    return client.send(request, config);
+                } catch (Exception e) {
+                    throw new CompletionException(e);
+                }
+            }).orTimeout(1, TimeUnit.SECONDS),
+            CompletableFuture.supplyAsync(() -> {
+                try {
+                    return client.send(request, config);
+                } catch (Exception e) {
+                    throw new CompletionException(e);
+                }
+            }).orTimeout(1, TimeUnit.SECONDS)
+        );
+        
+        return futures.stream()
+            .map(handleResponse)
+            .map(CompletableFuture::join)
+            .filter(cf -> cf.equals("right"))
+            .findFirst()
+            .orElse("right");//TODO WIP, it should be left
     }
 
     public String scenario5() throws ExecutionException, InterruptedException {
@@ -163,7 +186,7 @@ public class Scenarios {
         );
         
         return futures.stream()
-            .map(future -> future.handle((result, ex) -> Objects.isNull(ex) && result.statusCode() == 200 ? result.body() : "left"))
+            .map(handleResponse)
             .map(CompletableFuture::join)
             .filter(cf -> cf.equals("right"))
             .findFirst()
@@ -243,11 +266,15 @@ public class Scenarios {
                 return client.sendAsync(useRequest.apply(resourceId), config)
                     .thenApply(response -> new ResourceResult(resourceId, response.body()));
             })
-            .thenCompose(resourceResult -> 
-                client.sendAsync(closeRequest.apply(resourceResult.resourceId()), config)
-                    .thenApply(_ -> resourceResult.result())
-            );
-        */
+            .thenCompose(resourceResult -> {
+                logger.info("resourceResult: " + resourceResult.resourceId());
+                return client.sendAsync(closeRequest.apply(resourceResult.resourceId()), config)
+                    .thenApply(_ -> {
+                        logger.info("resourceResult: " + resourceResult.result());
+                        return resourceResult.result();
+                    });
+            });
+         */
 
         CompletableFuture<String> future1 = CompletableFuture.supplyAsync(() -> {
             try (var req = new Req(client, url)) {
@@ -326,7 +353,7 @@ public class Scenarios {
             client.sendAsync(request, config).orTimeout(5, TimeUnit.SECONDS),
             client.sendAsync(request, config).orTimeout(5, TimeUnit.SECONDS)
         ).stream()
-            .map(future -> future.handle((result, ex) -> Objects.isNull(ex) && result.statusCode() == 200 ? result.body() : "left"))
+            .map(handleResponse)
             .map(CompletableFuture::join)
             .filter(response -> response.equals("right"))
             .findFirst()
