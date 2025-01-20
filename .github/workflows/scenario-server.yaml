@@ -20,6 +20,7 @@ jobs:
         cache: sbt
     - uses: sbt/setup-sbt@v1
     - run: sbt test
+      working-directory: scenario-server
   build-and-push-amd64:
     runs-on: ubuntu-latest
     steps:
