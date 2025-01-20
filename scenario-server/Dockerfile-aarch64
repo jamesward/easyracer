@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/native-image-community:21 as builder
+FROM ghcr.io/graalvm/native-image-community:21 AS builder
 ARG TARGETARCH
 
 WORKDIR /app
