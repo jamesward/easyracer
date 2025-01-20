@@ -9,7 +9,7 @@ libraryDependencies ++= Seq(
   "dev.soundness" % "telekinesis-core" % SoundnessVersion,
   "org.scalatest" %% "scalatest" % "3.2.19" % Test,
   "org.slf4j" % "slf4j-simple" % "2.0.16" % Test,
-  "com.dimafeng" %% "testcontainers-scala-core" % "0.41.5" % Test
+  "com.dimafeng" %% "testcontainers-scala-core" % "0.41.8" % Test
 )
 scalacOptions ++= Seq(
   "-experimental",
@@ -22,5 +22,6 @@ scalacOptions ++= Seq(
   "-language:experimental.erasedDefinitions",
   "-language:experimental.namedTypeArguments",
   "-language:experimental.namedTuples",
-  "-Xmax-inlines", "100"
+  "-Xmax-inlines",
+  "100"
 )
