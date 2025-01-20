@@ -42,6 +42,10 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Go.testSteps(null, "go-stdlib/go.mod")
   }
 
+  ["java-cf"] = new {
+    steps = GitHubAction.Java.mavenTestSteps(null, "java-cf", null, null)
+  }
+
   ["java-loom"] = new {
     steps = GitHubAction.Java.gradleTestSteps(null, "java-loom")
   }
