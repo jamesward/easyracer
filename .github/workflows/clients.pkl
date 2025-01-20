@@ -1,6 +1,6 @@
 // pkl eval --multiple-file-output-path . clients.pkl
 
-import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.20#/GitHubAction.pkl"
+import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.21#/GitHubAction.pkl"
 //import "../../../pklgha/src/GitHubAction.pkl"
 
 
@@ -225,7 +225,7 @@ function workflow(client: String, s: Run): GitHubAction = new GitHubAction {
 
   jobs {
     ["test"] = new {
-      `runs-on` = s.`runs-on` ?? "ubuntu-latest"
+      `runs-on` = s.`runs-on` ?? "ubuntu-24.04"
       `if` = "${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}"
       steps = s.steps
       defaults {

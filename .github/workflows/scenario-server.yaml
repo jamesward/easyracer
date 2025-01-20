@@ -18,6 +18,7 @@ jobs:
         distribution: temurin
         java-version: '20'
         cache: sbt
+    - uses: sbt/setup-sbt@v1
     - run: sbt test
   build-and-push-amd64:
     runs-on: ubuntu-latest

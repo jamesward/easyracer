@@ -1,7 +1,7 @@
 // pkl eval --format yaml -o scenario-server.yaml scenario-server.pkl
 
-amends "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.18#/GitHubAction.pkl"
-import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.18#/GitHubAction.pkl"
+amends "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.21#/GitHubAction.pkl"
+import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.21#/GitHubAction.pkl"
 //amends "../../../pklgha/src/GitHubAction.pkl"
 //import "../../../pklgha/src/GitHubAction.pkl"
 
