@@ -1,14 +1,9 @@
-import EasyRacerServer.Scenario10Data
-import com.sun.management.OperatingSystemMXBean
-import zio.http.netty.NettyConfig
-import zio.{Schedule, *}
+import zio.*
 import zio.direct.*
-import zio.http.{Client, DnsResolver, Handler, Request, Server, URL}
+import zio.http.netty.NettyConfig
+import zio.http.*
 import zio.test.*
 import zio.test.Assertion.*
-
-import java.lang.management.ManagementFactory
-import java.security.MessageDigest
 
 object EasyRacerServerSpec extends ZIOSpecDefault:
 
@@ -25,9 +20,11 @@ object EasyRacerServerSpec extends ZIOSpecDefault:
     test("Scenario1 - Actual Server") {
       defer:
         val session = EasyRacerServer.Session.make[Unit]().run
-        Server.serve(Handler.fromFunctionZIO(EasyRacerServer.scenario1(session)).toHttpApp).forkScoped.run
+        Server.serve(Handler.fromFunctionZIO(EasyRacerServer.scenario1(session)).toRoutes).forkScoped.run
         val server = ZIO.service[Server].run
-        val req = Client.request(Request.get(s"http://localhost:${server.port}/1"))
+        val port = server.port.run
+        val url = ZIO.fromEither(URL.decode(s"http://localhost:$port/1")).run
+        val req = Client.batched(Request.get(url))
         val winner = req.race(req).run
         val body = winner.body.asString.run
         assertTrue(body == "right")
@@ -40,9 +37,11 @@ object EasyRacerServerSpec extends ZIOSpecDefault:
     test("Scenario3 - Actual Server") {
       defer:
         val session = EasyRacerServer.Session.make[Unit]().run
-        Server.serve(Handler.fromFunctionZIO(EasyRacerServer.scenario3(session)).toHttpApp).forkScoped.run
+        Server.serve(Handler.fromFunctionZIO(EasyRacerServer.scenario3(session)).toRoutes).forkScoped.run
         val server = ZIO.service[Server].run
-        val reqs = Seq.fill(10000)(Client.request(Request.get(s"http://localhost:${server.port}/3")))
+        val port = server.port.run
+        val url = ZIO.fromEither(URL.decode(s"http://localhost:$port/3")).run
+        val reqs = Seq.fill(10000)(Client.batched(Request.get(url)))
         val winner = ZIO.raceAll(reqs.head, reqs.tail).run
         val body = winner.body.asString.run
         TestClock.adjust(1.minute).run // todo: Something with DnsResolver seems to be hanging this test unless we move the clock forward
