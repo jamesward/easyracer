@@ -10,13 +10,12 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.StructuredTaskScope;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.Comparator;
-import java.util.stream.Gatherers;
+
 import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
@@ -55,7 +54,7 @@ public class Scenarios {
     };
 
     private Function3<Integer, HttpClient, HttpRequest, List<CompletableFuture<String>>> getPromises = (n, client, request) -> {
-        return IntStream.rangeClosed(0, n)
+        return IntStream.rangeClosed(1, n)
             .mapToObj(_ -> asyncCall.apply(client, request))
             .toList();
     };
@@ -82,45 +81,12 @@ public class Scenarios {
         return getPromises.andThen(process).apply(2, client, request);
     }
 
-    private String scenario3Original() throws ExecutionException, InterruptedException, IOException {
-        logger.info("Scenario 3");
-        HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
-
-        var futures = IntStream.range(1, 10_000)
-            .mapToObj(_ -> asyncCall.apply(client, request))
-            .toList();
-
-        return CompletableFuture.anyOf(futures.toArray(CompletableFuture[]::new))
-            .thenApply(response -> (String) response)
-            .join();
-    }
-
-    private String scenario3Streams() throws ExecutionException, InterruptedException, IOException {
-        logger.info("Scenario 3");
-        HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
-
-        var futures = IntStream.range(1, 10_000)
-            .mapToObj(_ -> asyncCall.apply(client, request))
-            .toList();
-
-        var executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 1);
-        
-        futures.stream()
-            .collect(parallel(fut -> fut.join(), toList(), executor))
-            .thenRun(() -> System.out.println("Finished!"));
-
-        return "right";
-    }
-
-    //TODO PENDING
+    //WIP
     public String scenario3() throws ExecutionException, InterruptedException, IOException {
-        //return scenario3Original();
-        scenario3Streams();
-        //scenarioGatherers();
-        
         logger.info("Scenario 3");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
+        //The example to port
         try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
             IntStream.rangeClosed(1, 10_000)
                     .forEach(_ ->
