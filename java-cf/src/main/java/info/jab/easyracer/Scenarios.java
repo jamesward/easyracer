@@ -10,7 +10,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-
+import java.util.concurrent.StructuredTaskScope;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -125,7 +125,20 @@ public class Scenarios {
         //return scenario3Original();
         //return scenario3Streams();
         //return scenarioGatherers();
-        return "right";
+        
+        logger.info("Scenario 3");
+        HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
+
+        try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+            IntStream.rangeClosed(1, 10_000)
+                    .forEach(i ->
+                            scope.fork(() ->
+                                    client.send(request, config)
+                            )
+                    );
+            scope.join();
+            return scope.result().body();
+        }
     }
 
     //TODO PENDING
