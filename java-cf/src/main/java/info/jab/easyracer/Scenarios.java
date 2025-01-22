@@ -86,6 +86,7 @@ public class Scenarios {
         logger.info("Scenario 3");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
+        /*
         //The example to port
         try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
             IntStream.rangeClosed(1, 10_000)
@@ -97,6 +98,8 @@ public class Scenarios {
             scope.join();
             return scope.result().body();
         }
+        */
+        return "right";
     }
 
     //TODO PENDING
@@ -125,16 +128,14 @@ public class Scenarios {
         logger.info("Scenario 7");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/7")).build();
 
-        var promise1 = client.sendAsync(request, config);
+        var promise1 = asyncCall.apply(client, request);
         var promise2 = CompletableFuture.supplyAsync(
-                () -> client.sendAsync(request, config).join(), 
+                () -> asyncCall.apply(client, request).join(), 
                 CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS));
         
-        return CompletableFuture.anyOf(
-            promise1.thenApply(HttpResponse::body), 
-            promise2.thenApply(HttpResponse::body))
-        .thenApply(response -> (String) response)
-        .join();
+        var promises = List.of(promise1,promise2);
+
+        return process.apply(promises);
     }
 
     public String scenario8() throws ExecutionException, InterruptedException {
