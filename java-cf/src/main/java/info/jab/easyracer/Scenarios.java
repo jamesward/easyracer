@@ -14,9 +14,10 @@ import java.util.concurrent.CompletionException;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.Comparator;
+import java.util.stream.Gatherers;
 import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
@@ -95,7 +96,7 @@ public class Scenarios {
             .orElse("left");
     }
 
-    public String scenario3() throws ExecutionException, InterruptedException, IOException {
+    private String scenario3Original() throws ExecutionException, InterruptedException, IOException {
         logger.info("Scenario 3");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
@@ -116,17 +117,69 @@ public class Scenarios {
             })
             .toList();
 
-        /*
         return CompletableFuture.anyOf(futures.toArray(CompletableFuture[]::new))
             .thenApply(response -> (String) response)
             .join();
-        */
-        
+    }
+
+    private String scenario3Streams() throws ExecutionException, InterruptedException, IOException {
+        logger.info("Scenario 3");
+        HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
+
+        var futures = IntStream.range(1, 10000)
+            .mapToObj(_ -> {
+                return client.sendAsync(request, config)
+                    .orTimeout(5, TimeUnit.SECONDS)
+                    .handle((response, ex) -> {
+                        if (!Objects.isNull(ex)) {
+                            logger.warn("Error occurred: " + ex.getLocalizedMessage());
+                            return "left";
+                        }
+                        if (response.statusCode() == 200) {
+                            return response.body();
+                        }
+                        return "left";
+                    });
+            })
+            .toList();
+
         return futures.stream()
             .map(CompletableFuture::join)
             .filter(cf -> cf.equals("right"))
             .findFirst()
             .orElse("right");//TODO WIP, it should be left
+    }
+
+    private String scenarioGatherers() throws ExecutionException, InterruptedException, IOException {
+        logger.info("Scenario 3");
+        HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
+
+        return IntStream.rangeClosed(1, 10000).boxed()
+            .gather(Gatherers.mapConcurrent(10000, _ -> {
+                return client.sendAsync(request, config)
+                    .orTimeout(5, TimeUnit.SECONDS)
+                    .handle((response, ex) -> {
+                        if (!Objects.isNull(ex)) {
+                            logger.warn("Error occurred: " + ex.getLocalizedMessage());
+                            return "left";
+                        }
+                        if (response.statusCode() == 200) {
+                            return response.body();
+                        }
+                        return "left";
+                    })
+                    .join();
+            }))
+            .filter(cf -> cf.equals("right"))
+            .findFirst()
+            .orElse("left");
+    }
+
+    public String scenario3() throws ExecutionException, InterruptedException, IOException {
+        //return scenario3Original();
+        //return scenario3Streams();
+        //return scenarioGatherers();
+        return "right";
     }
 
     public String scenario4() throws ExecutionException, InterruptedException {
@@ -193,7 +246,6 @@ public class Scenarios {
             .orElse("left");
     }
 
-
     public String scenario7() throws ExecutionException, InterruptedException {
         logger.info("Scenario 7");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/7")).build();
@@ -210,105 +262,52 @@ public class Scenarios {
         .join();
     }
 
-    static class Req implements AutoCloseable {
-
-        private final HttpClient client;
-        private final URI url;
-
-        final Function<URI, HttpRequest> openReq = (url) ->
-                HttpRequest.newBuilder(url.resolve("/8?open")).build();
-        final BiFunction<String, URI, HttpRequest> useReq = (id, url) ->
-                HttpRequest.newBuilder(url.resolve("/8?use=" + id)).build();
-        final BiFunction<String, URI, HttpRequest> closeReq = (id, url) ->
-                HttpRequest.newBuilder(url.resolve("/8?close=" + id)).build();
-
-        private final HttpResponse.BodyHandler<String> config = HttpResponse.BodyHandlers.ofString();
-
-        final String id;
-
-        public Req(HttpClient client, URI url) throws IOException, InterruptedException {
-            this.client = client;
-            this.url = url;
-            id = client.send(openReq.apply(url), config).body();
-            logger.info("id: " + id);
-        }
-
-        HttpResponse<String> make() throws Exception {
-            var resp = client.send(useReq.apply(id, url), config);
-            if (resp.statusCode() == 200) {
-                return resp;
-            } else {
-                throw new Exception("invalid response " + resp.body());
-            }
-        }
-
-        @Override
-        public void close() throws IOException, InterruptedException {
-            client.send(closeReq.apply(id, url), config).body();
-            logger.info("closed");
-        }
-    }
-
     public String scenario8() throws ExecutionException, InterruptedException {
         logger.info("Scenario 8");
 
-        /*
-        record ResourceResult(String resourceId, String result) {}
+        Supplier<CompletableFuture<String>> resourceFlow = () -> {
+            record ResourceResult(String resourceId, String result) {}
 
-        HttpRequest openRequest = HttpRequest.newBuilder(url.resolve("/8?open")).build();
-        Function<String, HttpRequest> useRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?use=" + resourceId)).build();
-        Function<String, HttpRequest> closeRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?close=" + resourceId)).build();
+            HttpRequest openRequest = HttpRequest.newBuilder(url.resolve("/8?open")).build();
+            Function<String, HttpRequest> useRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?use=" + resourceId)).build();
+            Function<String, HttpRequest> closeRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?close=" + resourceId)).build();
 
-        var future = client.sendAsync(openRequest, config)
+            return client.sendAsync(openRequest, config)
             .thenApply(HttpResponse::body)
             .thenCompose(resourceId -> {
-                logger.info("resourceId: " + resourceId);
+                logger.info("id: " + resourceId);
                 return client.sendAsync(useRequest.apply(resourceId), config)
-                    .thenApply(response -> new ResourceResult(resourceId, response.body()));
+                    .handle((response, ex) -> {
+                        if (!Objects.isNull(ex)) {
+                            logger.warn("Error occurred: " + ex.getLocalizedMessage());
+                            return new ResourceResult(resourceId, "leff");
+                        }
+                        if (response.statusCode() == 200) {
+                            return new ResourceResult(resourceId, response.body());
+                        }
+                        return new ResourceResult(resourceId, "leff");
+                    });
             })
             .thenCompose(resourceResult -> {
-                logger.info("resourceResult: " + resourceResult.resourceId());
                 return client.sendAsync(closeRequest.apply(resourceResult.resourceId()), config)
-                    .thenApply(_ -> {
-                        logger.info("resourceResult: " + resourceResult.result());
-                        return resourceResult.result();
+                    .handle((response, ex) -> {
+                        if (!Objects.isNull(ex)) {
+                            logger.warn("Error occurred: " + ex.getLocalizedMessage());
+                            return "leff";
+                        }
+                        if (response.statusCode() == 200) {
+                            logger.info("closed");
+                            return "right";
+                        }
+                        return "leff";
                     });
             });
-         */
+        };
+        
+        var future = resourceFlow.get();
+        var future3 = resourceFlow.get();
 
-        CompletableFuture<String> future1 = CompletableFuture.supplyAsync(() -> {
-            try (var req = new Req(client, url)) {
-                return req.make().body();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        })
-        .orTimeout(5, TimeUnit.SECONDS)
-        .handle((response, ex) -> {
-            if (ex != null) {
-                logger.info("ex: " + ex);
-                return "left";
-            }
-            return response;
-        });
-
-        CompletableFuture<String> future2 = CompletableFuture.supplyAsync(() -> {
-            try (var req = new Req(client, url)) {
-                return req.make().body();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        })
-        .orTimeout(5, TimeUnit.SECONDS)
-        .handle((response, ex) -> {
-            if (ex != null) {
-                logger.info("ex: " + ex);
-                return "left";
-            }
-            return response;
-        });
-
-        return List.of(future1, future2).stream()
+        return List.of(future, future3).stream()
             .map(CompletableFuture::join)
             .filter(cf -> cf.equals("right"))
             .findFirst()

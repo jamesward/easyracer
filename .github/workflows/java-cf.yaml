@@ -21,10 +21,10 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-java@v4
       with:
-        distribution: temurin
-        java-version: '20'
+        distribution: graalvm
+        java-version: '23'
         cache: maven
-    - run: ./mvnw test
+    - run: ./mvnw --batch-mode --no-transfer-progress verify
       working-directory: java-cf
     defaults:
       run:
