@@ -138,7 +138,7 @@ public class Scenarios {
 
         try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
             IntStream.rangeClosed(1, 10_000)
-                    .forEach(i ->
+                    .forEach(_ ->
                             scope.fork(() ->
                                     client.send(request, config)
                             )
