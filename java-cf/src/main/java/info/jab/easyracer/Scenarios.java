@@ -124,7 +124,7 @@ public class Scenarios {
     public String scenario3() throws ExecutionException, InterruptedException, IOException {
         //return scenario3Original();
         //return scenario3Streams();
-        //return scenarioGatherers();
+        return scenarioGatherers();
         
         logger.info("Scenario 3");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
