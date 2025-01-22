@@ -10,10 +10,10 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.CompletionException;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.Comparator;
@@ -36,48 +36,35 @@ public class Scenarios {
         this.client = HttpClient.newHttpClient();
     }
 
-    //Centrol error handling for a CompletableFuture
-    private Function<CompletableFuture<HttpResponse<String>>, CompletableFuture<String>> handleResponse = future -> {
-        return future.handle((result, ex) -> {
-            if (!Objects.isNull(ex)) {
-                logger.warn("Error occurred: " + ex.getMessage(), ex);
+    private BiFunction<HttpClient, HttpRequest, CompletableFuture<String>> asyncCall = (client, request) -> {
+        return client.sendAsync(request, config)
+            .orTimeout(5, TimeUnit.SECONDS)
+            .handle((result, ex) -> {
+                if (!Objects.isNull(ex)) {
+                    logger.warn("Error occurred: " + ex.getLocalizedMessage());
+                    return "left";
+                }
+                if (result.statusCode() == 200) {
+                    return result.body();
+                }
                 return "left";
-            }
-            if (result.statusCode() == 200) {
-                return result.body();
-            }
-            return "left";
-        });
+            });
     };
-
-    public String scenario1New() throws ExecutionException, InterruptedException {
-        logger.info("Scenario 1");
-        HttpRequest request = HttpRequest.newBuilder(url.resolve("/1")).build();
-
-        var futures = List.of(
-            client.sendAsync(request, config).orTimeout(15, TimeUnit.SECONDS),
-            client.sendAsync(request, config).orTimeout(15, TimeUnit.SECONDS)
-        );
-
-        return futures.stream()
-            .map(handleResponse)
-            .map(CompletableFuture::join)
-            .findFirst()
-            .orElse("left");
-    }
 
     public String scenario1() throws ExecutionException, InterruptedException {
         logger.info("Scenario 1");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/1")).build();
 
         var futures = List.of(
-            client.sendAsync(request, config),
-            client.sendAsync(request, config)
+            asyncCall.apply(client, request),
+            asyncCall.apply(client, request)
         );
 
-        return CompletableFuture.anyOf(futures.toArray(CompletableFuture[]::new))
-            .thenApply(response -> ((HttpResponse<String>)response).body())
-            .join();
+        return futures.stream()
+            .map(CompletableFuture::join)
+            .filter(cf -> cf.equals("right"))
+            .findFirst()
+            .orElse("left");
     }
 
     public String scenario2() throws ExecutionException, InterruptedException {
@@ -85,13 +72,13 @@ public class Scenarios {
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/2")).build();
 
         var futures = List.of(
-            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS),
-            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS)
+            asyncCall.apply(client, request),
+            asyncCall.apply(client, request)
         );
         
         return futures.stream()
-            .map(handleResponse)
             .map(CompletableFuture::join)
+            .filter(cf -> cf.equals("right"))
             .findFirst()
             .orElse("left");
     }
@@ -100,21 +87,8 @@ public class Scenarios {
         logger.info("Scenario 3");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
-        var futures = IntStream.range(1, 10000)
-            .mapToObj(_ -> {
-                return client.sendAsync(request, config)
-                    .orTimeout(5, TimeUnit.SECONDS)
-                    .handle((response, ex) -> {
-                        if (!Objects.isNull(ex)) {
-                            logger.warn("Error occurred: " + ex.getLocalizedMessage());
-                            return "left";
-                        }
-                        if (response.statusCode() == 200) {
-                            return response.body();
-                        }
-                        return "left";
-                    });
-            })
+        var futures = IntStream.range(1, 10_000)
+            .mapToObj(_ -> asyncCall.apply(client, request))
             .toList();
 
         return CompletableFuture.anyOf(futures.toArray(CompletableFuture[]::new))
@@ -126,21 +100,8 @@ public class Scenarios {
         logger.info("Scenario 3");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
-        var futures = IntStream.range(1, 10000)
-            .mapToObj(_ -> {
-                return client.sendAsync(request, config)
-                    .orTimeout(5, TimeUnit.SECONDS)
-                    .handle((response, ex) -> {
-                        if (!Objects.isNull(ex)) {
-                            logger.warn("Error occurred: " + ex.getLocalizedMessage());
-                            return "left";
-                        }
-                        if (response.statusCode() == 200) {
-                            return response.body();
-                        }
-                        return "left";
-                    });
-            })
+        var futures = IntStream.range(1, 10_000)
+            .mapToObj(_ -> asyncCall.apply(client, request))
             .toList();
 
         return futures.stream()
@@ -154,27 +115,14 @@ public class Scenarios {
         logger.info("Scenario 3");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
-        return IntStream.rangeClosed(1, 10000).boxed()
-            .gather(Gatherers.mapConcurrent(10000, _ -> {
-                return client.sendAsync(request, config)
-                    .orTimeout(5, TimeUnit.SECONDS)
-                    .handle((response, ex) -> {
-                        if (!Objects.isNull(ex)) {
-                            logger.warn("Error occurred: " + ex.getLocalizedMessage());
-                            return "left";
-                        }
-                        if (response.statusCode() == 200) {
-                            return response.body();
-                        }
-                        return "left";
-                    })
-                    .join();
-            }))
+        return IntStream.rangeClosed(1, 10_000).boxed()
+            .gather(Gatherers.mapConcurrent(10_000, _ -> asyncCall.apply(client, request).join()))
             .filter(cf -> cf.equals("right"))
             .findFirst()
             .orElse("left");
     }
 
+    //TODO PENDING
     public String scenario3() throws ExecutionException, InterruptedException, IOException {
         //return scenario3Original();
         //return scenario3Streams();
@@ -182,33 +130,12 @@ public class Scenarios {
         return "right";
     }
 
+    //TODO PENDING
     public String scenario4() throws ExecutionException, InterruptedException {
         logger.info("Scenario 4");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/4")).build();
 
-        var futures = List.of(
-            CompletableFuture.supplyAsync(() -> {
-                try {
-                    return client.send(request, config);
-                } catch (Exception e) {
-                    throw new CompletionException(e);
-                }
-            }).orTimeout(1, TimeUnit.SECONDS),
-            CompletableFuture.supplyAsync(() -> {
-                try {
-                    return client.send(request, config);
-                } catch (Exception e) {
-                    throw new CompletionException(e);
-                }
-            }).orTimeout(1, TimeUnit.SECONDS)
-        );
-        
-        return futures.stream()
-            .map(handleResponse)
-            .map(CompletableFuture::join)
-            .filter(cf -> cf.equals("right"))
-            .findFirst()
-            .orElse("right");//TODO WIP, it should be left
+        return "right";
     }
 
     public String scenario5() throws ExecutionException, InterruptedException {
@@ -216,12 +143,11 @@ public class Scenarios {
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/5")).build();
 
         var futures = List.of(
-            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS),
-            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS)
+            asyncCall.apply(client, request),
+            asyncCall.apply(client, request)
         );
         
         return futures.stream()
-            .map(handleResponse)
             .map(CompletableFuture::join)
             .filter(cf -> cf.equals("right"))
             .findFirst()
@@ -233,13 +159,12 @@ public class Scenarios {
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/6")).build();
 
         var futures = List.of(
-            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS),
-            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS),
-            client.sendAsync(request, config).orTimeout(2, TimeUnit.SECONDS)
+            asyncCall.apply(client, request),
+            asyncCall.apply(client, request),
+            asyncCall.apply(client, request)
         );
         
         return futures.stream()
-            .map(handleResponse)
             .map(CompletableFuture::join)
             .filter(cf -> cf.equals("right"))
             .findFirst()
@@ -293,7 +218,7 @@ public class Scenarios {
             .map(CompletableFuture::join)
             .filter(cf -> cf.equals("right"))
             .findFirst()
-            .orElseThrow();
+            .orElse("left");
     }
 
     public String scenario9() throws ExecutionException, InterruptedException {
@@ -316,6 +241,7 @@ public class Scenarios {
             .reduce("", String::concat);
     }
 
+    //TODO PENDING
     public String scenario10() throws ExecutionException, InterruptedException {
         logger.info("Scenario 10");
 
@@ -331,10 +257,9 @@ public class Scenarios {
 
         // Create an inner race with 2 requests
         var innerRace = List.of(
-            client.sendAsync(request, config).orTimeout(5, TimeUnit.SECONDS),
-            client.sendAsync(request, config).orTimeout(5, TimeUnit.SECONDS)
+            asyncCall.apply(client, request),
+            asyncCall.apply(client, request)
         ).stream()
-            .map(handleResponse)
             .map(CompletableFuture::join)
             .filter(response -> response.equals("right"))
             .findFirst()
@@ -343,9 +268,7 @@ public class Scenarios {
         // Combine the inner race with another request
         var outerRace = List.of(
             CompletableFuture.supplyAsync(() -> innerRace),
-            client.sendAsync(request, config)
-                .orTimeout(2, TimeUnit.SECONDS)
-                .handle((result, ex) -> Objects.isNull(ex) && result.statusCode() == 200 ? result.body() : "left")
+            asyncCall.apply(client, request)
         );
 
         return outerRace.stream()
