@@ -114,7 +114,14 @@ public class Scenarios {
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
         return IntStream.rangeClosed(1, 10_000).boxed()
-            .gather(Gatherers.mapConcurrent(10_000, _ -> asyncCall.apply(client, request).join()))
+            .gather(Gatherers.mapConcurrent(10_000, _ -> {
+                try {
+                    return client.send(request, config);
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }))
+            .map(HttpResponse::body)
             .filter(cf -> cf.equals("right"))
             .findFirst()
             .orElse("left");
