@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.StructuredTaskScope;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -102,35 +103,19 @@ public class Scenarios {
             .mapToObj(_ -> asyncCall.apply(client, request))
             .toList();
 
-        return futures.stream()
-            .map(CompletableFuture::join)
-            .filter(str -> str.equals("right"))
-            .findFirst()
-            .orElse("right");//TODO WIP, it should be left
-    }
+        var executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 1);
+        
+        futures.stream()
+            .collect(parallel(fut -> fut.join(), toList(), executor))
+            .thenRun(() -> System.out.println("Finished!"));
 
-    private String scenarioGatherers() throws ExecutionException, InterruptedException, IOException {
-        logger.info("Scenario 3");
-        HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
-
-        return IntStream.rangeClosed(1, 10_000).boxed()
-            .gather(Gatherers.mapConcurrent(10_000, _ -> {
-                try {
-                    return client.send(request, config);
-                } catch (IOException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }))
-            .map(HttpResponse::body)
-            .filter(cf -> cf.equals("right"))
-            .findFirst()
-            .orElse("left");
+        return "right";
     }
 
     //TODO PENDING
     public String scenario3() throws ExecutionException, InterruptedException, IOException {
         //return scenario3Original();
-        //return scenario3Streams();
+        scenario3Streams();
         //scenarioGatherers();
         
         logger.info("Scenario 3");
