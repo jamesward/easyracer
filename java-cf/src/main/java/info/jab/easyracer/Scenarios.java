@@ -125,14 +125,14 @@ public class Scenarios {
         logger.info("Scenario 7");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/7")).build();
 
-        var future1 = client.sendAsync(request, config);
-        var future2 = CompletableFuture.supplyAsync(
+        var promise1 = client.sendAsync(request, config);
+        var promise2 = CompletableFuture.supplyAsync(
                 () -> client.sendAsync(request, config).join(), 
                 CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS));
         
         return CompletableFuture.anyOf(
-            future1.thenApply(HttpResponse::body), 
-            future2.thenApply(HttpResponse::body))
+            promise1.thenApply(HttpResponse::body), 
+            promise2.thenApply(HttpResponse::body))
         .thenApply(response -> (String) response)
         .join();
     }
@@ -173,13 +173,13 @@ public class Scenarios {
 
         record TimedResponse(Instant instant, HttpResponse<String> response) {}
         
-        var futures = IntStream.range(0, 10)
+        var promises = IntStream.rangeClosed(1, 10)
             .mapToObj(_ -> client.sendAsync(request, config).thenApply(response -> new TimedResponse(Instant.now(), response)))
             .toList();
         
         Comparator<TimedResponse> timeComparator = Comparator.comparing(TimedResponse::instant);
 
-        return futures.stream()
+        return promises.stream()
             .map(CompletableFuture::join)
             .filter(r -> r.response.statusCode() == 200)
             .sorted(timeComparator)
