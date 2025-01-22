@@ -273,41 +273,23 @@ public class Scenarios {
             Function<String, HttpRequest> closeRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?close=" + resourceId)).build();
 
             return client.sendAsync(openRequest, config)
-            .thenApply(HttpResponse::body)
-            .thenCompose(resourceId -> {
-                logger.info("id: " + resourceId);
-                return client.sendAsync(useRequest.apply(resourceId), config)
-                    .handle((response, ex) -> {
-                        if (!Objects.isNull(ex)) {
-                            logger.warn("Error occurred: " + ex.getLocalizedMessage());
-                            return new ResourceResult(resourceId, "leff");
-                        }
-                        if (response.statusCode() == 200) {
-                            return new ResourceResult(resourceId, response.body());
-                        }
-                        return new ResourceResult(resourceId, "leff");
-                    });
-            })
-            .thenCompose(resourceResult -> {
-                return client.sendAsync(closeRequest.apply(resourceResult.resourceId()), config)
-                    .handle((response, ex) -> {
-                        if (!Objects.isNull(ex)) {
-                            logger.warn("Error occurred: " + ex.getLocalizedMessage());
-                            return "leff";
-                        }
-                        if (response.statusCode() == 200) {
-                            logger.info("closed");
-                            return "right";
-                        }
-                        return "leff";
-                    });
-            });
+                .thenApply(HttpResponse::body)
+                .thenCompose(resourceId -> {
+                    logger.info("id: " + resourceId);
+                    return client.sendAsync(useRequest.apply(resourceId), config)
+                        .thenApply(response -> new ResourceResult(resourceId, response.body()));
+                })
+                .thenCompose(resourceResult -> {
+                    logger.info("closed");
+                    return client.sendAsync(closeRequest.apply(resourceResult.resourceId()), config)
+                        .thenApply(_ -> "right");
+                });
         };
         
         var future = resourceFlow.get();
-        var future3 = resourceFlow.get();
+        var future2 = resourceFlow.get();
 
-        return List.of(future, future3).stream()
+        return List.of(future, future2).stream()
             .map(CompletableFuture::join)
             .filter(cf -> cf.equals("right"))
             .findFirst()
