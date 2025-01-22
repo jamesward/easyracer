@@ -13,8 +13,6 @@ import java.util.concurrent.ExecutionException;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.Comparator;
 import java.util.stream.Gatherers;
@@ -22,6 +20,10 @@ import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vavr.Function1;
+import io.vavr.Function2;
+import io.vavr.Function3;
 
 public class Scenarios {
 
@@ -36,7 +38,7 @@ public class Scenarios {
         this.client = HttpClient.newHttpClient();
     }
 
-    private BiFunction<HttpClient, HttpRequest, CompletableFuture<String>> asyncCall = (client, request) -> {
+    private Function2<HttpClient, HttpRequest, CompletableFuture<String>> asyncCall = (client, request) -> {
         return client.sendAsync(request, config)
             .orTimeout(5, TimeUnit.SECONDS)
             .handle((result, ex) -> {
@@ -51,36 +53,32 @@ public class Scenarios {
             });
     };
 
+    private Function3<Integer, HttpClient, HttpRequest, List<CompletableFuture<String>>> getPromises = (n, client, request) -> {
+        return IntStream.rangeClosed(0, n)
+            .mapToObj(_ -> asyncCall.apply(client, request))
+            .toList();
+    };
+
+    private Function1<List<CompletableFuture<String>>, String> process = (futures) -> {
+        return futures.stream()
+            .map(CompletableFuture::join)
+            .filter(str -> str.equals("right"))
+            .findFirst()
+            .orElse("left");
+    };
+    
     public String scenario1() throws ExecutionException, InterruptedException {
         logger.info("Scenario 1");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/1")).build();
 
-        var futures = List.of(
-            asyncCall.apply(client, request),
-            asyncCall.apply(client, request)
-        );
-
-        return futures.stream()
-            .map(CompletableFuture::join)
-            .filter(cf -> cf.equals("right"))
-            .findFirst()
-            .orElse("left");
+        return getPromises.andThen(process).apply(2, client, request);
     }
 
     public String scenario2() throws ExecutionException, InterruptedException {
         logger.info("Scenario 2");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/2")).build();
 
-        var futures = List.of(
-            asyncCall.apply(client, request),
-            asyncCall.apply(client, request)
-        );
-        
-        return futures.stream()
-            .map(CompletableFuture::join)
-            .filter(cf -> cf.equals("right"))
-            .findFirst()
-            .orElse("left");
+        return getPromises.andThen(process).apply(2, client, request);
     }
 
     private String scenario3Original() throws ExecutionException, InterruptedException, IOException {
@@ -106,7 +104,7 @@ public class Scenarios {
 
         return futures.stream()
             .map(CompletableFuture::join)
-            .filter(cf -> cf.equals("right"))
+            .filter(str -> str.equals("right"))
             .findFirst()
             .orElse("right");//TODO WIP, it should be left
     }
@@ -142,33 +140,14 @@ public class Scenarios {
         logger.info("Scenario 5");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/5")).build();
 
-        var futures = List.of(
-            asyncCall.apply(client, request),
-            asyncCall.apply(client, request)
-        );
-        
-        return futures.stream()
-            .map(CompletableFuture::join)
-            .filter(cf -> cf.equals("right"))
-            .findFirst()
-            .orElse("left");
+        return getPromises.andThen(process).apply(2, client, request);
     }
 
     public String scenario6() throws ExecutionException, InterruptedException {
         logger.info("Scenario 6");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/6")).build();
 
-        var futures = List.of(
-            asyncCall.apply(client, request),
-            asyncCall.apply(client, request),
-            asyncCall.apply(client, request)
-        );
-        
-        return futures.stream()
-            .map(CompletableFuture::join)
-            .filter(cf -> cf.equals("right"))
-            .findFirst()
-            .orElse("left");
+        return getPromises.andThen(process).apply(3, client, request);
     }
 
     public String scenario7() throws ExecutionException, InterruptedException {
@@ -194,31 +173,27 @@ public class Scenarios {
             record ResourceResult(String resourceId, String result) {}
 
             HttpRequest openRequest = HttpRequest.newBuilder(url.resolve("/8?open")).build();
-            Function<String, HttpRequest> useRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?use=" + resourceId)).build();
-            Function<String, HttpRequest> closeRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?close=" + resourceId)).build();
+            Function1<String, HttpRequest> useRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?use=" + resourceId)).build();
+            Function1<String, HttpRequest> closeRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?close=" + resourceId)).build();
 
-            return client.sendAsync(openRequest, config)
-                .thenApply(HttpResponse::body)
+            return asyncCall.apply(client, openRequest)
                 .thenCompose(resourceId -> {
                     logger.info("id: " + resourceId);
-                    return client.sendAsync(useRequest.apply(resourceId), config)
-                        .thenApply(response -> new ResourceResult(resourceId, response.body()));
+                    return asyncCall.apply(client, useRequest.apply(resourceId))
+                        .thenApply(response -> new ResourceResult(resourceId, response));
                 })
                 .thenCompose(resourceResult -> {
                     logger.info("closed");
-                    return client.sendAsync(closeRequest.apply(resourceResult.resourceId()), config)
-                        .thenApply(_ -> "right");
+                    return asyncCall.apply(client, closeRequest.apply(resourceResult.resourceId())).thenApply(_ -> "right");
                 });
         };
         
-        var future = resourceFlow.get();
-        var future2 = resourceFlow.get();
+        var promises = List.of(
+            resourceFlow.get(),
+            resourceFlow.get()
+        );
 
-        return List.of(future, future2).stream()
-            .map(CompletableFuture::join)
-            .filter(cf -> cf.equals("right"))
-            .findFirst()
-            .orElse("left");
+        return process.apply(promises);
     }
 
     public String scenario9() throws ExecutionException, InterruptedException {
@@ -256,14 +231,7 @@ public class Scenarios {
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/11")).build();
 
         // Create an inner race with 2 requests
-        var innerRace = List.of(
-            asyncCall.apply(client, request),
-            asyncCall.apply(client, request)
-        ).stream()
-            .map(CompletableFuture::join)
-            .filter(response -> response.equals("right"))
-            .findFirst()
-            .orElse("left");
+        var innerRace = getPromises.andThen(process).apply(2, client, request);
 
         // Combine the inner race with another request
         var outerRace = List.of(
@@ -271,11 +239,7 @@ public class Scenarios {
             asyncCall.apply(client, request)
         );
 
-        return outerRace.stream()
-            .map(CompletableFuture::join)
-            .filter(response -> response.equals("right"))
-            .findFirst()
-            .orElseThrow();
+        return process.apply(outerRace);
     }
 
     List<String> results() throws ExecutionException, InterruptedException, IOException {
