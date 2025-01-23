@@ -23,8 +23,6 @@ import io.vavr.Function1;
 import io.vavr.Function2;
 import io.vavr.Function3;
 
-import io.vavr.control.Either;
-
 public class Scenarios {
 
     private static final Logger logger = LoggerFactory.getLogger(Scenarios.class);
@@ -61,41 +59,32 @@ public class Scenarios {
         public static Values fromString(String value) {
             return value.equals(RIGHT.get()) ? RIGHT : LEFT;
         }
-
-        public static Either<Values,Values> fromStringEither(String value) {
-            return value.equals(RIGHT.get()) ? EitherRight : EitherLeft;
-        }
-
-        public static final Either EitherLeft = Either.left(LEFT);
-        public static final Either EitherRight = Either.right(RIGHT);
     }
 
-    private Function2<HttpClient, HttpRequest, CompletableFuture<Either<Values, Values>>> asyncCall = (client, request) -> {
+    private Function2<HttpClient, HttpRequest, CompletableFuture<Values>> asyncCall = (client, request) -> {
         return client.sendAsync(request, config)
             .orTimeout(5, TimeUnit.SECONDS)
             .handle((result, ex) -> {
                 if (!Objects.isNull(ex)) {
                     logger.warn("Error occurred: " + ex.getLocalizedMessage());
-                    return Values.EitherLeft;
+                    return Values.LEFT;
                 }
                 if (result.statusCode() == 200) {
-                    return Values.fromStringEither(result.body());
+                    return Values.fromString(result.body());
                 }
-                return Values.EitherLeft;
+                return Values.LEFT;
             });
     };
 
-    private Function3<Integer, HttpClient, HttpRequest, List<CompletableFuture<Either<Values, Values>>>> getPromises = (n, client, request) -> {
+    private Function3<Integer, HttpClient, HttpRequest, List<CompletableFuture<Values>>> getPromises = (n, client, request) -> {
         return IntStream.rangeClosed(1, n)
             .mapToObj(_ -> asyncCall.apply(client, request))
             .toList();
     };
     
-    private Function1<List<CompletableFuture<Either<Values, Values>>>, Values> process = (futures) -> {
+    private Function1<List<CompletableFuture<Values>>, Values> process = (futures) -> {
         return futures.stream()
             .map(CompletableFuture::join)
-            .filter(Either::isRight)
-            .map(Either::get)
             .filter(Values::compareRight)
             .findFirst()
             .orElse(Values.LEFT);
