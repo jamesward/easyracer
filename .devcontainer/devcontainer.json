@@ -1,0 +1,54 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/java
+{
+    "name": "Java",
+    // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+    //https://mcr.microsoft.com/v2/vscode/devcontainers/java/tags/list
+    //"image": "mcr.microsoft.com/devcontainers/java:21",
+    "dockerFile": "Dockerfile",
+    "build": {
+      "args": {
+        "NODE_VERSION": "22.11.0"
+      }
+    },
+    "hostRequirements": {
+      "cpus": 2
+    },
+    "features": {
+      "ghcr.io/devcontainers/features/java:1": {
+        "version": "none",
+        "installMaven": "true",
+        "installGradle": "true"
+      },
+      "ghcr.io/devcontainers/features/sshd:1": {
+        "version": "latest"
+      },
+      "ghcr.io/devcontainers/features/docker-in-docker:2": {
+        "version": "latest",
+        "dockerDashComposeVersion": "v2"
+      }
+    },
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "vscjava.vscode-java-pack",
+          "vscjava.vscode-java-debug",
+          "vscjava.vscode-maven",
+          "vscjava.vscode-gradle",
+          "vscjava.vscode-java-dependency",
+          "vscjava.vscode-java-test",
+          "vscjava.vscode-spring-boot-dashboard",
+          "vscjava.vscode-spring-initializr",
+          "redhat.java",
+          "vmware.vscode-boot-dev-pack",
+          "vmware.vscode-spring-boot",
+          "ms-azuretools.vscode-docker",
+          "redhat.vscode-xml",
+          "redhat.vscode-yaml",
+          "editorconfig.editorconfig",
+          "github.copilot",
+          "github.copilot-chat"
+        ]
+      }
+    }
+  }

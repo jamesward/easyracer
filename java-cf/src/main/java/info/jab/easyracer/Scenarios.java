@@ -83,26 +83,13 @@ public class Scenarios {
         return getPromises.andThen(process).apply(2, client, request);
     }
 
-    //WIP
     public String scenario3() throws ExecutionException, InterruptedException, IOException {
         logger.info("Scenario 3");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
-        System.setProperty("http.keepAlive", "true");
-        System.setProperty("http.maxConnections", "11000");
-
-        try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
-            IntStream.rangeClosed(1, 10_000)
-                    .forEach(i -> {                            
-                        scope.fork(() -> {
-                            Thread taskThread = Thread.currentThread();
-                            logger.info("{} {}", i, taskThread.toString());
-                            return client.send(request, config);
-                        });
-                    });
-            scope.join();
-            return scope.result().body();
-        }
+        //OSX issue detected when you open 10k http connections
+        //https://www.tianxiangxiong.com/2024/07/08/virtual-threads.html 
+        return getPromises.andThen(process).apply(10_000, client, request);
     }
 
     //TODO PENDING
