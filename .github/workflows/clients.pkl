@@ -43,7 +43,7 @@ clients = new Mapping<String, Run> {
   }
 
   ["java-cf"] = new {
-    steps = GitHubAction.Java.mavenTestSteps(null, "java-cf", null, null)
+    steps = GitHubAction.Java.mavenTestSteps("--batch-mode --no-transfer-progress verify", "java-cf", "graalvm", "23")
   }
 
   ["java-loom"] = new {
