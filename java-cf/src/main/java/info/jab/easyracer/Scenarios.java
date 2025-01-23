@@ -25,7 +25,7 @@ import io.vavr.Function1;
 import io.vavr.Function2;
 import io.vavr.Function3;
 
-public class Scenarios {
+public class Scenarios implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(Scenarios.class);
 
@@ -246,5 +246,19 @@ public class Scenarios {
 
     List<Values> results() throws ExecutionException, InterruptedException, IOException {
         return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
+    }
+
+    @Override
+    public void close() {
+        executorService.shutdown();
+        client.close();
+        try {
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 }
