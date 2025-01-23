@@ -38,6 +38,9 @@ public class Scenarios {
             .build();
     }
 
+    /**
+     * Enum to represent the possible values of the scenarios
+     */
     public enum Values {
         LEFT("left"),
         RIGHT("right");
@@ -54,6 +57,10 @@ public class Scenarios {
 
         public static boolean compareRight(Values value) {
             return value == RIGHT;
+        }
+
+        public static Values fromHttpResponse(HttpResponse response) {
+            return fromString(response.body().toString());
         }
 
         public static Values fromString(String value) {
@@ -140,22 +147,16 @@ public class Scenarios {
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/7")).build();
 
         var promise1 = client.sendAsync(request, config)
-            .thenApply(HttpResponse::body)
-            .thenApply(Values::fromString);
+            .thenApply(Values::fromHttpResponse);
         var promise2 = CompletableFuture.supplyAsync(
                 () -> client.sendAsync(request, config)
-                    .thenApply(HttpResponse::body)
-                    .thenApply(Values::fromString)
+                    .thenApply(Values::fromHttpResponse)
                     .join(), 
                 CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS));
         
         var promises = List.of(promise1,promise2);
 
-        return promises.stream()
-            .map(CompletableFuture::join)
-            .filter(Values::compareRight)
-            .findFirst()
-            .orElse(Values.LEFT);
+        return process.apply(promises);
     }
 
     public Values scenario8() throws ExecutionException, InterruptedException {
@@ -186,11 +187,7 @@ public class Scenarios {
             resourceFlow.get()
         );
 
-        return promises.stream()
-            .map(CompletableFuture::join)
-            .filter(Values::compareRight)
-            .findFirst()
-            .orElse(Values.LEFT);
+        return process.apply(promises);
     }
 
     public Values scenario9() throws ExecutionException, InterruptedException {
@@ -235,16 +232,10 @@ public class Scenarios {
         // Combine the inner race with another request
         var outerRace = List.of(
             CompletableFuture.supplyAsync(() -> innerRace),
-            client.sendAsync(request, config)
-                .thenApply(HttpResponse::body)
-                .thenApply(Values::fromString)
+            client.sendAsync(request, config).thenApply(Values::fromHttpResponse)
         );
 
-        return outerRace.stream()
-            .map(CompletableFuture::join)
-            .filter(Values::compareRight)
-            .findFirst()
-            .orElse(Values.LEFT);
+        return process.apply(outerRace);
     }
 
     List<Values> results() throws ExecutionException, InterruptedException, IOException {
