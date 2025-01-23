@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -31,9 +33,13 @@ public class Scenarios {
     private final HttpClient client;
     private final HttpResponse.BodyHandler<String> config = HttpResponse.BodyHandlers.ofString();
 
+    private final ExecutorService executorService = 
+        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() -1);
+
     public Scenarios(URI url) {
         this.url = url;
         this.client = HttpClient.newBuilder()
+            .executor(executorService)
             .version(HttpClient.Version.HTTP_2)
             .build();
     }
