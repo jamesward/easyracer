@@ -129,6 +129,9 @@
           <compilerArgument>-Xlint:all</compilerArgument><!-- -Werror -->
           <compilerArgument>--enable-preview</compilerArgument>
           <release>${java.version}</release>
+            <source>23</source>
+            <target>23</target>
+            <compilerArgs>--enable-preview</compilerArgs>
         </configuration>
       </plugin>
 

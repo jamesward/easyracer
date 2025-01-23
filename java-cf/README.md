@@ -7,7 +7,10 @@ Java + CompletableFuture
 ./mvnw clean verify
 ./mvnw dependency:tree
 
-kill -9 $(lsof -ti:55073)
+sysctl kern.maxfiles 
+sysctl kern.maxfilesperproc
+ulimit
+lsof -t -i:55023 | xargs kill
 
 ./mvnw versions:display-dependency-updates
 ./mvnw versions:display-plugin-updates

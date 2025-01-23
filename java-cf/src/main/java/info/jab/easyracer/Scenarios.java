@@ -35,7 +35,9 @@ public class Scenarios {
 
     public Scenarios(URI url) {
         this.url = url;
-        this.client = HttpClient.newHttpClient();
+        this.client = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_2)
+            .build();
     }
 
     private Function2<HttpClient, HttpRequest, CompletableFuture<String>> asyncCall = (client, request) -> {
@@ -86,20 +88,21 @@ public class Scenarios {
         logger.info("Scenario 3");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
-        /*
-        //The example to port
+        System.setProperty("http.keepAlive", "true");
+        System.setProperty("http.maxConnections", "11000");
+
         try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
             IntStream.rangeClosed(1, 10_000)
-                    .forEach(_ ->
-                            scope.fork(() ->
-                                    client.send(request, config)
-                            )
-                    );
+                    .forEach(i -> {                            
+                        scope.fork(() -> {
+                            Thread taskThread = Thread.currentThread();
+                            logger.info("{} {}", i, taskThread.toString());
+                            return client.send(request, config);
+                        });
+                    });
             scope.join();
             return scope.result().body();
         }
-        */
-        return "right";
     }
 
     //TODO PENDING
