@@ -29,6 +29,8 @@ public class Scenarios implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(Scenarios.class);
 
+    private static final int SHUTDOWN_TIMEOUT_SECONDS = 10;
+
     private final URI url;
     private final HttpClient client;
     private final HttpResponse.BodyHandler<String> config = HttpResponse.BodyHandlers.ofString();
@@ -250,15 +252,29 @@ public class Scenarios implements AutoCloseable {
 
     @Override
     public void close() {
+        
+        // First attempt a normal shutdown of the ExecutorService
         executorService.shutdown();
-        client.close();
         try {
-            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+            if (!executorService.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                logger.warn("Timeout reached, forcing tasks shutdown...");
                 executorService.shutdownNow();
+                
+                if (!executorService.awaitTermination(2, TimeUnit.SECONDS)) {
+                    logger.error("Could not terminate some tasks");
+                }
             }
         } catch (InterruptedException e) {
+            logger.error("Interrupted during ExecutorService shutdown", e);
             executorService.shutdownNow();
             Thread.currentThread().interrupt();
+        }
+
+        // Close HttpClient afterwards
+        try {
+            client.close();
+        } catch (Exception e) {
+            logger.error("Error closing HttpClient", e);
         }
     }
 }
