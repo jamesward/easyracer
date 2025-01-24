@@ -7,6 +7,11 @@ Java + CompletableFuture
 ./mvnw clean verify
 ./mvnw dependency:tree
 
+-Djdk.tracePinnedThreads=full
+-XX:+MaxFDLimit
+-XX:+UseG1GC 
+-Xms4G 
+-Xmx4G
 sysctl kern.maxfiles 
 sysctl kern.maxfilesperproc
 ulimit

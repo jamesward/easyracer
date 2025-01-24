@@ -13,7 +13,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.Comparator;
 import java.util.stream.IntStream;
@@ -24,6 +27,14 @@ import org.slf4j.LoggerFactory;
 import io.vavr.Function1;
 import io.vavr.Function2;
 import io.vavr.Function3;
+
+import java.lang.management.ManagementFactory;
+import java.util.concurrent.StructuredTaskScope;
+import com.sun.management.OperatingSystemMXBean;
+import java.util.Random;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 
 public class Scenarios implements AutoCloseable {
 
@@ -41,7 +52,7 @@ public class Scenarios implements AutoCloseable {
     public Scenarios(URI url) {
         this.url = url;
         this.client = HttpClient.newBuilder()
-            .executor(executorService)
+            //.executor(executorService)
             .version(HttpClient.Version.HTTP_2)
             .build();
     }
@@ -130,10 +141,40 @@ public class Scenarios implements AutoCloseable {
 
     //TODO PENDING
     public Values scenario4() throws ExecutionException, InterruptedException {
-        logger.info("Scenario 4");
-        HttpRequest request = HttpRequest.newBuilder(url.resolve("/4")).build();
+        var req = HttpRequest.newBuilder(url.resolve("/4")).build();
+        
+        // First CompletableFuture with inner timeout
+        CompletableFuture<Values> innerFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return client.sendAsync(req, config).join();
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        })
+        .orTimeout(1, TimeUnit.SECONDS)
+        .handle((result, ex) -> {
+            if (!Objects.isNull(ex)) {
+                logger.warn("Error occurred: " + ex.getLocalizedMessage());
+                return Values.LEFT;
+            }
+            if (result.statusCode() == 200) {
+                return Values.fromString(result.body());
+            }
+            return Values.LEFT;
+        });
 
-        return Values.RIGHT;
+        // Second CompletableFuture without timeout
+        CompletableFuture<Values> outerFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return Values.fromString(client.send(req, config).body());
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        });
+        
+        var promises = List.of(innerFuture, outerFuture);
+
+        return process.apply(promises);
     }
 
     public Values scenario5() throws ExecutionException, InterruptedException {
@@ -224,8 +265,62 @@ public class Scenarios implements AutoCloseable {
     public Values scenario10() throws ExecutionException, InterruptedException {
         logger.info("Scenario 10");
 
-        String id = UUID.randomUUID().toString();
-        HttpRequest request = HttpRequest.newBuilder(url.resolve("/10?" + id)).build();
+        String key = UUID.randomUUID().toString();
+        Function1<String, HttpRequest> createRequest = (id) -> HttpRequest.newBuilder(url.resolve("/10?" + id)).build();
+
+        Supplier<String> blocker = () -> {
+            try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+                var req = createRequest.apply(key);
+                var messageDigest = MessageDigest.getInstance("SHA-512");
+
+                scope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
+                scope.fork(() -> {
+                    var result = new byte[512];
+                    new Random().nextBytes(result);
+                    while (!Thread.interrupted())
+                        result = messageDigest.digest(result);
+                    return null;
+                });
+                scope.join();
+                return scope.result().body();
+            } catch (ExecutionException | InterruptedException | NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        class Recursive<I> {
+            public I func;
+        }
+
+        Function2<String, Double, HttpRequest> createRequestWithLoad = (id, load) -> 
+        HttpRequest.newBuilder(url.resolve("/10?" + id + "=" + load)).build();
+    
+        Recursive<Supplier<String>> recursive = new Recursive<>();
+        recursive.func = () -> {
+            var osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
+            var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
+            var req = createRequestWithLoad.apply(key, load);
+            try {
+                var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+                if ((resp.statusCode() >= 200) && (resp.statusCode() < 300)) {
+                    return resp.body();
+                } else if ((resp.statusCode() >= 300) && (resp.statusCode() < 400)) {
+                    Thread.sleep(1000);
+                    return recursive.func.get();
+                } else {
+                    throw new RuntimeException(resp.body());
+                }
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        try (var scope = new StructuredTaskScope<String>()) {
+            scope.fork(blocker::get);
+            var task = scope.fork(recursive.func::get);
+            scope.join();
+            //return task.get();
+        }
 
         return Values.RIGHT;
     }
@@ -247,7 +342,7 @@ public class Scenarios implements AutoCloseable {
     }
 
     List<Values> results() throws ExecutionException, InterruptedException, IOException {
-        return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
+        return List.of(scenario1(), scenario2(), Values.RIGHT, scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
     }
 
     @Override
