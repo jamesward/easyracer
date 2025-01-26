@@ -38,26 +38,19 @@ public class Scenarios implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(Scenarios.class);
 
-    private static final int SHUTDOWN_TIMEOUT_SECONDS = 10;
-
     private final URI url;
     private final HttpClient client;
     private final HttpResponse.BodyHandler<String> config = HttpResponse.BodyHandlers.ofString();
 
-    private final int cores = Runtime.getRuntime().availableProcessors();
-    //private final ExecutorService executorService = Executors.newFixedThreadPool(cores > 2 ? cores -1 : 1);
+    private final ExecutorService executorService = 
+        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() -1);
 
     public Scenarios(URI url) {
         this.url = url;
-
-        logger.info("Number of cores: {}", cores);
-        
-        /*
-        this.client = cores > 1 ? 
-            HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).executor(executorService).build() : 
-            HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
-        */
-        this.client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
+        this.client = HttpClient.newBuilder()
+            .executor(executorService)
+            .version(HttpClient.Version.HTTP_2)
+            .build();
     }
 
     /**
@@ -342,7 +335,7 @@ public class Scenarios implements AutoCloseable {
     }
 
     List<Values> results() throws ExecutionException, InterruptedException, IOException {
-        return List.of(scenario1(), scenario2(), Values.RIGHT, scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
+        return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
     }
 
     @Override
