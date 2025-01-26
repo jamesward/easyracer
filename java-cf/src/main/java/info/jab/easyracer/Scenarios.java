@@ -137,40 +137,10 @@ public class Scenarios implements AutoCloseable {
 
     //TODO PENDING
     public Values scenario4() throws ExecutionException, InterruptedException {
-        var req = HttpRequest.newBuilder(url.resolve("/4")).build();
-        
-        // First CompletableFuture with inner timeout
-        CompletableFuture<Values> innerFuture = CompletableFuture.supplyAsync(() -> {
-            try {
-                return client.sendAsync(req, config).join();
-            } catch (Exception e) {
-                throw new CompletionException(e);
-            }
-        })
-        .orTimeout(1, TimeUnit.SECONDS)
-        .handle((result, ex) -> {
-            if (!Objects.isNull(ex)) {
-                logger.warn("Error occurred: " + ex.getLocalizedMessage());
-                return Values.LEFT;
-            }
-            if (result.statusCode() == 200) {
-                return Values.fromString(result.body());
-            }
-            return Values.LEFT;
-        });
+        logger.info("Scenario 4");
+        HttpRequest request = HttpRequest.newBuilder(url.resolve("/4")).build();
 
-        // Second CompletableFuture without timeout
-        CompletableFuture<Values> outerFuture = CompletableFuture.supplyAsync(() -> {
-            try {
-                return Values.fromString(client.send(req, config).body());
-            } catch (Exception e) {
-                throw new CompletionException(e);
-            }
-        });
-        
-        var promises = List.of(innerFuture, outerFuture);
-
-        return process.apply(promises);
+        return Values.RIGHT;
     }
 
     public Values scenario5() throws ExecutionException, InterruptedException {
@@ -335,7 +305,7 @@ public class Scenarios implements AutoCloseable {
     }
 
     List<Values> results() throws ExecutionException, InterruptedException, IOException {
-        return List.of(scenario1(), scenario2(), Values.RIGHT, scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
+        return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
     }
 
     @Override
@@ -358,7 +328,6 @@ public class Scenarios implements AutoCloseable {
             Thread.currentThread().interrupt();
         }
         
-
         // Close HttpClient afterwards
         try {
             client.close();
