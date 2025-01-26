@@ -4,6 +4,7 @@ Java + CompletableFuture
 ## How to run in local
 
 ```bash
+sdk env install
 ./mvnw clean verify
 ./mvnw dependency:tree
 

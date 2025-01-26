@@ -14,9 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.Comparator;
 import java.util.stream.IntStream;
@@ -46,15 +44,20 @@ public class Scenarios implements AutoCloseable {
     private final HttpClient client;
     private final HttpResponse.BodyHandler<String> config = HttpResponse.BodyHandlers.ofString();
 
-    private final ExecutorService executorService = 
-        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() -1);
+    private final int cores = Runtime.getRuntime().availableProcessors();
+    //private final ExecutorService executorService = Executors.newFixedThreadPool(cores > 2 ? cores -1 : 1);
 
     public Scenarios(URI url) {
         this.url = url;
-        this.client = HttpClient.newBuilder()
-            //.executor(executorService)
-            //.version(HttpClient.Version.HTTP_2)
-            .build();
+
+        logger.info("Number of cores: {}", cores);
+        
+        /*
+        this.client = cores > 1 ? 
+            HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).executor(executorService).build() : 
+            HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
+        */
+        this.client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
     }
 
     /**
@@ -195,12 +198,9 @@ public class Scenarios implements AutoCloseable {
         logger.info("Scenario 7");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/7")).build();
 
-        var promise1 = client.sendAsync(request, config)
-            .thenApply(Values::fromHttpResponse);
+        var promise1 = client.sendAsync(request, config).thenApply(Values::fromHttpResponse);
         var promise2 = CompletableFuture.supplyAsync(
-                () -> client.sendAsync(request, config)
-                    .thenApply(Values::fromHttpResponse)
-                    .join(), 
+                () -> client.sendAsync(request, config).thenApply(Values::fromHttpResponse).join(), 
                 CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS));
         
         var promises = List.of(promise1,promise2);
@@ -348,6 +348,7 @@ public class Scenarios implements AutoCloseable {
     @Override
     public void close() {
         
+        /*
         // First attempt a normal shutdown of the ExecutorService
         executorService.shutdown();
         try {
@@ -364,6 +365,7 @@ public class Scenarios implements AutoCloseable {
             executorService.shutdownNow();
             Thread.currentThread().interrupt();
         }
+        */
 
         // Close HttpClient afterwards
         try {
