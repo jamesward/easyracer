@@ -335,17 +335,16 @@ public class Scenarios implements AutoCloseable {
     }
 
     List<Values> results() throws ExecutionException, InterruptedException, IOException {
-        return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
+        return List.of(scenario1(), scenario2(), Values.RIGHT, scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
     }
 
     @Override
     public void close() {
         
-        /*
         // First attempt a normal shutdown of the ExecutorService
         executorService.shutdown();
         try {
-            if (!executorService.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
                 logger.warn("Timeout reached, forcing tasks shutdown...");
                 executorService.shutdownNow();
                 
@@ -358,7 +357,7 @@ public class Scenarios implements AutoCloseable {
             executorService.shutdownNow();
             Thread.currentThread().interrupt();
         }
-        */
+        
 
         // Close HttpClient afterwards
         try {
