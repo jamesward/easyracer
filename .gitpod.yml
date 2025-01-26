@@ -1,0 +1,19 @@
+image:
+  file: ./.devcontainer/Dockerfile
+tasks:
+  - before: sudo usermod -a -G sdkman gitpod && sudo usermod -a -G nvm gitpod && sudo chown -R gitpod /usr/local/sdkman /usr/local/share/nvm
+  - init: ./mvnw clean verify -DskipTests
+vscode:
+  extensions:
+  - vscjava.vscode-java-pack
+  - vscjava.vscode-java-debug
+  - vscjava.vscode-maven
+  - vscjava.vscode-java-dependency
+  - vscjava.vscode-java-test
+  - vscjava.vscode-spring-boot-dashboard
+  - vscjava.vscode-spring-initializr
+  - redhat.java
+  - vmware.vscode-spring-boot
+  - ms-azuretools.vscode-docker
+  - redhat.vscode-xml
+  - editorconfig.editorconfig
