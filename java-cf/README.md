@@ -7,18 +7,17 @@ Java + CompletableFuture
 ./mvnw clean verify
 ./mvnw dependency:tree
 
--Djdk.tracePinnedThreads=full
--XX:+MaxFDLimit
--XX:+UseG1GC 
--Xms4G 
--Xmx4G
+./mvnw versions:display-dependency-updates
+./mvnw versions:display-plugin-updates
+```
+
+## Work in progress
+
+```
 sysctl kern.maxfiles 
 sysctl kern.maxfilesperproc
 ulimit
 lsof -t -i:55023 | xargs kill
-
-./mvnw versions:display-dependency-updates
-./mvnw versions:display-plugin-updates
 ```
 
 ## Interesting links

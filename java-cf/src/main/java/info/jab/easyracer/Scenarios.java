@@ -53,7 +53,7 @@ public class Scenarios implements AutoCloseable {
         this.url = url;
         this.client = HttpClient.newBuilder()
             //.executor(executorService)
-            .version(HttpClient.Version.HTTP_2)
+            //.version(HttpClient.Version.HTTP_2)
             .build();
     }
 
