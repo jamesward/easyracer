@@ -27,6 +27,8 @@ public class ScenariosTest {
             //Then
             assertThat(results).allMatch(result -> result == Scenarios.Values.RIGHT);
             assertThat(results).hasSize(11);
+
+            scenarios.close();
         }
     }
 
