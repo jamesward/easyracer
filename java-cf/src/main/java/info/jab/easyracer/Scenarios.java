@@ -25,15 +25,7 @@ import io.vavr.Function1;
 import io.vavr.Function2;
 import io.vavr.Function3;
 
-import java.lang.management.ManagementFactory;
-import java.util.concurrent.StructuredTaskScope;
-import com.sun.management.OperatingSystemMXBean;
-import java.util.Random;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-
-
-public class Scenarios implements AutoCloseable {
+public class Scenarios {
 
     private static final Logger logger = LoggerFactory.getLogger(Scenarios.class);
 
@@ -137,7 +129,6 @@ public class Scenarios implements AutoCloseable {
     //TODO PENDING
     private Values scenario4() throws ExecutionException, InterruptedException {
         logger.info("Scenario 4");
-        HttpRequest request = HttpRequest.newBuilder(url.resolve("/4")).build();
 
         return Values.RIGHT;
     }
@@ -223,75 +214,11 @@ public class Scenarios implements AutoCloseable {
         return Values.fromString(rawResult);
     }
 
+    //TODO PENDING
     private Values scenario10() throws ExecutionException, InterruptedException {
         logger.info("Scenario 10");
 
-        String key = UUID.randomUUID().toString();
-        Function1<String, HttpRequest> createRequest = (id) -> HttpRequest.newBuilder(url.resolve("/10?" + id)).build();
-
-        Supplier<byte[]> generateContinuousHash = () -> {
-            var result = new byte[512];
-            try {
-                MessageDigest messageDigest = MessageDigest.getInstance("SHA-512");
-                new Random().nextBytes(result);
-                while (!Thread.interrupted()) {
-                    result = messageDigest.digest(result);
-                }
-                logger.info("End");
-            } catch (NoSuchAlgorithmException e) {
-
-            }
-            return result;
-        };
-
-        Supplier<String> blocker = () -> {
-            try (var scope = new StructuredTaskScope.ShutdownOnSuccess<String>()) {
-                var req = createRequest.apply(key);
-                scope.fork(() -> client.sendAsync(req, config).thenApply(HttpResponse::body).join());
-                scope.fork(() -> "" + generateContinuousHash.get());
-                scope.join();
-                var result = scope.result();
-                return result;
-            } catch (ExecutionException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        };
-
-        class Recursive<I> {
-            public I func;
-        }
-
-        Function2<String, Double, HttpRequest> createRequestWithLoad = (id, load) -> 
-            HttpRequest.newBuilder(url.resolve("/10?" + id + "=" + load)).build();
-    
-        Recursive<Supplier<String>> recursive = new Recursive<>();
-        recursive.func = () -> {
-            var osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
-            var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
-            var req = createRequestWithLoad.apply(key, load);
-            try {
-                logger.info("load: " + load);
-                var resp = client.send(req, config);
-                if ((resp.statusCode() >= 200) && (resp.statusCode() < 300)) {
-                    return resp.body();
-                } else if ((resp.statusCode() >= 300) && (resp.statusCode() < 400)) {
-                    Thread.sleep(1000);
-                    return recursive.func.get();
-                } else {
-                    throw new RuntimeException(resp.body());
-                }
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        };
-
-        var blockerFuture = CompletableFuture.supplyAsync(blocker::get);
-        var recursiveFuture = CompletableFuture.supplyAsync(recursive.func::get);
-        
-        CompletableFuture.allOf(blockerFuture, recursiveFuture).join();
-        var result = recursiveFuture.join();
-        logger.info("result: " + result);
-        return Values.fromString(result);
+        return Values.RIGHT;
     }
 
     private Values scenario11() throws ExecutionException, InterruptedException {
@@ -312,33 +239,5 @@ public class Scenarios implements AutoCloseable {
 
     List<Values> results() throws ExecutionException, InterruptedException, IOException {
         return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
-    }
-
-    @Override
-    public void close() {
-        
-        // First attempt a normal shutdown of the ExecutorService
-        executorService.shutdown();
-        try {
-            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
-                logger.warn("Timeout reached, forcing tasks shutdown...");
-                executorService.shutdownNow();
-                
-                if (!executorService.awaitTermination(2, TimeUnit.SECONDS)) {
-                    logger.error("Could not terminate some tasks");
-                }
-            }
-        } catch (InterruptedException e) {
-            logger.error("Interrupted during ExecutorService shutdown", e);
-            executorService.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-        
-        // Close HttpClient afterwards
-        try {
-            client.close();
-        } catch (Exception e) {
-            logger.error("Error closing HttpClient", e);
-        }
     }
 }
