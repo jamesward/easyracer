@@ -1,6 +1,5 @@
 package info.jab.easyracer;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -8,11 +7,9 @@ import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.Comparator;
@@ -33,7 +30,7 @@ public class Scenarios {
     private final HttpClient client;
     private final HttpResponse.BodyHandler<String> config = HttpResponse.BodyHandlers.ofString();
 
-    private final ExecutorService executorService = 
+    private final ExecutorService executorService =
         Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() -1);
 
     public Scenarios(URI url) {
@@ -50,13 +47,13 @@ public class Scenarios {
     enum Values {
         LEFT("left"),
         RIGHT("right");
-    
+
         private final String value;
-    
+
         Values(String value) {
             this.value = value;
         }
-    
+
         public String get() {
             return value;
         }
@@ -74,8 +71,9 @@ public class Scenarios {
         }
     }
 
-    private Function2<HttpClient, HttpRequest, CompletableFuture<Values>> asyncCall = (client, request) -> {
-        return client.sendAsync(request, config)
+    final private Function2<HttpClient, HttpRequest, CompletableFuture<Values>> asyncCall =
+        (client, request) ->
+            client.sendAsync(request, config)
             .orTimeout(5, TimeUnit.SECONDS)
             .handle((result, ex) -> {
                 if (!Objects.isNull(ex)) {
@@ -87,81 +85,78 @@ public class Scenarios {
                 }
                 return Values.LEFT;
             });
-    };
 
-    private Function3<Integer, HttpClient, HttpRequest, List<CompletableFuture<Values>>> getPromises = (n, client, request) -> {
-        return IntStream.rangeClosed(1, n)
+    private final Function3<Integer, HttpClient, HttpRequest, List<CompletableFuture<Values>>> getPromises =
+        (n, client, request) -> IntStream.rangeClosed(1, n)
             .mapToObj(_ -> asyncCall.apply(client, request))
             .toList();
-    };
-    
-    private Function1<List<CompletableFuture<Values>>, Values> process = (futures) -> {
-        return futures.stream()
+
+    private final Function1<List<CompletableFuture<Values>>, Values> process =
+        (futures) -> futures.stream()
             .map(CompletableFuture::join)
             .filter(Values::compareRight)
             .findFirst()
             .orElse(Values.LEFT);
-    };
 
-    private Values scenario1() throws ExecutionException, InterruptedException {
+    private Values scenario1() {
         logger.info("Scenario 1");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/1")).build();
 
         return getPromises.andThen(process).apply(2, client, request);
     }
 
-    private Values scenario2() throws ExecutionException, InterruptedException {
+    private Values scenario2() {
         logger.info("Scenario 2");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/2")).build();
 
         return getPromises.andThen(process).apply(2, client, request);
     }
 
-    private Values scenario3() throws ExecutionException, InterruptedException, IOException {
+    private Values scenario3() {
         logger.info("Scenario 3");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
         //OSX issue detected when you open 10k http connections
-        //https://www.tianxiangxiong.com/2024/07/08/virtual-threads.html 
+        //https://www.tianxiangxiong.com/2024/07/08/virtual-threads.html
         return getPromises.andThen(process).apply(10_000, client, request);
     }
 
     //TODO PENDING
-    private Values scenario4() throws ExecutionException, InterruptedException {
+    private Values scenario4() {
         logger.info("Scenario 4");
 
         return Values.RIGHT;
     }
 
-    private Values scenario5() throws ExecutionException, InterruptedException {
+    private Values scenario5() {
         logger.info("Scenario 5");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/5")).build();
 
         return getPromises.andThen(process).apply(2, client, request);
     }
 
-    private Values scenario6() throws ExecutionException, InterruptedException {
+    private Values scenario6() {
         logger.info("Scenario 6");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/6")).build();
 
         return getPromises.andThen(process).apply(3, client, request);
     }
 
-    private Values scenario7() throws ExecutionException, InterruptedException {
+    private Values scenario7() {
         logger.info("Scenario 7");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/7")).build();
 
         var promise1 = client.sendAsync(request, config).thenApply(Values::fromHttpResponse);
         var promise2 = CompletableFuture.supplyAsync(
-                () -> client.sendAsync(request, config).thenApply(Values::fromHttpResponse).join(), 
+                () -> client.sendAsync(request, config).thenApply(Values::fromHttpResponse).join(),
                 CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS));
-        
+
         var promises = List.of(promise1,promise2);
 
         return process.apply(promises);
     }
 
-    private Values scenario8() throws ExecutionException, InterruptedException {
+    private Values scenario8() {
         logger.info("Scenario 8");
 
         Supplier<CompletableFuture<Values>> resourceFlow = () -> {
@@ -173,7 +168,7 @@ public class Scenarios {
 
             return client.sendAsync(openRequest, config).thenApply(HttpResponse::body)
                 .thenCompose(resourceId -> {
-                    logger.info("id: " + resourceId);
+                    logger.info("id: {}", resourceId);
                     return client.sendAsync(useRequest.apply(resourceId), config)
                         .thenApply(HttpResponse::body)
                         .thenApply(response -> new ResourceResult(resourceId, response));
@@ -183,7 +178,7 @@ public class Scenarios {
                     return client.sendAsync(closeRequest.apply(resourceResult.resourceId()), config).thenApply(_ -> Values.RIGHT);
                 });
         };
-        
+
         var promises = List.of(
             resourceFlow.get(),
             resourceFlow.get()
@@ -192,16 +187,16 @@ public class Scenarios {
         return process.apply(promises);
     }
 
-    private Values scenario9() throws ExecutionException, InterruptedException {
+    private Values scenario9() {
         logger.info("Scenario 9");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/9")).build();
 
         record TimedResponse(Instant instant, HttpResponse<String> response) {}
-        
+
         var promises = IntStream.rangeClosed(1, 10)
             .mapToObj(_ -> client.sendAsync(request, config).thenApply(response -> new TimedResponse(Instant.now(), response)))
             .toList();
-        
+
         Comparator<TimedResponse> timeComparator = Comparator.comparing(TimedResponse::instant);
 
         var rawResult = promises.stream()
@@ -215,13 +210,13 @@ public class Scenarios {
     }
 
     //TODO PENDING
-    private Values scenario10() throws ExecutionException, InterruptedException {
+    private Values scenario10() {
         logger.info("Scenario 10");
 
         return Values.RIGHT;
     }
 
-    private Values scenario11() throws ExecutionException, InterruptedException {
+    private Values scenario11() {
         logger.info("Scenario 11");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/11")).build();
 
@@ -237,7 +232,7 @@ public class Scenarios {
         return process.apply(outerRace);
     }
 
-    List<Values> results() throws ExecutionException, InterruptedException, IOException {
+    List<Values> results() {
         return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
     }
 }
