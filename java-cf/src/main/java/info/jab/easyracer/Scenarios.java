@@ -79,7 +79,7 @@ public class Scenarios {
             .orTimeout(5, TimeUnit.SECONDS)
             .handle((result, ex) -> {
                 if (!Objects.isNull(ex)) {
-                    logger.warn("Error occurred: " + ex.getLocalizedMessage());
+                    //logger.warn("Error occurred: " + ex.getLocalizedMessage());//DEBUG ONLY
                     return Values.LEFT;
                 }
                 if (result.statusCode() == 200) {

@@ -19,7 +19,7 @@ public class ScenariosTest {
             //Given
             scenarioServer.withExposedPorts(8080)
                 .waitingFor(new HttpWaitStrategy())
-                .withCommand("--debug")
+                //.withCommand("--debug")//DEBUG ONLY
                 .withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()))
                 .start();
             var url = new URI("http://" + scenarioServer.getHost() + ":" + scenarioServer.getFirstMappedPort());
