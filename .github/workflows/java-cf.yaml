@@ -1,0 +1,31 @@
+# Generated file. DO NOT EDIT.
+'on':
+  push:
+    paths:
+    - java-cf/**
+    - .github/workflows/java-cf.yaml
+  pull_request:
+    paths:
+    - java-cf/**
+    - .github/workflows/java-cf.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        distribution: graalvm
+        java-version: '23'
+        cache: maven
+    - run: ./mvnw --batch-mode --no-transfer-progress verify
+      working-directory: java-cf
+    defaults:
+      run:
+        working-directory: java-cf
