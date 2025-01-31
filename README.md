@@ -1,7 +1,7 @@
 Easy Racer
 ----------
 
-A series of obstactle courses as a way to compare how different languages and frameworks handle structured concurrency, including:
+A series of obstacle courses as a way to compare how different languages and frameworks handle structured concurrency, including:
  - loser cancellation
  - resource management
  - efficient thread utilization (i.e. reactive, non-blocking)
