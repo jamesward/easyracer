@@ -22,7 +22,7 @@ extension URLSession {
 }
 
 @main
-public struct EasyRacer {
+public struct EasyRacer: Sendable {
     let baseURL: URL
     let urlSession: some URLSession = ScalableURLSession(
         configuration: {

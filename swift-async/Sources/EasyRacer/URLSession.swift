@@ -1,7 +1,7 @@
 import Foundation
 
 /// URLSession operations we actually use in Easy Racer
-protocol URLSession {
+protocol URLSession: Sendable {
     func data(from url: URL) async throws -> (Data, URLResponse)
 }
 
