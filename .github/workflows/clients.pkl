@@ -173,7 +173,7 @@ clients = new Mapping<String, Run> {
     }
     new {
       name = "Run scenarios"
-      run = "swift test -c release"
+      run = "swift test"
     }
   }
 
