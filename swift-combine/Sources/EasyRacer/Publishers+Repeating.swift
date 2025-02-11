@@ -2,7 +2,7 @@ import Atomics
 import Combine
 
 extension Publishers {
-    struct Repeating<Output>: Publisher {
+    struct Repeating<Output>: Publisher where Output : Sendable {
         typealias Failure = Never
         
         private let element: Output
@@ -11,15 +11,15 @@ extension Publishers {
             self.element = element
         }
         
-        func receive<S>(subscriber: S) where S : Subscriber, Never == S.Failure, Output == S.Input {
+        func receive<S>(subscriber: S) where S : Subscriber & Sendable, Never == S.Failure, Output == S.Input {
             let subscription: some Subscription = RepeatingSubscription(element, subscriber)
             subscriber.receive(subscription: subscription)
         }
         
-        final class RepeatingSubscription<Downstream: Subscriber>: Subscription where Downstream.Input == Output, Downstream.Failure == Never {
+        final class RepeatingSubscription<Downstream>: Subscription, Sendable where Downstream : Subscriber & Sendable, Downstream.Input == Output, Downstream.Failure == Never {
             private let element: Output
             private let subscriber: Downstream
-            private var active: ManagedAtomic<Bool> = ManagedAtomic(true)
+            private let active: ManagedAtomic<Bool> = ManagedAtomic(true)
             
             init(_ element: Output, _ subscriber: Downstream) {
                 self.element = element
