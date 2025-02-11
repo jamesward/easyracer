@@ -183,7 +183,7 @@ clients = new Mapping<String, Run> {
   }
 
   ["swift-combine"] = new {
-    `runs-on` = "macos-latest"
+    `runs-on` = "macos-15"
     steps = swiftSteps
   }
 

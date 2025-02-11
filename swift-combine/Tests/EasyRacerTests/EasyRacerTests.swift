@@ -1,3 +1,4 @@
+import Atomics
 import Combine
 import DockerClientSwift
 import Logging
@@ -18,15 +19,15 @@ final class EasyRacerTests: XCTestCase {
         let randomPort = portBindings[0].hostPort
         let baseURL = URL(string: "http://localhost:\(randomPort)")!
         // Wait for scenario server to start handling HTTP requests
-        var serverStarted: Bool = false
+        let serverStarted = ManagedAtomic(false)
         while true {
             let connectionAttempted: DispatchSemaphore = DispatchSemaphore(value: 0)
             URLSession.shared.dataTask(with: baseURL) { _, _, error in
-                serverStarted = error == nil
+                serverStarted.store(error == nil, ordering: .relaxed)
                 connectionAttempted.signal()
             }.resume()
             connectionAttempted.wait()
-            if serverStarted {
+            if serverStarted.load(ordering: .relaxed) {
                 break
             } else {
                 Thread.sleep(forTimeInterval: 0.01) // 10ms
