@@ -27,18 +27,16 @@ final class EasyRacerTests: XCTestCase {
             }
         }
         
-        // Tear down
-        defer {
-            _ = try? client.containers.stop(container: container).wait()
-            _ = try? client.containers.prune().wait()
-            try? client.syncShutdown()
-        }
-
         // Test
         let results = await EasyRacer(baseURL: baseURL).scenarios()
         XCTAssertEqual(results.count, 11, "Number of Scenarios")
         for (idx, result) in results.enumerated() {
             XCTAssertEqual(result, "right", "Scenario \(idx + 1)")
         }
+        
+        // Tear down
+        try? await client.containers.stop(container: container).get()
+        _ = try? await client.containers.prune().get()
+        try? client.syncShutdown()
     }
 }
