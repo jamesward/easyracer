@@ -1,10 +1,10 @@
-scalaVersion := "2.13.12"
+scalaVersion := "2.13.16"
 
 libraryDependencies ++= List(
-  "org.http4s"          %% "http4s-ember-client"      % "0.23.23",
-  "com.disneystreaming" %% "weaver-cats"              % "0.8.1"    % Test,
-  "com.dimafeng"        %% "testcontainers-scala"     % "0.40.12"  % Test,
-  "ch.qos.logback"       % "logback-classic"          % "1.4.7"    % Runtime,
+  "org.http4s"          %% "http4s-ember-client"      % "0.23.30",
+  "com.disneystreaming" %% "weaver-cats"              % "0.8.4"    % Test,
+  "com.dimafeng"        %% "testcontainers-scala"     % "0.41.8"  % Test,
+  "ch.qos.logback"       % "logback-classic"          % "1.5.16"    % Runtime,
 )
 
 testFrameworks += new TestFramework("weaver.framework.CatsEffect")
