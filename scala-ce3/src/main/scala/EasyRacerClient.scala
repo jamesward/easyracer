@@ -1,20 +1,22 @@
-import scala.concurrent.duration._
-
-import cats._, cats.implicits._
+import cats._
 import cats.data.Chain
-
-import cats.effect._, cats.effect.implicits._
+import cats.effect._
+import cats.effect.implicits._
+import cats.effect.kernel.Outcome.Succeeded
 import cats.effect.std.CountDownLatch
-
-import org.http4s._
+import cats.implicits._
+import com.sun.management.OperatingSystemMXBean
 import org.http4s.Method._
-
+import org.http4s.Status.Redirection
+import org.http4s._
 import org.http4s.client.Client
 import org.http4s.client.dsl.io._
-
 import org.http4s.ember.client.EmberClientBuilder
 
-import cats.effect.kernel.Outcome.Succeeded
+import java.lang.management.ManagementFactory
+import java.security.MessageDigest
+import scala.concurrent.duration._
+import scala.util.Random
 
 object EasyRacerClient extends IOApp.Simple {
   val cr = EmberClientBuilder.default[IO]
@@ -90,7 +92,7 @@ object EasyRacerClient extends IOApp.Simple {
   }
 
   // Fabio Labella's multiRace, at <https://gitter.im/typelevel/cats-effect?at=5f479a3e89cf2d584b7c65cf>
-  def multiRace[F[_]: Concurrent, A](fas: List[F[A]]): F[A] = {
+  def multiRace[F[_] : Concurrent, A](fas: List[F[A]]): F[A] = {
     def spawn[B](fa: F[B]): Resource[F, Unit] =
       Resource.make(fa.start)(_.cancel).void
 
@@ -191,6 +193,42 @@ object EasyRacerClient extends IOApp.Simple {
       .map(_.sortBy(_._1).map(_._2).mkString)
   }
 
+  def scenario10(client: Client[IO], scenarioUrl: Int => Uri): IO[String] = {
+    val id = Random.nextString(8)
+    val messageDigest = MessageDigest.getInstance("SHA-512")
+
+    def req(url: Uri): IO[Response[IO]] = client.toHttpApp(GET(url))
+
+    def reporter: IO[String] = {
+      val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
+      val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
+
+      req(scenarioUrl(10) +? (id -> load.toString)).flatMap {
+        case Redirection(_) => reporter.delayBy(1.second)
+        case r =>
+          EntityDecoder[IO, String].decode(r, strict = false)
+            .leftWiden[Throwable].rethrowT.flatMap(body =>
+              if (r.status.isSuccess) IO.pure(body) else IO.raiseError(new java.lang.Error(body))
+            )
+      }
+    }
+
+    def blocking: IO[Unit] = IO.interruptibleMany {
+      var result = Random.nextBytes(512)
+      while (!Thread.interrupted()) result = messageDigest.digest(result)
+    }
+
+    def blocker: IO[Unit] = client.expect[String](GET(scenarioUrl(10) +? id)).void.raceSuccess(blocking)
+
+    blocker.background.surround(reporter)
+  }
+
+  def scenario11(client: Client[IO], scenarioUrl: Int => Uri): IO[String] = {
+    val url = scenarioUrl(11)
+    val req = client.expect[String](GET(url))
+    req.raceSuccess(req.raceSuccess(req))
+  }
+
   def all(client: Client[IO], scenarioUrl: Int => Uri) =
     List(
       scenario1 _,
@@ -202,6 +240,8 @@ object EasyRacerClient extends IOApp.Simple {
       scenario7 _,
       scenario8 _,
       scenario9 _,
+      scenario10 _,
+      scenario11 _,
     ).parTraverse { f =>
       f(client, scenarioUrl)
     }
