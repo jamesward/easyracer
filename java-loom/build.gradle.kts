@@ -4,18 +4,15 @@ plugins {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+        languageVersion = JavaLanguageVersion.of(21)
     }
-}
-
-repositories {
-    mavenCentral()
 }
 
 dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.0")
     testImplementation("org.testcontainers:testcontainers:1.20.5")
     testImplementation("org.testcontainers:junit-jupiter:1.20.5")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.0")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.16")
 }
 
@@ -24,7 +21,7 @@ application {
 }
 
 tasks.withType<JavaCompile> {
-    options.compilerArgs.addAll(listOf("--enable-preview"))
+    options.compilerArgs.add("--enable-preview")
 }
 
 tasks.withType<JavaExec> {
@@ -37,6 +34,7 @@ tasks.withType<Test>().configureEach {
 
     testLogging {
         showStandardStreams = true
+        showExceptions = true
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         events(org.gradle.api.tasks.testing.logging.TestLogEvent.STARTED, org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED, org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED, org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
     }
