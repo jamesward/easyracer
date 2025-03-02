@@ -108,11 +108,9 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Async
   def blocking: Text =
     given RandomSize = (_: Random) => 512
     @tailrec def digest(bytes: Array[Byte]): Text raises AsyncError =
-      // TODO
-      // Per parasite README, this is supposedly how you check for cancellation:
-      // https://github.com/propensive/parasite?tab=readme-ov-file#cancelation
-      // But it doesn't appear to be implemented yet
-      // acquiesce() // Does not compile
+      // TODO Does not work
+      // relent()
+      // digest(messageDigest.digest(bytes))
       if Thread.interrupted() then abort(AsyncError(Cancelled))
       else digest(messageDigest.digest(bytes))
 
