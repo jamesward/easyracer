@@ -1,7 +1,7 @@
 import capricious.RandomSize
 import com.sun.management.OperatingSystemMXBean
 import soundness.*
-import soundness.AsyncError.Reason.Timeout
+import soundness.AsyncError.Reason.Cancelled
 import soundness.asyncTermination.cancel
 import soundness.executives.direct
 import soundness.internetAccess.enabled
@@ -113,7 +113,7 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Async
       // https://github.com/propensive/parasite?tab=readme-ov-file#cancelation
       // But it doesn't appear to be implemented yet
       // acquiesce() // Does not compile
-      if Thread.interrupted() then abort(AsyncError(Timeout))
+      if Thread.interrupted() then abort(AsyncError(Cancelled))
       else digest(messageDigest.digest(bytes))
 
     digest(IArray.genericWrapArray(random[IArray[Byte]]()).toArray)
