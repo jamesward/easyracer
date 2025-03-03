@@ -13,7 +13,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers:1.20.5")
     testImplementation("org.testcontainers:junit-jupiter:1.20.5")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.0")
-    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.16")
+    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
 }
 
 application {
