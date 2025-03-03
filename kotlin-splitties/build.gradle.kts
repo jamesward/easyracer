@@ -19,7 +19,7 @@ application {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-    implementation("io.ktor:ktor-client-core:3.1.0")
+    implementation("io.ktor:ktor-client-core:3.1.1")
     implementation("io.ktor:ktor-client-java:3.1.1")
     implementation("com.louiscad.splitties:splitties-coroutines:3.0.0")
     runtimeOnly("org.slf4j:slf4j-simple:2.0.17")
