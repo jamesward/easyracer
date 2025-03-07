@@ -16,20 +16,18 @@ import java.security.MessageDigest
 
 def scenario1(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncError =
   def req = scenarioUrl(t"1").fetch().as[Text]
-  // TODO:
-  // Loser HTTP request isn't cancelled, figure out why and fix 
   supervise:
-    Seq(async(req), async(req)).race()
+    Seq(async(req), async(req)).raceAndCancelLosers()
 
 def scenario2(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncError =
   def req = scenarioUrl(t"2").fetch().as[Text]
   supervise:
-    Seq(async(req), async(req)).race()
+    Seq(async(req), async(req)).raceAndCancelLosers()
 
 def scenario3(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncError =
   def req = scenarioUrl(t"3").fetch().as[Text]
   supervise:
-    Seq.fill(10_000)(async(req)).race()
+    Seq.fill(10_000)(async(req)).raceAndCancelLosers()
 
 def scenario4(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncError =
   def req = scenarioUrl(t"4").fetch().as[Text]
@@ -42,7 +40,7 @@ def scenario4(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncE
           async:
             snooze(1*Second)
             t"1 second delay",
-        ).race()
+        ).raceAndCancelLosers()
     ).sequence.await().head
   // TODO Does not work:
 //  supervise:
@@ -50,29 +48,27 @@ def scenario4(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncE
 //      async(req),
 //      async:
 //        async(req).await(1*Second),
-//    ).race()
+//    ).raceAndCancelLosers()
 
 def scenario5(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncError =
   def req = scenarioUrl(t"5").fetch().as[Text]
   supervise:
-    Seq(async(req), async(req)).race()
+    Seq(async(req), async(req)).raceAndCancelLosers()
 
 def scenario6(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncError =
   def req = scenarioUrl(t"6").fetch().as[Text]
   supervise:
-    Seq(async(req), async(req), async(req)).race()
+    Seq(async(req), async(req), async(req)).raceAndCancelLosers()
 
 def scenario7(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncError =
   def req = scenarioUrl(t"7").fetch().as[Text]
-  // TODO:
-  // Loser HTTP request isn't cancelled, figure out why and fix 
   supervise:
     Seq(
       async(req),
       async:
         snooze(4*Second)
         req,
-    ).race()
+    ).raceAndCancelLosers()
 
 def scenario8(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncError =
   def open = scenarioUrl(t"8").copy(query = t"open").fetch().as[Text]
@@ -85,7 +81,7 @@ def scenario8(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncE
     finally close(id)
 
   supervise:
-    Seq(async(reqRes), async(reqRes)).race()
+    Seq(async(reqRes), async(reqRes)).raceAndCancelLosers()
 
 def scenario9(scenarioUrl: Text => HttpUrl): Text raises HttpError raises AsyncError =
   // Explicitly specify type so that it doesn't get inferred as `Text`
@@ -122,7 +118,7 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Async
         scenarioUrl(t"10").copy(query = t"$id").fetch().as[Text],
       async:
         blocking
-    ).race()
+    ).raceAndCancelLosers()
 
   @tailrec def reporter(using Monitor): Text =
     val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
@@ -143,9 +139,9 @@ def scenario11(scenarioUrl: Text => HttpUrl): Text raises HttpError raises Async
   def req = scenarioUrl(t"11").fetch().as[Text]
   supervise:
     Seq(
-      async(Seq(async(req), async(req)).race()),
+      async(Seq(async(req), async(req)).raceAndCancelLosers()),
       async(req),
-    ).race()
+    ).raceAndCancelLosers()
 
 val scenarios: Seq[(Text => HttpUrl) => Text raises HttpError raises AsyncError] = Seq(
   scenario1,
