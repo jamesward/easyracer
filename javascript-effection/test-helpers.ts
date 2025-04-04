@@ -1,9 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe as $describe,
-  it,
-} from "node:test";
+import { afterEach, beforeEach, describe as $describe, it } from "node:test";
 import { expect } from "expect";
 import {
   action,
@@ -12,8 +7,7 @@ import {
   spawn,
   type Task,
 } from "effection";
-
-import { Scenario } from "./easyracer.ts";
+import { createRequestFn } from "./easyracer.ts";
 
 let [scope, destroy] = createScope();
 
@@ -29,7 +23,7 @@ export function describe(name: string, fn: () => void): void {
   });
 }
 
-type ScenarioFn = () => Operation<unknown> | Operation<unknown>[];
+type ScenarioFn = (request: (query?: string) => Operation<string>) => Operation<unknown> | Operation<unknown>[];
 
 export function scenario(number: string, fn: ScenarioFn): void {
   it(`scenario ${number}`, runScenario(number, fn));
@@ -72,8 +66,8 @@ export function rightOrNot(ops: Operation<unknown>[]): Operation<string> {
 function runScenario(number: string, fn: ScenarioFn) {
   return () =>
     scope.run(function* () {
-      yield* Scenario.set(number);
-      let scenario = fn();
+      let base = `http://localhost:8080`;
+      let scenario = fn(createRequestFn(base, number));
       let ops = Array.isArray(scenario) ? scenario : [scenario];
 
       let result = yield* rightOrNot(ops);

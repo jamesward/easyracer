@@ -1,19 +1,4 @@
-import {
-  action,
-  call,
-  createContext,
-  type Operation,
-  sleep,
-  spawn,
-  type Task,
-  useAbortSignal,
-} from "effection";
-
-export const BaseURL = createContext<string>(
-  "BaseURL",
-  "http://localhost:8080",
-);
-export const Scenario = createContext<string>("Scenario");
+import { call, type Operation, race, scoped, sleep } from "effection";
 
 export function* delay<T>(millis: number, op: Operation<T>): Operation<T> {
   yield* sleep(millis);
@@ -27,71 +12,40 @@ export function timeout<T>(
   limit: number,
   op: Operation<T>,
 ): Operation<T | string> {
-  return action(function* (resolve) {
-    yield* spawn(function* () {
+  return race([
+    op,
+    call(function* () {
       yield* sleep(limit);
-      resolve(`timeout of ${limit}ms exceeded`);
-    });
-
-    resolve(yield* op);
-  });
+      return `timeout of ${limit}ms exceeded`;
+    }),
+  ]);
 }
 
-/**
- * Execute a request corresponding to the current scenario.
- */
-export const request = (query?: string) =>
-  call(function* () {
-    let controller = new AbortController();
-    let { signal } = controller;
-    let url = `${yield* BaseURL}/${yield* Scenario}${query ? "?" + query : ""}`;
+export function createRequestFn(base: string, scenario: string) {
+  return (query?: string) =>
+    scoped<string>(function* () {
+      let controller = new AbortController();
+      let { signal } = controller;
 
-    let promises: Promise<unknown>[] = [];
+      let url = `${base}/${scenario}${query ? "?" + query : ""}`;
 
-    let request = fetch(url, { signal });
+      let promises: Promise<unknown>[] = [];
 
-    promises.push(request);
+      let request = fetch(url, { signal });
 
-    try {
-      let response = yield* call(() => request);
-      let text = response.text();
-      promises.push(text);
+      promises.push(request);
 
-      return yield* call(() => text);
-    } catch (error) {
-      return String(error);
-    } finally {
-      controller.abort();
-      yield* call(() => Promise.allSettled(promises));
-    }
-  });
+      try {
+        let response = yield* call(() => request);
+        let text = response.text();
+        promises.push(text);
 
-/**
- * return the result of the first operation whose response is "right". Or the
- * last result that wasn't "right";
- */
-export function rightOrNot(ops: Operation<string>[]): Operation<string> {
-  return action(function* (resolve) {
-    let tasks: Task<string>[] = [];
-    for (let operation of ops) {
-      let task = yield* spawn(function* () {
-        let result = yield* operation;
-        if (result === "right") {
-          // right!
-          resolve("right");
-        }
-        return result;
-      });
-      tasks.push(task);
-    }
-    let last: string | null = null;
-    for (let task of tasks) {
-      let result = yield* task;
-      if (result !== "right") {
-        last = result;
+        return yield* call(() => text);
+      } catch (error) {
+        return String(error);
+      } finally {
+        controller.abort();
+        yield* call(() => Promise.allSettled(promises));
       }
-    }
-    // not!
-    resolve(String(last));
-  });
+    });
 }
