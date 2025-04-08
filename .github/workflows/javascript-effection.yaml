@@ -2,7 +2,7 @@
 'on':
   push:
     paths:
-    - javascript-stdlib/**
+    - javascript-effection/**
     - .github/workflows/javascript-effection.yaml
   pull_request:
     paths:
