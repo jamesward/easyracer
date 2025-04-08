@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "effection": "3.0.2",
-    "expect": "*"
+    "effection": "^3.4.0",
+    "expect": "*",
+    "tsx": "^4.19.3"
   },
   "scripts": {
     "test": "npx tsx --test easyracer.test.ts"
   },
   "volta": {
-    "node": "20.5.1"
+    "node": "23.11.0"
   }
 }

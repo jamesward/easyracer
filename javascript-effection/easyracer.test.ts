@@ -1,45 +1,99 @@
 import { describe, scenario } from "./test-helpers.ts";
-import { spawn, Task } from "effection";
-import { delay, timeout } from "./easyracer.ts";
+import { spawn, until, withResolvers } from "effection";
+import { delay, first, timeout, winner } from "./easyracer.ts";
+import { expect } from "expect";
+import { loadAvg } from "./cpu.ts";
 
 describe("easyracer", () => {
-  scenario("1", (request) => [request(), request()]);
-  scenario("2", (request) => [request(), request()]);
-  scenario("3", (request) => Array(10_000).fill(request()));
-  scenario("4", (request) => [request(), timeout(1000, request())]);
-  scenario("5", (request) => [request(), request()]);
-  scenario("6", (request) => [request(), request(), request()]);
-  scenario("7", (request) => [request(), delay(3000, request())]);
-  scenario("8", (request) => {
-    function* res() {
-      let id = yield* request("open");
+  scenario(1, function* (fetch) {
+    let result = yield* winner([fetch(), fetch()]);
+    expect(result).toEqual({ status: 200, body: "right" });
+  });
+  scenario(2, function* (fetch) {
+    let result = yield* winner([fetch(), fetch()]);
+    expect(result).toEqual({ status: 200, body: "right" });
+  });
+  scenario(3, function* (fetch) {
+    let requests = Array(10_000).fill(fetch());
+    let result = yield* winner(requests);
+    expect(result).toEqual({ status: 200, body: "right" });
+  });
+
+  scenario(4, function* (fetch) {
+    let result = yield* winner([fetch(), timeout(1000, fetch())]);
+    expect(result).toEqual({ status: 200, body: "right" });
+  });
+
+  scenario(5, function* (fetch) {
+    let result = yield* winner([fetch(), fetch()]);
+    expect(result).toEqual({ status: 200, body: "right" });
+  });
+  scenario(6, function* (fetch) {
+    let result = yield* winner([fetch(), fetch(), fetch()]);
+    expect(result).toEqual({ status: 200, body: "right" });
+  });
+  scenario(7, function* (fetch) {
+    let result = yield* winner([fetch(), delay(3000, fetch())]);
+    expect(result).toEqual({ status: 200, body: "right" });
+  });
+  scenario(8, function* (fetch) {
+    function* resource() {
+      let { body: id } = yield* fetch("open");
       try {
-        return yield* request(`use=${id}`);
+        return yield* fetch(`use=${id}`);
       } finally {
-        yield* request(`close=${id}`);
+        yield* fetch(`close=${id}`);
       }
     }
 
-    return [res(), res()];
+    let result = yield* winner([resource(), resource()]);
+    expect(result).toEqual({ status: 200, body: "right" });
   });
 
-  scenario("9", function* (request) {
-    let answer = "";
-    let tasks: Task<void>[] = [];
-    for (let i = 0; i < 10; i++) {
-      let task = yield* spawn(function* () {
-        let result = yield* request();
-        if (result.length === 1) {
-          answer += result;
+  scenario(9, function* (fetch) {
+    let requests = Array<ReturnType<typeof fetch>>(10).fill(fetch());
+    let letters: string[] = [];
+    let answer = withResolvers<string>();
+    for (let request of requests) {
+      yield* spawn(function* () {
+        let result = yield* request;
+        if (result.status === 200) {
+          letters.push(result.body);
+          if (letters.length === "right".length) {
+            answer.resolve(letters.join(""));
+          }
         }
       });
-      tasks.push(task);
     }
 
-    for (let task of tasks) {
-      yield* task;
+    let result = yield* answer.operation;
+    expect(result).toEqual("right");
+  });
+
+  scenario(10, function* (fetch) {
+    function* computeSha() {
+      let encoder = new TextEncoder();
+      while (true) {
+        yield* until(
+          crypto.subtle.digest("SHA-256", encoder.encode("Easy Racer")),
+        );
+      }
     }
 
-    return answer;
+    function* reportLoad() {
+      while (true) {
+        let load = yield* loadAvg();
+        yield* fetch(`load=${load}`);
+      }
+    }
+
+    let result = yield* first([fetch("load"), computeSha(), reportLoad()]);
+
+    expect(result).toMatchObject({ status: 200 });
+  });
+
+  scenario(11, function* (fetch) {
+    let result = yield* winner([fetch(), winner([fetch(), fetch()])]);
+    expect(result).toEqual({ status: 200, body: "right" });
   });
 });
