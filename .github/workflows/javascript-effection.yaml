@@ -1,0 +1,27 @@
+# Generated file. DO NOT EDIT.
+'on':
+  push:
+    paths:
+    - javascript-effection/**
+    - .github/workflows/javascript-effection.yaml
+  pull_request:
+    paths:
+    - javascript-effection/**
+    - .github/workflows/javascript-effection.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+    - uses: denoland/setup-deno@v2
+      with:
+        deno-version: v2.x
+    - run: deno task test
+    defaults:
+      run:
+        working-directory: javascript-effection
