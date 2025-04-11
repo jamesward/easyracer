@@ -1,0 +1,63 @@
+cabal-version:      3.4
+name:               haskell-async
+
+-- The package version.
+-- See the Haskell package versioning policy (PVP) for standards
+-- guiding when and how versions should be incremented.
+-- https://pvp.haskell.org
+-- PVP summary:     +-+------- breaking API changes
+--                  | | +----- non-breaking API additions
+--                  | | | +--- code changes with no API change
+version:            0.1.0.0
+
+-- A short (one-line) description of the package.
+-- synopsis:
+
+-- A longer description of the package.
+-- description:
+
+-- The license under which the package is released.
+license:            Apache-2.0
+
+-- The package author(s).
+author:             Benjamin Maurer
+
+-- An email address to which users can send suggestions, bug reports, and patches.
+maintainer:         maurer.benjamin@gmail.com
+
+-- A copyright notice.
+-- copyright:
+build-type:         Simple
+
+common warnings
+    ghc-options: -Wall
+
+executable haskell-async
+    -- Import common warning flags.
+    import:           warnings
+
+    -- .hs or .lhs file containing the Main module.
+    main-is:          Main.hs
+
+    -- Modules included in this executable, other than Main.
+    -- other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+
+    ghc-options:      -threaded -rtsopts
+
+    -- Other library packages from which modules are imported.
+    build-depends:    base ^>= 4.18.3.0,
+                      bytestring ^>= 0.12.0.0,
+                      async ^>= 2.2.5,
+                      time ^>= 1.12,
+                      http-client ^>= 0.7.19,
+                      cryptohash-sha256 ^>= 0.11.102.1,
+                      random ^>= 1.3.1
+
+    -- Directories containing source files.
+    hs-source-dirs:   app
+
+    -- Base language which the package is written in.
+    default-language: GHC2021
