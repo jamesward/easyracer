@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Main where
 
@@ -131,7 +132,7 @@ ignore _ _ = pure "ignored"
 -- Race two actions and return the first one that finishes
 -- successfully, or fail if both fail.
 raceSuccess :: IO a -> IO a -> IO a
-raceSuccess left right =
+raceSuccess !left !right =
   either (error "Both tasks failed!") id
     <$> raceSuccessFail left right
 
