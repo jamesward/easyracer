@@ -18,7 +18,7 @@ application {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("io.ktor:ktor-client-core:3.1.2")
     implementation("io.ktor:ktor-client-java:3.1.2")
     implementation("io.arrow-kt:arrow-fx-coroutines:2.0.1")
