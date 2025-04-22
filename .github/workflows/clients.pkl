@@ -54,6 +54,23 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Java.gradleTestSteps(null, "java-jox")
   }
 
+  ["javascript-effection"] = new {
+    steps {
+      new {
+        uses = "actions/checkout@v4"
+      }
+      new {
+        uses = "denoland/setup-deno@v2"
+        with {
+          ["deno-version"] = "v2.x"
+        }
+      }
+      new {
+        run = "deno task test"
+      }
+    }
+  }
+
   ["javascript-stdlib"] = new {
     steps = GitHubAction.Node.testSteps(null, "21.6.0", "javascript-stdlib/package-lock.json")
   }
