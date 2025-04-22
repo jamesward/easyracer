@@ -25,7 +25,7 @@ jobs:
 
       - run: |
           mkdir _site
-          cp .presos/img _site/
+          cp -r .presos/img _site/
           cp .presos/*.html _site/
           cp .presos/*.pdf _site/
 
