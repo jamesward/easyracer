@@ -12,5 +12,6 @@
     "effection": "jsr:@effection/effection@^3.4.0",
     "expect": "jsr:@std/expect@^1.0.14",
     "node:test": "jsr:@std/testing/bdd"
-  }
+  },
+  "nodeModulesDir": "auto"
 }
