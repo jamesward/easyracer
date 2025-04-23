@@ -22,7 +22,9 @@ jobs:
         working-directory: .presos
 
       # don't process the README
-      - run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf *_*.md
+      - env:
+          PUPPETEER_TIMEOUT: 0
+        run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf *_*.md
         working-directory: .presos
 
       - run: |
