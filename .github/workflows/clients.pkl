@@ -173,7 +173,7 @@ clients = new Mapping<String, Run> {
     }
     new {
       name = "Select Xcode version"
-      run = "xcode-select -s '/Applications/Xcode_16.3.app/Contents/Developer'"
+      run = "sudo xcode-select -s '/Applications/Xcode_16.3.app/Contents/Developer'"
     }
     new {
       name = "Run scenarios"
