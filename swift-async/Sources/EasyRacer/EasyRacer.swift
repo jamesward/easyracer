@@ -298,7 +298,6 @@ public struct EasyRacer: Sendable {
         let result: String? = await withTaskGroup { group in
             defer { group.cancelAll() }
             
-            group.addTask { try? await urlSession.bodyText(from: url) }
             group.addTask {
                 await withTaskGroup { subgroup in
                     defer { subgroup.cancelAll() }
@@ -309,7 +308,8 @@ public struct EasyRacer: Sendable {
                     return await subgroup.first { $0 != nil }.flatMap { $0 }
                 }
             }
-            
+            group.addTask { try? await urlSession.bodyText(from: url) }
+
             return await group.first { $0 != nil }.flatMap { $0 }
         }
         
