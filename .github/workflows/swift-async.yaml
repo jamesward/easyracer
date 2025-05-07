@@ -30,7 +30,7 @@ jobs:
         sleep 2
         sudo chmod a+rw /var/run/docker.sock
     - name: Select Xcode version
-      run: xcode-select -s '/Applications/Xcode_16.3.app/Contents/Developer'
+      run: sudo xcode-select -s '/Applications/Xcode_16.3.app/Contents/Developer'
     - name: Run scenarios
       run: swift test -c release
     defaults:
