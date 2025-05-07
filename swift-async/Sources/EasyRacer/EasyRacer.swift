@@ -32,7 +32,7 @@ public struct EasyRacer: Sendable {
             return configuration
         }(),
         requestsPerSession: 100,
-        timeIntervalBetweenRequests: 0.005 // 0.5ms
+        timeIntervalBetweenRequests: 0.005 // 5ms
     )
     
     func scenario1() async -> String? {
