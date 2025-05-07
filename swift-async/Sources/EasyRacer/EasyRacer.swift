@@ -31,8 +31,8 @@ public struct EasyRacer: Sendable {
             configuration.timeoutIntervalForRequest = 120
             return configuration
         }(),
-        requestsPerSession: 200,
-        timeIntervalBetweenRequests: 0.0001 // 0.1ms
+        requestsPerSession: 100,
+        timeIntervalBetweenRequests: 0.005 // 0.5ms
     )
     
     func scenario1() async -> String? {
