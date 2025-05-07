@@ -31,14 +31,14 @@ public struct EasyRacer: Sendable {
             configuration.timeoutIntervalForRequest = 120
             return configuration
         }(),
-        requestsPerSession: 100,
-        timeIntervalBetweenRequests: 0.005 // 5ms
+        requestsPerSession: 200,
+        timeIntervalBetweenRequests: 0.0001 // 0.1ms
     )
     
     func scenario1() async -> String? {
         let url: URL = baseURL.appending(path: "1")
         
-        let result: String? = await withTaskGroup(of: String?.self) { group in
+        let result: String? = await withTaskGroup { group in
             defer { group.cancelAll() }
             
             group.addTask { try? await urlSession.bodyText(from: url) }
@@ -53,7 +53,7 @@ public struct EasyRacer: Sendable {
     func scenario2() async -> String? {
         let url: URL = baseURL.appending(path: "2")
         
-        let result: String? = await withTaskGroup(of: String?.self) { group in
+        let result: String? = await withTaskGroup { group in
             defer { group.cancelAll() }
             
             group.addTask { try? await urlSession.bodyText(from: url) }
@@ -68,7 +68,7 @@ public struct EasyRacer: Sendable {
     func scenario3() async -> String? {
         let url: URL = baseURL.appending(path: "3")
         
-        let result: String? = await withTaskGroup(of: String?.self) { group in
+        let result: String? = await withTaskGroup { group in
             defer { group.cancelAll() }
             
             for _ in 1...10_000 {
@@ -91,7 +91,7 @@ public struct EasyRacer: Sendable {
             return configuration
         }())
         
-        let result: String? = await withTaskGroup(of: String?.self) { group in
+        let result: String? = await withTaskGroup { group in
             defer { group.cancelAll() }
             
             group.addTask { try? await urlSession.bodyText(from: url) }
@@ -106,7 +106,7 @@ public struct EasyRacer: Sendable {
     func scenario5() async -> String? {
         let url: URL = baseURL.appending(path: "5")
         
-        let result: String? = await withTaskGroup(of: String?.self) { group in
+        let result: String? = await withTaskGroup { group in
             defer { group.cancelAll() }
             
             group.addTask { try? await urlSession.bodyText(from: url) }
@@ -121,7 +121,7 @@ public struct EasyRacer: Sendable {
     func scenario6() async -> String? {
         let url: URL = baseURL.appending(path: "6")
         
-        let result: String? = await withTaskGroup(of: String?.self) { group in
+        let result: String? = await withTaskGroup { group in
             defer { group.cancelAll() }
             
             group.addTask { try? await urlSession.bodyText(from: url) }
@@ -137,7 +137,7 @@ public struct EasyRacer: Sendable {
     func scenario7() async -> String? {
         let url: URL = baseURL.appending(path: "7")
         
-        let result: String? = await withTaskGroup(of: String?.self) { group in
+        let result: String? = await withTaskGroup { group in
             defer { group.cancelAll() }
             
             group.addTask { try? await urlSession.bodyText(from: url) }
@@ -176,7 +176,7 @@ public struct EasyRacer: Sendable {
             return text
         }
         
-        let result: String? = await withTaskGroup(of: String?.self) { group in
+        let result: String? = await withTaskGroup { group in
             defer { group.cancelAll() }
             
             group.addTask { try? await doOpenUseAndClose() }
@@ -191,7 +191,7 @@ public struct EasyRacer: Sendable {
     func scenario9() async -> String? {
         let url: URL = baseURL.appending(path: "9")
         
-        let result: String? = await withTaskGroup(of: String?.self) { group in
+        let result: String? = await withTaskGroup { group in
             defer { group.cancelAll() }
             
             for _ in 1...10 {
@@ -275,7 +275,7 @@ public struct EasyRacer: Sendable {
         }
         
         // Run blocker
-        async let blockerResult: Void? = withTaskGroup(of: Void?.self) { group in
+        async let blockerResult: Void? = withTaskGroup { group in
             defer { group.cancelAll() }
             
             group.addTask { try? await request() }
@@ -295,18 +295,20 @@ public struct EasyRacer: Sendable {
     func scenario11() async -> String? {
         let url: URL = baseURL.appending(path: "11")
         
-        let result: String? = await withTaskGroup(of: String?.self) { group in
+        let result: String? = await withTaskGroup { group in
             defer { group.cancelAll() }
             
+            group.addTask { try? await urlSession.bodyText(from: url) }
             group.addTask {
-                await withTaskGroup(of: String?.self) { subgroup in
+                await withTaskGroup { subgroup in
+                    defer { subgroup.cancelAll() }
+                    
                     subgroup.addTask { try? await urlSession.bodyText(from: url) }
                     subgroup.addTask { try? await urlSession.bodyText(from: url) }
                     
                     return await subgroup.first { $0 != nil }.flatMap { $0 }
                 }
             }
-            group.addTask { try? await urlSession.bodyText(from: url) }
             
             return await group.first { $0 != nil }.flatMap { $0 }
         }
