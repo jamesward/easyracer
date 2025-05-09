@@ -50,24 +50,21 @@ object EasyRacerClient extends KyoApp:
     val delayedReq = Async.delay(4.seconds)(req)
     Async.race(req, delayedReq)
 
-  def scenario8(scenarioUrl: Int => Uri) =
+  def scenario8(scenarioUrl: Int => Uri): String < (Abort[FailedRequest] & Async) =
     def req(uri: Uri) = Requests(_.get(uri))
-
     case class MyResource(id: String):
       def close: Unit < Async =
         Abort.run(req(uri"${scenarioUrl(8)}?close=$id")).unit
 
     val myResource = defer:
-      val id = await:
-        req(uri"${scenarioUrl(8)}?open")
-      await:
-        Resource.acquireRelease(MyResource(id))(_.close)
+      val id = req(uri"${scenarioUrl(8)}?open").now
+      Resource.acquireRelease(MyResource(id))(_.close).now
 
-    val reqRes = Resource.run:
-      defer:
-        val resource = await(myResource)
-        await:
-          req(uri"${scenarioUrl(8)}?use=${resource.id}")
+    val reqRes =
+      Resource.run:
+        defer:
+          val resource: MyResource = myResource.now
+          req(uri"${scenarioUrl(8)}?use=${resource.id}").now
 
     Async.race(reqRes, reqRes)
 
@@ -76,18 +73,15 @@ object EasyRacerClient extends KyoApp:
     val url = scenarioUrl(9)
 
     val req =
-      Abort.run:
         defer:
-          val body = await(Requests(_.get(url)))
-          val now = await(Clock.now)
+          val body = Requests(_.get(url)).now
+          val now = Clock.now.now
           now -> body
 
     val reqs = Seq.fill(10)(req)
 
     defer:
-      val successes = SortedMap.from:
-        await(Async.parallel(10)(reqs)).map(_.toMaybe).flatten
-
+      val successes = SortedMap.from(Async.gather(reqs).now)
       successes.values.mkString
 
   def scenario10(scenarioUrl: Int => Uri) =
@@ -121,18 +115,18 @@ object EasyRacerClient extends KyoApp:
 
       defer:
         val (maybeResponseBody, responseMetadata) =
-          await(req(_.addQuerySegment(QuerySegment.KeyValue(id, load.toString))))
+          req(_.addQuerySegment(QuerySegment.KeyValue(id, load.toString))).now
 
         if responseMetadata.isRedirect then
-          await(Async.delay(1.seconds)(reporter(id)))
+          Async.delay(1.seconds)(reporter(id)).now
         else if responseMetadata.isSuccess then
           maybeResponseBody
         else
-          await(Abort.fail(FailedRequest(maybeResponseBody)))
+          Abort.fail(FailedRequest(maybeResponseBody)).now
 
     defer:
-      val id = await(Random.nextStringAlphanumeric(8))
-      val (_, result) = await(Async.parallel(blocker(id), reporter(id)))
+      val id = Random.nextStringAlphanumeric(8).now
+      val (_, result) = Async.zip(blocker(id), reporter(id)).now
       result
 
   def scenario11(scenarioUrl: Int => Uri) =
@@ -143,7 +137,6 @@ object EasyRacerClient extends KyoApp:
   def scenarioUrl(scenario: Int) = uri"http://localhost:8080/$scenario"
 
   def scenarios = Seq(scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9, scenario10, scenario11)
-//  def scenarios = Seq(scenario11)
 
   run:
     Kyo.collect(scenarios.map(s => s(scenarioUrl)))

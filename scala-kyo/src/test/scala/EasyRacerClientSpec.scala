@@ -34,6 +34,8 @@ class EasyRacerClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfte
 
   def scenarioUrl(scenario: Int) = uri"http://localhost:$port/$scenario"
 
+  inline given Flat[FailedRequest | Timeout] = Flat.unsafe.bypass // won't be needed in next release
+
   EasyRacerClient.scenarios.zipWithIndex.foreach: (fn, number) =>
     s"scenario ${number + 1}" should "work" in:
       import AllowUnsafe.embrace.danger
