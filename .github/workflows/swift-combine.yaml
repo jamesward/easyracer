@@ -30,7 +30,7 @@ jobs:
         sleep 2
         sudo chmod a+rw /var/run/docker.sock
     - name: Run scenarios
-      run: swift test -c release
+      run: swift test
     defaults:
       run:
         working-directory: swift-combine
