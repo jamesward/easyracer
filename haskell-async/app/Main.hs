@@ -1,133 +1,131 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
+import Control.Applicative (asum)
+-- import System.Random (mkStdGen, uniformByteString)
+-- import qualified Crypto.Hash.SHA256 as SHA256
+
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async
-import Control.Exception (finally, SomeException)
-import Control.Monad (forM_)
+import Control.Exception (Exception, Handler (..), SomeException, bracket, catches, throwIO)
+import Control.Monad (forM_, when)
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy.Char8 qualified as L8
-import Network.HTTP.Client
--- import System.Random (mkStdGen, uniformByteString)
+import Data.IORef (atomicModifyIORef', newIORef)
+import Data.Maybe (fromJust)
+import Network.HTTP
+  ( RequestMethod (GET),
+    Response,
+    getResponseBody,
+    getResponseCode,
+    mkRequest,
+    simpleHTTP,
+  )
+import Network.HTTP.Stream (Result)
+import Network.URI (parseURI)
+import System.Timeout (timeout)
+
+data RequestException = RequestException
+  deriving (Show)
+
+instance Exception RequestException
 
 -- Race 2 concurrent requests
-scenario1 :: Manager -> String -> IO ByteString
-scenario1 manager url = do
-  req <- parseRequest url
-  res <- race (httpLbs req manager) (httpLbs req manager)
-  pure $ either responseBody responseBody res
+scenario1 :: String -> IO ByteString
+scenario1 url = raceSuccess (getRequestLBS url) (getRequestLBS url)
 
 -- Race 2 concurrent requests, where one produces a connection error
-scenario2 :: Manager -> String -> IO ByteString
-scenario2 manager url = do
-  req <- parseRequest url
-  responseBody <$> raceSuccess (httpLbs req manager) (httpLbs req manager)
+scenario2 :: String -> IO ByteString
+scenario2 url = raceSuccess (getRequestLBS url) (getRequestLBS url)
 
--- Race 10,000 concurrent requests
-scenario3 :: Manager -> String -> IO ByteString
-scenario3 manager url = do
-  req <- parseRequest url
-  let tasks = replicate 10000 $ httpLbs req manager
-  resp <- raceAnySuccess tasks
-  pure $ responseBody resp
+-- -- Race 10,000 concurrent requests
+scenario3 :: String -> IO ByteString
+scenario3 url = raceAnySuccess $ replicate 10000 $ getRequestLBS url
 
--- Race 2 concurrent requests but 1 of them should have a 1 second timeout
-scenario4 :: Manager -> String -> IO ByteString
-scenario4 manager url = do
-  timeoutManager <- newManager $ defaultManagerSettings {managerResponseTimeout = responseTimeoutMicro 1000000}
-  req <- parseRequest url
-  responseBody <$> raceSuccess (httpLbs req timeoutManager) (httpLbs req manager)
+-- -- Race 2 concurrent requests but 1 of them should have a 1 second timeout
+scenario4 :: String -> IO ByteString
+scenario4 url =
+  let timeoutEx t io = do
+        res <- timeout t io
+        case res of
+          Just r -> pure r
+          Nothing -> throwIO RequestException
+   in raceSuccess (timeoutEx 1000000 (getRequestLBS url)) (getRequestLBS url)
 
--- Race 2 concurrent requests where a non-200 response is a loser
-scenario5 :: Manager -> String -> IO ByteString
-scenario5 manager url = do
-  req <- parseUrlThrow url
-  responseBody <$> raceSuccess (httpLbs req manager) (httpLbs req manager)
+-- -- Race 2 concurrent requests where a non-200 response is a loser
+scenario5 :: String -> IO ByteString
+scenario5 url = raceSuccess (getRequestLBS url) (getRequestLBS url)
 
--- Race 3 concurrent requests where a non-200 response is a loser
-scenario6 :: Manager -> String -> IO ByteString
-scenario6 manager url = do
-  req <- parseUrlThrow url
-  let tasks = replicate 3 $ httpLbs req manager
-  resp <- raceAnySuccess tasks
-  pure $ responseBody resp
+-- -- Race 3 concurrent requests where a non-200 response is a loser
+scenario6 :: String -> IO ByteString
+scenario6 url = raceAnySuccess $ replicate 3 (getRequestLBS url)
 
--- Start a request, wait at least 3 seconds then start a second request (hedging)
-scenario7 :: Manager -> String -> IO ByteString
-scenario7 manager url = do
-  req <- parseRequest url
-  withAsync (httpLbs req manager) $ \a1 -> do
+-- -- Start a request, wait at least 3 seconds then start a second request (hedging)
+scenario7 :: String -> IO ByteString
+scenario7 url = do
+  withAsync (getRequestLBS url) $ \a1 -> do
     _ <- threadDelay 3000000
-    withAsync (httpLbs req manager) $ \a2 -> do
+    withAsync (getRequestLBS url) $ \a2 -> do
       res <- waitEither a1 a2
-      pure $ either responseBody responseBody res
+      pure $ either id id res
 
--- Race 2 concurrent requests that "use" a resource which is obtained and released through other requests.
--- The "use" request can return a non-20x request, in which case it is not a winner.
-scenario8 :: Manager -> String -> IO ByteString
-scenario8 manager url =
+-- -- Race 2 concurrent requests that "use" a resource which is obtained and released through other requests.
+-- -- The "use" request can return a non-20x request, in which case it is not a winner.
+scenario8 :: String -> IO ByteString
+scenario8 url =
   let doRequest = do
-        openReq <- parseRequest (url ++ "?open")
-        withAsync (httpLbs openReq manager) $ \idAsync -> do
-          resId <- show . responseBody <$> wait idAsync
-          useReq <- parseUrlThrow $ concat [url, "?use=", resId]
-          closeReq <- parseRequest $ concat [url, "?close=", resId]
-          httpLbs useReq manager `finally` httpNoBody closeReq manager
-   in responseBody <$> raceSuccess doRequest doRequest
+        let openUrl = url ++ "?open"
+        withAsync (getRequestLBS openUrl) $ \idAsync -> do
+          bracket
+            (L8.unpack <$> wait idAsync)
+            (\resId -> getRequestLBS $ concat [url, "?close=", resId])
+            (\resId -> getRequestLBS $ concat [url, "?use=", resId])
+   in either (L8.pack . show) id <$> raceSuccessFail doRequest doRequest
 
 -- Make 10 concurrent requests where 5 return a 200 response with a letter
-scenario9 :: Manager -> String -> IO ByteString
-scenario9 manager url = do
-  req <- parseUrlThrow url
-  let tasks = replicate 10 $ async (httpLbs req manager)
+scenario9 :: String -> IO ByteString
+scenario9 url = do
+  let tasks = replicate 10 $ async (getRequest url)
   resps <- waitAll tasks
-  pure $ L8.concat $ map responseBody resps
+  L8.concat <$> traverse getResponseBody resps
   where
-    waitAll :: [IO (Async (Response ByteString))] -> IO [Response ByteString]
     waitAll tasks = do
       asyncs <- sequence tasks
       waitAllSuccess asyncs
       where
         waitAllSuccess [] = pure []
         waitAllSuccess as = do
-          (completed, res) <- waitAnyCatch as
-          case res of
-            Left _ -> waitAllSuccess $ filter (/= completed) as
-            Right val -> (val :) <$> waitAllSuccess (filter (/= completed) as)
+          (completed, res) <- waitAny as
+          (s, _, _) <- getResponseCode res
+          if s == 2
+            then (res :) <$> waitAllSuccess (filter (/= completed) as)
+            else waitAllSuccess $ filter (/= completed) as
 
--- This scenario validates that a computationally heavy task can be run in parallel to another task,
--- and then cancelled.
--- scenario10 :: Manager -> String -> IO ByteString
--- scenario10 manager url = do
---     let rndGen = mkStdGen 42
---     let rstr = uniformByteString 10 rndGen
+-- -- This scenario validates that a computationally heavy task can be run in parallel to another task,
+-- -- and then cancelled.
+-- scenario10 :: String -> IO ByteString
+-- scenario10 url = do
+--     let initialRndG = mkStdGen 42
+--     let (reqId, rndGen) = uniformByteString 8 initialRndG
+--     let seed = uniformByteString 64 rndGen
 --     undefined
 
--- This scenario validates that a race where all racers fail, is handled correctly.
--- Race a request with another race of 2 requests.
-scenario11 :: Manager -> String -> IO ByteString
-scenario11 manager url = do
-    req <- parseUrlThrow url
-    res <- raceSuccess (Right <$> httpLbs req manager) (raceSuccessFail (httpLbs req manager) (httpLbs req manager))
-    case res of
-      Left _ -> error "Failure"
-      Right resp -> pure $ responseBody resp
+-- foo = SHA256.hashlazy
 
-ignore :: Manager -> String -> IO ByteString
-ignore _ _ = pure "ignored"
+-- -- This scenario validates that a race where all racers fail, is handled correctly.
+-- -- Race a request with another race of 2 requests.
+scenario11 :: String -> IO ByteString
+scenario11 url = do
+  let req = getRequestLBS url
+  res <- raceSuccess (Right <$> req) (raceSuccessFail req req)
+  case res of
+    Left _ -> error "Failure"
+    Right resp -> pure resp
 
--- raceSuccess :: IO a -> IO a -> IO a
--- raceSuccess left right =
---   withAsync left $ \leftAct -> do
---     withAsync right $ \rightAct -> do
---       res <- waitEitherCatch leftAct rightAct
---       case res of
---         Left (Right val) -> return val
---         Left (Left _) -> wait rightAct
---         Right (Right val) -> return val
---         Right (Left _) -> wait leftAct
+ignore :: String -> IO ByteString
+ignore _ = pure "ignored"
 
 -- Race two actions and return the first one that finishes
 -- successfully, or fail if both fail.
@@ -149,24 +147,40 @@ raceSuccessFail left right =
         Right (Right val) -> return $ Right val
         Right (Left _) -> waitCatch leftAct
 
-raceAnySuccess :: [IO a] -> IO a
-raceAnySuccess tasks = do
-  asyncs <- mapM async tasks
-  waitForSuccess asyncs `finally` cancelMany asyncs
-  where
-    waitForSuccess :: [Async a] -> IO a
-    waitForSuccess [] = error "All tasks failed!"
-    waitForSuccess asyncs = do
-      (completed, result) <- waitAnyCatch asyncs
-      case result of
-        Right val -> return val
-        Left _ ->
-          let remaining = filter (/= completed) asyncs
-           in waitForSuccess remaining
+-- Race a list of actions and return the first one to
+-- _successfully_ finish. Fails if all actions fail.
+raceAnySuccess :: [IO b] -> IO b
+raceAnySuccess xs = do
+  nref <- newIORef (length xs)
+  let h :: SomeException -> IO a
+      h _ = do
+        n <- atomicModifyIORef' nref (\n -> (n - 1, n - 1))
+        if n == 0 then error "All threads failed" else forever2
+      forever2 = threadDelay 1000 >> forever2
+  runConcurrently $
+    asum $
+      map
+        ( \x ->
+            Concurrently $
+              x
+                `catches` [ Handler (\(e :: AsyncCancelled) -> throwIO e),
+                            Handler h
+                          ]
+        )
+        xs
+
+getRequestLBS :: String -> IO ByteString
+getRequestLBS url = do
+  response <- simpleHTTP $ mkRequest GET (fromJust (parseURI url))
+  (s, _, _) <- getResponseCode response
+  when (s /= 2) $ throwIO RequestException
+  getResponseBody response
+
+getRequest :: String -> IO (Result (Response ByteString))
+getRequest url = simpleHTTP $ mkRequest GET (fromJust (parseURI url))
 
 main :: IO ()
 main = do
-  manager <- newManager defaultManagerSettings { managerConnCount = 10000 }
   let scenarios =
         [ scenario1,
           scenario2,
@@ -177,8 +191,8 @@ main = do
           scenario7,
           scenario8,
           scenario9,
-          ignore, {- scenario10 -}
+          ignore {- scenario10 -},
           scenario11
         ]
-  let runs = zipWith (\f n -> f manager $ "http://localhost:8080/" ++ show n) scenarios [(1 :: Int) ..]
+  let runs = zipWith (\f n -> f $ "http://localhost:8080/" ++ show n) scenarios [(1 :: Int) ..]
   forM_ runs $ \r -> r >>= L8.putStrLn
