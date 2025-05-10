@@ -153,25 +153,18 @@ raceSuccessFail left right =
 --
 -- Thanks to u/jaror and u/leary for this one:
 -- https://discourse.haskell.org/t/help-haskell-async-behavior-i-dont-understand/12061/8
-raceAnySuccess :: [IO b] -> IO b
+raceAnySuccess :: [IO a] -> IO a
 raceAnySuccess jobs =
   bracket
-    do
-      result <- newEmptyMVar
-      threads <- for jobs \job -> forkIO (failSafe job >>= putMVar result)
-      pure (result, threads)
+    ( do
+        result <- newEmptyMVar
+        threads <- for jobs \job ->
+          forkIO $
+            (job >>= putMVar result) `catch` \(_ :: SomeException) -> pure ()
+        pure (result, threads)
+    )
     (forkIO . traverse_ killThread . snd)
-    (untilJust . fst)
-  where
-    failSafe :: IO a -> IO (Maybe a)
-    failSafe job = (Just <$> job) `catch` \(_e :: SomeException) -> pure Nothing
-
-    untilJust :: MVar (Maybe a) -> IO a
-    untilJust v = do
-      res <- takeMVar v
-      case res of
-        Just x -> pure x
-        Nothing -> untilJust v
+    (takeMVar . fst)
 
 getRequestLBS :: String -> IO ByteString
 getRequestLBS url = do
