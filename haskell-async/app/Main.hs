@@ -1,20 +1,21 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
-import Control.Applicative (asum)
 -- import System.Random (mkStdGen, uniformByteString)
 -- import qualified Crypto.Hash.SHA256 as SHA256
 
-import Control.Concurrent (threadDelay)
+import Control.Concurrent (forkIO, killThread, threadDelay)
 import Control.Concurrent.Async
-import Control.Exception (Exception, Handler (..), SomeException, bracket, catches, throwIO)
+import Control.Concurrent.MVar
+import Control.Exception (Exception, SomeException, bracket, catch, throwIO)
 import Control.Monad (forM_, when)
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy.Char8 qualified as L8
-import Data.IORef (atomicModifyIORef', newIORef)
+import Data.Foldable (traverse_)
 import Data.Maybe (fromJust)
+import Data.Traversable (for)
 import Network.HTTP
   ( RequestMethod (GET),
     Response,
@@ -149,25 +150,28 @@ raceSuccessFail left right =
 
 -- Race a list of actions and return the first one to
 -- _successfully_ finish. Fails if all actions fail.
+--
+-- Thanks to u/jaror and u/leary for this one:
+-- https://discourse.haskell.org/t/help-haskell-async-behavior-i-dont-understand/12061/8
 raceAnySuccess :: [IO b] -> IO b
-raceAnySuccess xs = do
-  nref <- newIORef (length xs)
-  let h :: SomeException -> IO a
-      h _ = do
-        n <- atomicModifyIORef' nref (\n -> (n - 1, n - 1))
-        if n == 0 then error "All threads failed" else forever2
-      forever2 = threadDelay 1000 >> forever2
-  runConcurrently $
-    asum $
-      map
-        ( \x ->
-            Concurrently $
-              x
-                `catches` [ Handler (\(e :: AsyncCancelled) -> throwIO e),
-                            Handler h
-                          ]
-        )
-        xs
+raceAnySuccess jobs =
+  bracket
+    do
+      result <- newEmptyMVar
+      threads <- for jobs \job -> forkIO (failSafe job >>= putMVar result)
+      pure (result, threads)
+    (forkIO . traverse_ killThread . snd)
+    (untilJust . fst)
+  where
+    failSafe :: IO a -> IO (Maybe a)
+    failSafe job = (Just <$> job) `catch` \(_e :: SomeException) -> pure Nothing
+
+    untilJust :: MVar (Maybe a) -> IO a
+    untilJust v = do
+      res <- takeMVar v
+      case res of
+        Just x -> pure x
+        Nothing -> untilJust v
 
 getRequestLBS :: String -> IO ByteString
 getRequestLBS url = do
@@ -184,7 +188,7 @@ main = do
   let scenarios =
         [ scenario1,
           scenario2,
-          ignore, -- scenario3,
+          scenario3,
           scenario4,
           scenario5,
           scenario6,
