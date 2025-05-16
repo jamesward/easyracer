@@ -3,17 +3,17 @@
 
 module Main where
 
--- import System.Random (mkStdGen, uniformByteString)
--- import qualified Crypto.Hash.SHA256 as SHA256
-
 import Control.Concurrent (forkIO, killThread, threadDelay)
 import Control.Concurrent.Async
 import Control.Concurrent.MVar
-import Control.Exception (Exception, SomeException, bracket, catch, throwIO)
+import Control.Exception (Exception, SomeException, bracket, catch, evaluate, throwIO)
 import Control.Monad (forM_, when)
+import Crypto.Hash.SHA512 qualified as SHA512
+import Data.ByteString qualified as SBS
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy.Char8 qualified as L8
 import Data.Foldable (traverse_)
+import Data.Int (Int16)
 import Data.Maybe (fromJust)
 import Data.Traversable (for)
 import Network.HTTP
@@ -26,6 +26,9 @@ import Network.HTTP
   )
 import Network.HTTP.Stream (Result)
 import Network.URI (parseURI)
+import System.CPUTime (getCPUTime)
+import System.Random (mkStdGen, uniform, uniformByteString)
+import System.Random.Stateful (StdGen)
 import System.Timeout (timeout)
 
 data RequestException = RequestException
@@ -104,19 +107,45 @@ scenario9 url = do
             then (res :) <$> waitAllSuccess (filter (/= completed) as)
             else waitAllSuccess $ filter (/= completed) as
 
--- -- This scenario validates that a computationally heavy task can be run in parallel to another task,
--- -- and then cancelled.
--- scenario10 :: String -> IO ByteString
--- scenario10 url = do
---     let initialRndG = mkStdGen 42
---     let (reqId, rndGen) = uniformByteString 8 initialRndG
---     let seed = uniformByteString 64 rndGen
---     undefined
+-- This scenario validates that a computationally heavy task can be run in parallel to another task,
+-- and then cancelled.
+scenario10 :: String -> IO ByteString
+scenario10 url = do
+  let initialRndG = mkStdGen 42
+  let (reqId, rndGen) = uniform initialRndG :: (Int16, StdGen)
+  let (seed, _) = uniformByteString 512 rndGen
+  let taskUrl = concat [url, "?", show $ abs reqId]
+  withAsync (getRequestLBS taskUrl) \blockerTask ->
+    withAsync (busyWork seed) \busyTask ->
+      withAsync (reporter taskUrl) $ \reporterTask ->
+        wait blockerTask
+          >> cancel busyTask
+          >> wait reporterTask
+  where
+    busyWork :: SBS.ByteString -> IO SBS.ByteString
+    busyWork bs =
+      let bs' = SHA512.hash bs
+       in evaluate bs' >>= busyWork
 
--- foo = SHA256.hashlazy
+    reporter reqUrl = do
+      load <- currentLoad
+      resp <- getRequest $ concat [reqUrl, "=", show load]
+      respCode <- getResponseCode resp
+      case respCode of
+        (2, _, _) -> getResponseBody resp
+        (3, _, _) -> reporter reqUrl
+        _ -> error . L8.unpack <$> getResponseBody resp
 
--- -- This scenario validates that a race where all racers fail, is handled correctly.
--- -- Race a request with another race of 2 requests.
+    currentLoad = do
+      t0 <- getCPUTime
+      threadDelay 1_000_000
+      t1 <- getCPUTime
+      let delta = (fromIntegral $ t1 - t0) :: Double
+      let load = delta / 10 ^ (12 :: Int)
+      pure load
+
+-- This scenario validates that a race where all racers fail, is handled correctly.
+-- Race a request with another race of 2 requests.
 scenario11 :: String -> IO ByteString
 scenario11 url = do
   let req = getRequestLBS url
@@ -188,7 +217,7 @@ main = do
           scenario7,
           scenario8,
           scenario9,
-          ignore {- scenario10 -},
+          scenario10,
           scenario11
         ]
   let runs = zipWith (\f n -> f $ "http://localhost:8080/" ++ show n) scenarios [(1 :: Int) ..]
