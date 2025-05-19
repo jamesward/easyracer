@@ -32,7 +32,7 @@ class EasyRacerClientSpec extends AnyFlatSpec with Matchers with BeforeAndAfterA
 
   scenarios.zipWithIndex.foreach: (fn, number) =>
     s"scenario ${number + 1}" should "work" in:
-      mend:
+      recover:
         case t: Exception => fail(t)
       .within:
         fn(scenarioUrl).toString shouldBe "right"
