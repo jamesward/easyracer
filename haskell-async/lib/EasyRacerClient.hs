@@ -69,7 +69,7 @@ scenario4 url =
         case res of
           Just r -> pure r
           Nothing -> throwIO RequestException
-   in raceSuccess (timeoutEx 1000000 (getRequestLBS url)) (getRequestLBS url)
+   in raceSuccess (timeoutEx 1_000_000 (getRequestLBS url)) (getRequestLBS url)
 
 -- -- Race 2 concurrent requests where a non-200 response is a loser
 scenario5 :: String -> IO ByteString
@@ -83,7 +83,7 @@ scenario6 url = raceAnySuccess $ replicate 3 (getRequestLBS url)
 scenario7 :: String -> IO ByteString
 scenario7 url = do
   withAsync (getRequestLBS url) $ \a1 -> do
-    _ <- threadDelay 3000000
+    _ <- threadDelay 3_000_000
     withAsync (getRequestLBS url) $ \a2 -> do
       res <- waitEither a1 a2
       pure $ either id id res

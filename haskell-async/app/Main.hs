@@ -3,8 +3,8 @@
 
 module Main where
 
-import Data.ByteString.Lazy.Char8 qualified as L8
 import Control.Monad (forM_)
+import Data.ByteString.Lazy.Char8 qualified as L8
 import EasyRacerClient
 
 main :: IO ()
