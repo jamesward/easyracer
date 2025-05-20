@@ -1,6 +1,6 @@
 plugins {
     application
-    kotlin("jvm") version "2.1.20"
+    kotlin("jvm") version "2.1.21"
 }
 
 java {
@@ -18,9 +18,9 @@ application {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-    implementation("io.ktor:ktor-client-core:3.1.1")
-    implementation("io.ktor:ktor-client-java:3.1.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("io.ktor:ktor-client-core:3.1.3")
+    implementation("io.ktor:ktor-client-java:3.1.3")
     implementation("com.louiscad.splitties:splitties-coroutines:3.0.0")
     runtimeOnly("org.slf4j:slf4j-simple:2.0.17")
 

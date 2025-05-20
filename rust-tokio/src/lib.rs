@@ -3,8 +3,8 @@ use tokio::sync::mpsc;
 use tokio::time::{Instant, sleep, timeout};
 use tokio::time::error::Elapsed;
 use tokio_util::sync::CancellationToken;
-use rand::{thread_rng, Rng, RngCore};
-use rand::distributions::{Alphanumeric};
+use rand::Rng;
+use rand::distr::{Alphanumeric, SampleString};
 use reqwest::Response;
 use sha2::{Sha512, Digest};
 use tokio::task::JoinError;
@@ -220,7 +220,7 @@ pub async fn scenario_10(port: u16) -> String {
             while !cancellation_token.is_cancelled() {
                 let mut hasher = Sha512::new();
                 let mut bytes = [0u8; 512];
-                thread_rng().fill_bytes(&mut bytes);
+                rand::rng().fill(&mut bytes);
                 hasher.update(bytes);
                 hasher.finalize();
             }
@@ -241,16 +241,12 @@ pub async fn scenario_10(port: u16) -> String {
         token.cancel()
     }
 
-    let random_string: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(8)
-        .map(char::from)
-        .collect();
+    let random_string: String = Alphanumeric.sample_string(&mut rand::rng(), 8);
 
     fn current_load(previous_stime: i64) -> (i64, f64) {
         let stime = stat_self().unwrap().utime;
         let cpu_usage = (stime - previous_stime) as f64 / ticks_per_second() as f64;
-        return (stime, cpu_usage);
+        (stime, cpu_usage)
     }
 
     #[async_recursion]
@@ -259,11 +255,11 @@ pub async fn scenario_10(port: u16) -> String {
         let resp = req(port, format!("{}={}", id, load)).await.unwrap();
         let status = resp.status();
         if status.is_success() {
-            return resp.text().await.unwrap()
+            resp.text().await.unwrap()
         }
         else if status.is_redirection() {
             sleep(Duration::from_secs(1)).await;
-            return reporter(port, id, stime).await;
+            reporter(port, id, stime).await
         }
         else {
             panic!("{}", resp.text().await.unwrap());
@@ -274,5 +270,5 @@ pub async fn scenario_10(port: u16) -> String {
         blocker(port, random_string.clone())
     );
 
-    return reporter(port, random_string.clone(), 0).await;
+    reporter(port, random_string.clone(), 0).await
 }

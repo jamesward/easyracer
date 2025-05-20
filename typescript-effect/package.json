@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "DEBUG=testcontainers,testcontainers:containers jest",
+    "test": "jest",
+    "test-debug": "DEBUG=testcontainers,testcontainers:containers jest",
     "test-hmmm": "DEBUG=testcontainers,testcontainers:containers node --experimental-vm-modules --max-old-space-size=2048 node_modules/jest/bin/jest.js",
     "dev": "nodemon --watch '*.ts' --exec 'ts-node' src/index.ts"
   },
@@ -21,9 +22,9 @@
     "ts-node": "latest"
   },
   "dependencies": {
-    "@effect/platform": "0.72.0",
-    "@effect/platform-node": "0.68.0",
-    "effect": "3.12.0"
+    "@effect/platform": "0.80.11",
+    "@effect/platform-node": "0.76.21",
+    "effect": "3.14.11"
   },
   "jest": {
     "transform": {

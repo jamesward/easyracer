@@ -17,20 +17,19 @@ jobs:
       - run: npm install
         working-directory: .presos
 
-      - run: npx @marp-team/marp-cli --engine ./engine.mjs lambdaconf_2024.md
+      # don't process the README
+      - run: npx @marp-team/marp-cli --engine ./engine.mjs *_*.md
         working-directory: .presos
 
-      - run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf lambdaconf_2024.md
-        working-directory: .presos
-
-      - run: npx @marp-team/marp-cli --engine ./engine.mjs goto_chicago_2024.md
-        working-directory: .presos
-
-      - run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf goto_chicago_2024.md
+      # don't process the README
+      - env:
+          PUPPETEER_TIMEOUT: 0
+        run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf *_*.md
         working-directory: .presos
 
       - run: |
           mkdir _site
+          cp -r .presos/img _site/
           cp .presos/*.html _site/
           cp .presos/*.pdf _site/
 
