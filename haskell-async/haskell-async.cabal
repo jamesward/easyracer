@@ -1,63 +1,57 @@
-cabal-version:      3.4
-name:               haskell-async
-
--- The package version.
--- See the Haskell package versioning policy (PVP) for standards
--- guiding when and how versions should be incremented.
--- https://pvp.haskell.org
--- PVP summary:     +-+------- breaking API changes
---                  | | +----- non-breaking API additions
---                  | | | +--- code changes with no API change
-version:            0.1.0.0
-
--- A short (one-line) description of the package.
--- synopsis:
-
--- A longer description of the package.
--- description:
-
--- The license under which the package is released.
-license:            Apache-2.0
-
--- The package author(s).
-author:             Benjamin Maurer
-
--- An email address to which users can send suggestions, bug reports, and patches.
-maintainer:         maurer.benjamin@gmail.com
-
--- A copyright notice.
--- copyright:
-build-type:         Simple
+cabal-version: 3.4
+name: haskell-async
+version: 0.1.0.0
+license: Apache-2.0
+author: Benjamin Maurer
+maintainer: maurer.benjamin@gmail.com
+build-type: Simple
 
 common warnings
-    ghc-options: -Wall
+  ghc-options: -Wall
+
+library easy-racer-client
+  import: warnings
+  exposed-modules: EasyRacerClient
+  hs-source-dirs: lib
+  build-depends:
+    HTTP ^>=4000.4.1,
+    async ^>=2.2.5,
+    base ^>=4.18.3.0,
+    bytestring ^>=0.12.0.0,
+    cryptohash-sha512 ^>=0.11.102.0,
+    network-uri >=2.6 && <2.7,
+    random ^>=1.3.1,
+
+  default-language: GHC2021
 
 executable haskell-async
-    -- Import common warning flags.
-    import:           warnings
+  import: warnings
+  main-is: Main.hs
+  ghc-options:
+    -threaded
+    -rtsopts
 
-    -- .hs or .lhs file containing the Main module.
-    main-is:          Main.hs
+  build-depends:
+    base ^>=4.18.3.0,
+    bytestring ^>=0.12.0.0,
+    haskell-async:easy-racer-client,
 
-    -- Modules included in this executable, other than Main.
-    -- other-modules:
+  hs-source-dirs: app
+  default-language: GHC2021
 
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
+test-suite tests
+  import: warnings
+  type: exitcode-stdio-1.0
+  main-is: EasyRacerTest.hs
+  hs-source-dirs: tests
+  build-depends:
+    base ^>=4.18.3.0,
+    haskell-async:easy-racer-client,
+    tasty ^>=1.5.3,
+    tasty-hunit ^>=0.10.2,
+    testcontainers ^>=0.5.1.0,
 
-    ghc-options:      -threaded -rtsopts
+  ghc-options:
+    -threaded
 
-    -- Other library packages from which modules are imported.
-    build-depends:    base ^>= 4.18.3.0,
-                      bytestring ^>= 0.12.0.0,
-                      async ^>= 2.2.5,
-                      HTTP ^>= 4000.4.1,
-                      network-uri >= 2.6 && < 2.7,
-                      cryptohash-sha512 ^>= 0.11.102.0,
-                      random ^>= 1.3.1
-
-    -- Directories containing source files.
-    hs-source-dirs:   app
-
-    -- Base language which the package is written in.
-    default-language: GHC2021
+  default-language: GHC2021
