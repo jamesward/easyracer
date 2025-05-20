@@ -12,7 +12,7 @@ module EasyRacerClient
     scenario9,
     scenario10,
     scenario11,
-    allScenarios
+    allScenarios,
   )
 where
 
@@ -59,7 +59,7 @@ scenario2 url = raceSuccess (getRequestLBS url) (getRequestLBS url)
 
 -- -- Race 10,000 concurrent requests
 scenario3 :: String -> IO ByteString
-scenario3 url = raceAnySuccess $ replicate 10000 $ getRequestLBS url
+scenario3 url = raceAnySuccess $ replicate 10_000 $ getRequestLBS url
 
 -- -- Race 2 concurrent requests but 1 of them should have a 1 second timeout
 scenario4 :: String -> IO ByteString
@@ -217,15 +217,15 @@ getRequest url = simpleHTTP $ mkRequest GET (fromJust (parseURI url))
 
 allScenarios :: [String -> IO ByteString]
 allScenarios =
-        [ scenario1,
-          scenario2,
-          scenario3,
-          scenario4,
-          scenario5,
-          scenario6,
-          scenario7,
-          scenario8,
-          scenario9,
-          scenario10,
-          scenario11
-        ]
+  [ scenario1,
+    scenario2,
+    scenario3,
+    scenario4,
+    scenario5,
+    scenario6,
+    scenario7,
+    scenario8,
+    scenario9,
+    scenario10,
+    scenario11
+  ]
