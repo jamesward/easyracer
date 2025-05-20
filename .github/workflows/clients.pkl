@@ -42,6 +42,23 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Go.testSteps(null, "go-stdlib/go.mod")
   }
 
+  ["haskell-async"] = new {
+    steps {
+      new {
+        uses = "actions/checkout@v4"
+      }
+      new {
+        uses = "haskell-actions/setup@v2"
+        with {
+          ["ghc-version"] = "9.6"
+        }
+      }
+      new {
+        run = "cabal test"
+      }
+    }
+  }
+
   ["java-cf"] = new {
     steps = GitHubAction.Java.mavenTestSteps("--batch-mode --no-transfer-progress verify", "java-cf", "graalvm", "23")
   }
