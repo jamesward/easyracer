@@ -72,7 +72,7 @@ A scenario server validates the implementations of 11 scenarios:
     ```
     GET /10?{some_id}
     ```
-    
+
     **Part 2)** In parallel to **Part 1**, every 1 second, make a request with the current process load (0 to 1)
     ```
     GET /10?{same_id_as_part_1}={load}
@@ -128,3 +128,4 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 | [Python + HTTPX + Trio](python-httpx-trio)               | 8/11  ![tests](https://github.com/jamesward/easyracer/actions/workflows/python-httpx-trio.yaml/badge.svg)        | [James Ward](https://github.com/jamesward)                                                                                                | Needs Scenarios 3, 10, 11             |
 | [Python + AIOHTTP](python-aiohttp)                       | 6/11  ![tests](https://github.com/jamesward/easyracer/actions/workflows/python-aiohttp.yaml/badge.svg)           | [James Ward](https://github.com/jamesward)                                                                                                | Needs Scenarios 3, 4, 8, 10, 11       |
 | [Python + HTTPX + asyncio](python-httpx-asyncio)         | 2/11  ![tests](https://github.com/jamesward/easyracer/actions/workflows/python-httpx-asyncio.yaml/badge.svg)     | [James Ward](https://github.com/jamesward)                                                                                                | Needs Scenarios 3-11                  |
+| [Haskell + async](haskell-async)         | 11/11  ![tests](https://github.com/jamesward/easyracer/actions/workflows/haskell-async.yaml/badge.svg)     | [Benjamin Maurer](https://github.com/cptwunderlich)
