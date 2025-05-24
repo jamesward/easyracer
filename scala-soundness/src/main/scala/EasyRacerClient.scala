@@ -122,7 +122,12 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text raises ConnectError raises Ht
     ).raceAndCancelLosers()
 
   @tailrec def reporter(using Monitor): Text =
-    val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
+    // TODO does not work
+    // val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
+    val osBean = ManagementFactory.getPlatformMXBean(
+      Class.forName("com.sun.management.OperatingSystemMXBean")
+        .asInstanceOf[Class[OperatingSystemMXBean]]
+    )
     val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
     val resp = scenarioUrl(t"10").copy(query = t"$id=${load.toString}").fetch()
     if resp.status == Http.Found then
