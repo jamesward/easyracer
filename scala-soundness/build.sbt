@@ -1,6 +1,6 @@
-scalaVersion := "3.6.2"
+scalaVersion := "3.7.0"
 
-val SoundnessVersion = "0.30.0"
+val SoundnessVersion = "0.31.0"
 libraryDependencies ++= Seq(
   "dev.soundness" % "exoskeleton-core" % SoundnessVersion,
   "dev.soundness" % "nomenclature-core" % SoundnessVersion,
@@ -16,12 +16,10 @@ scalacOptions ++= Seq(
   "-Yexplicit-nulls",
   "-Xprint-suspension",
   "-language:experimental.modularity",
-  "-language:experimental.clauseInterleaving",
   "-language:experimental.genericNumberLiterals",
   "-language:experimental.saferExceptions",
   "-language:experimental.erasedDefinitions",
   "-language:experimental.namedTypeArguments",
-  "-language:experimental.namedTuples",
   "-Xmax-inlines",
   "100"
 )
