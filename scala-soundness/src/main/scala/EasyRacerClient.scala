@@ -1,6 +1,6 @@
 import capricious.RandomSize
 import com.sun.management.OperatingSystemMXBean
-import soundness.*
+import soundness.{classOf as _, *}
 import soundness.AsyncError.Reason.Cancelled
 import soundness.asyncTermination.cancel
 import soundness.executives.direct
@@ -12,8 +12,9 @@ import soundness.threadModels.virtual
 import soundness.unhandledErrors.stackTrace
 
 import java.lang.management.ManagementFactory
-import java.lang.{System => JavaSystem}
+import java.lang.System as JavaSystem
 import java.security.MessageDigest
+import scala.annotation.tailrec
 
 def scenario1(scenarioUrl: Text => HttpUrl): Text raises ConnectError raises HttpError raises AsyncError =
   def req = scenarioUrl(t"1").fetch().receive[Text]
@@ -122,12 +123,7 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text raises ConnectError raises Ht
     ).raceAndCancelLosers()
 
   @tailrec def reporter(using Monitor): Text =
-    // TODO does not work
-    // val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
-    val osBean = ManagementFactory.getPlatformMXBean(
-      Class.forName("com.sun.management.OperatingSystemMXBean")
-        .asInstanceOf[Class[OperatingSystemMXBean]]
-    )
+    val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
     val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
     val resp = scenarioUrl(t"10").copy(query = t"$id=${load.toString}").fetch()
     if resp.status == Http.Found then
