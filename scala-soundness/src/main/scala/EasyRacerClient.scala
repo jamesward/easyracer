@@ -1,6 +1,6 @@
 import capricious.RandomSize
 import com.sun.management.OperatingSystemMXBean
-import soundness.{classOf as _, *}
+import soundness.*
 import soundness.AsyncError.Reason.Cancelled
 import soundness.asyncTermination.cancel
 import soundness.executives.direct
