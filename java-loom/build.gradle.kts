@@ -9,7 +9,7 @@ java {
 }
 
 dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.13.0")
     testImplementation("org.testcontainers:testcontainers:1.21.0")
     testImplementation("org.testcontainers:junit-jupiter:1.21.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
