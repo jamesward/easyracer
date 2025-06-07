@@ -195,6 +195,7 @@ object EasyRacerClient:
       .setEventLoopGroup(NioEventLoopGroup(1, es))
       .setMaxConnections(10_000)
       .setMaxConnectionsPerHost(10_000)
+      .setMaxRequestRetry(0)
   )
   val httpFlow =
 //    Http().outgoingConnection("localhost", 8080)
