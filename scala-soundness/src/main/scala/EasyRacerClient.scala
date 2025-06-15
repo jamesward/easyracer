@@ -73,9 +73,9 @@ def scenario7(scenarioUrl: Text => HttpUrl): Text raises ConnectError raises Htt
     ).raceAndCancelLosers()
 
 def scenario8(scenarioUrl: Text => HttpUrl): Text raises ConnectError raises HttpError raises AsyncError =
-  def open = scenarioUrl(t"8").copy(query = t"open").fetch().receive[Text]
-  def use(id: Text) = scenarioUrl(t"8").copy(query = t"use=$id").fetch().receive[Text]
-  def close(id: Text) = scenarioUrl(t"8").copy(query = t"close=$id").fetch().receive[Text]
+  def open = scenarioUrl(t"8").withQuery(t"open").fetch().receive[Text]
+  def use(id: Text) = scenarioUrl(t"8").withQuery(t"use=$id").fetch().receive[Text]
+  def close(id: Text) = scenarioUrl(t"8").withQuery(t"close=$id").fetch().receive[Text]
 
   def reqRes: Text =
     val id = open
@@ -117,7 +117,7 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text raises ConnectError raises Ht
   def blocker(using Monitor) =
     Seq(
       async:
-        scenarioUrl(t"10").copy(query = t"$id").fetch().receive[Text],
+        scenarioUrl(t"10").withQuery(t"$id").fetch().receive[Text],
       async:
         blocking
     ).raceAndCancelLosers()
@@ -125,7 +125,7 @@ def scenario10(scenarioUrl: Text => HttpUrl): Text raises ConnectError raises Ht
   @tailrec def reporter(using Monitor): Text =
     val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
     val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
-    val resp = scenarioUrl(t"10").copy(query = t"$id=${load.toString}").fetch()
+    val resp = scenarioUrl(t"10").withQuery(t"$id=${load.toString}").fetch()
     if resp.status == Http.Found then
       snooze(1*Second)
       reporter
