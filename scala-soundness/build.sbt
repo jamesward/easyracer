@@ -1,4 +1,4 @@
-scalaVersion := "3.7.0"
+scalaVersion := "3.7.1"
 
 val SoundnessVersion = "0.34.0"
 libraryDependencies ++= Seq(
