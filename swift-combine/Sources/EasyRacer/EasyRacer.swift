@@ -261,7 +261,7 @@ public struct EasyRacer {
             .eraseToAnyPublisher()
     }
     
-    public func scenarios() -> AnyPublisher<[String?], Never> {
+    public func scenarios() -> AnyPublisher<(Int, String?), Never> {
         let scenarios = [
             (1, scenario1()),
             (2, scenario2()),
@@ -280,10 +280,6 @@ public struct EasyRacer {
                 let (num, scenario) = scenarioAndNumber
                 return scenario.map { $0 }.replaceEmpty(with: nil).map { (num, $0) }
             }
-            .collect()
-            .map { results in
-                results.sorted { $0.0 < $1.0 }.map { $0.1 }
-            }
             .eraseToAnyPublisher()
     }
     
@@ -298,13 +294,9 @@ public struct EasyRacer {
             EasyRacer(baseURL: baseURL).scenarios()
                 .sink(
                     receiveCompletion: { _ in completed.signal() },
-                    receiveValue: { results in
-                        for (idx, result) in results.enumerated() {
-                            print("Scenario \(idx + 1): \(result ?? "error")")
-                        }
-                        if !results.allSatisfy({ $0 != nil }) {
-                            exit(EXIT_FAILURE)
-                        }
+                    receiveValue: { scenarioAndResult in
+                        let (scenario, result) = scenarioAndResult
+                        print("Scenario \(scenario): \(result ?? "error")")
                     }
                 )
                 .store(in: &subscriptions)

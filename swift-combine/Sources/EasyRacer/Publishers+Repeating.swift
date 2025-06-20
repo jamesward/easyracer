@@ -1,5 +1,5 @@
-import Atomics
 import Combine
+import Synchronization
 
 extension Publishers {
     struct Repeating<Output>: Publisher where Output : Sendable {
@@ -19,7 +19,7 @@ extension Publishers {
         final class RepeatingSubscription<Downstream>: Subscription, Sendable where Downstream : Subscriber & Sendable, Downstream.Input == Output, Downstream.Failure == Never {
             private let element: Output
             private let subscriber: Downstream
-            private let active: ManagedAtomic<Bool> = ManagedAtomic(true)
+            private let active: Atomic<Bool> = Atomic(true)
             
             init(_ element: Output, _ subscriber: Downstream) {
                 self.element = element
