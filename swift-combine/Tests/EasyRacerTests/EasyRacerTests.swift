@@ -1,7 +1,7 @@
-import Atomics
 import Combine
 import DockerClientSwift
 import Logging
+import Synchronization
 import XCTest
 @testable import EasyRacer
 
@@ -19,7 +19,7 @@ final class EasyRacerTests: XCTestCase {
         let randomPort = portBindings[0].hostPort
         let baseURL = URL(string: "http://localhost:\(randomPort)")!
         // Wait for scenario server to start handling HTTP requests
-        let serverStarted = ManagedAtomic(false)
+        let serverStarted = Atomic(false)
         while true {
             let connectionAttempted: DispatchSemaphore = DispatchSemaphore(value: 0)
             URLSession.shared.dataTask(with: baseURL) { _, _, error in
@@ -46,12 +46,16 @@ final class EasyRacerTests: XCTestCase {
         var subscriptions: Set<AnyCancellable> = Set()
         withExtendedLifetime(subscriptions) {
             EasyRacer(baseURL: baseURL).scenarios()
+                .collect()
+                .map { results in
+                    results.sorted { $0.0 < $1.0 }
+                }
                 .sink(
                     receiveCompletion: { _ in completed.signal() },
                     receiveValue: { results in
                         XCTAssertEqual(results.count, 11, "Number of Scenarios")
-                        for (idx, result) in results.enumerated() {
-                            XCTAssertEqual(result, "right", "Scenario \(idx + 1)")
+                        for (scenario, result) in results {
+                            XCTAssertEqual(result, "right", "Scenario \(scenario)")
                         }
                     }
                 )
