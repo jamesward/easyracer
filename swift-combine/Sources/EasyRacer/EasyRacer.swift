@@ -1,40 +1,41 @@
-import Combine
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+#if canImport(Combine)
+import Combine
+#else
+import OpenCombine
+import OpenCombineDispatch
+#endif
 
 extension URLSession {
-    func bodyTextTaskPublisher(for url: URL) -> some Publisher<String, any Error> {
-        dataTaskPublisher(for: url).tryMap { data, response in
-            guard
-                let response = response as? HTTPURLResponse,
-                200..<300 ~= response.statusCode
-            else {
-                throw URLError(.badServerResponse)
+    func bodyTextTaskPublisher(for url: URL) -> AnyPublisher<String, any Error> {
+        dataTaskPublisher(for: url)
+            .tryMap { data, response in
+                guard
+                    let response = response as? HTTPURLResponse,
+                    200..<300 ~= response.statusCode
+                else {
+                    throw URLError(.badServerResponse)
+                }
+                
+                guard
+                    let text: String = String(data: data, encoding: .utf8)
+                else {
+                    throw URLError(.cannotDecodeRawData)
+                }
+                
+                return text
             }
-            
-            guard
-                let text: String = String(data: data, encoding: .utf8)
-            else {
-                throw URLError(.cannotDecodeRawData)
-            }
-            
-            return text
-        }
+            .eraseToAnyPublisher()
     }
 }
 
 @main
 public struct EasyRacer {
     let baseURL: URL
-    let urlSession: some URLSession = ScalableURLSession(
-        configuration: {
-            let configuration = URLSessionConfiguration.ephemeral
-            configuration.httpMaximumConnectionsPerHost = 1_000
-            configuration.timeoutIntervalForRequest = 120
-            return configuration
-        }(),
-        requestsPerSession: 100,
-        timeIntervalBetweenRequests: 0.005 // 5ms
-    )
+    let urlSession: some URLSession = FoundationURLSession.shared
     let dispatchQueue = DispatchQueue(label: "easyracer")
 
     func scenario1() -> AnyPublisher<String, Never> {
@@ -190,7 +191,7 @@ public struct EasyRacer {
         func currentCPUTime() -> TimeInterval {
             var rusage: rusage = rusage()
             // Should never error as parameters are valid
-            getrusage(RUSAGE_SELF, &rusage)
+            _ = getrusage(RUSAGE_SELF, &rusage)
             let utime = rusage.ru_utime
             let stime = rusage.ru_stime
             let secs = utime.tv_sec + stime.tv_sec
@@ -285,7 +286,7 @@ public struct EasyRacer {
     
     public static func main() {
         guard
-            let baseURL = URL(string: "http://localhost:8080")
+            let baseURL = URL(string: "http://host.docker.internal:8080")
         else { return }
         
         let completed = DispatchSemaphore(value: 0)

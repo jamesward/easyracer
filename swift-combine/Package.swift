@@ -9,11 +9,17 @@ let package = Package(
         .macOS(.v15)
     ],
     dependencies: [
+        .package(url: "https://github.com/OpenCombine/OpenCombine.git", from: "0.14.0"),
         .package(url: "https://github.com/alexsteinerde/docker-client-swift.git", from: "0.1.2"),
     ],
     targets: [
         .executableTarget(
-            name: "EasyRacer"),
+            name: "EasyRacer",
+            dependencies: [
+                "OpenCombine",
+                .product(name: "OpenCombineFoundation", package: "OpenCombine"),
+                .product(name: "OpenCombineShim", package: "OpenCombine"),
+            ]),
         .testTarget(
             name: "EasyRacerTests",
             dependencies: [

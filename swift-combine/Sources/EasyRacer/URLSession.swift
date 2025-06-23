@@ -1,5 +1,18 @@
-import Combine
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+#if canImport(Combine)
+import Combine
+#else
+import OpenCombine
+#endif
+
+#if canImport(FoundationNetworking)
+typealias FoundationURLSession = FoundationNetworking.URLSession
+#else
+typealias FoundationURLSession = Foundation.URLSession
+#endif
 
 /// URLSession operations we actually use in Easy Racer
 protocol URLSession {
@@ -9,7 +22,19 @@ protocol URLSession {
 }
 
 /// Make sure the URLSession protocol isn't defining incompatible methods
-extension Foundation.URLSession: URLSession {
+extension FoundationURLSession: URLSession {
+    class var shared: some URLSession {
+        ScalableURLSession(
+            configuration: {
+                let configuration = URLSessionConfiguration.ephemeral
+                configuration.httpMaximumConnectionsPerHost = 1_000
+                configuration.timeoutIntervalForRequest = 600
+                return configuration
+            }(),
+            requestsPerSession: 100,
+            timeIntervalBetweenRequests: 0.005 // 5ms
+        )
+    }
 }
 
 /// URLSession implementation that is able to handle 10k concurrent connections
@@ -27,16 +52,16 @@ class ScalableURLSession: URLSession {
     )
     private let delayQueue: DispatchQueue = .init(label: "urlsession-delay")
     
-    private var currentDelegatee: Foundation.URLSession
+    private var currentDelegatee: FoundationURLSession
     private var currentRequestCount: UInt = 0
     private var nextRequestNotBefore: Date = .distantPast
-    private var delegatee: Foundation.URLSession {
+    private var delegatee: FoundationURLSession {
         get {
             if currentRequestCount < requestsPerSession {
                 currentRequestCount += 1
                 return currentDelegatee
             } else {
-                currentDelegatee = Foundation.URLSession(configuration: configuration)
+                currentDelegatee = FoundationURLSession(configuration: configuration)
                 currentRequestCount = 0
                 
                 return currentDelegatee
@@ -52,7 +77,7 @@ class ScalableURLSession: URLSession {
         self.configuration = configuration
         self.requestsPerSession = requestsPerSession
         self.timeIntervalBetweenRequests = timeIntervalBetweenRequests
-        self.currentDelegatee = Foundation.URLSession(
+        self.currentDelegatee = FoundationURLSession(
             configuration: configuration
         )
     }
