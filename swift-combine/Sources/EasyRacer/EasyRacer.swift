@@ -286,7 +286,7 @@ public struct EasyRacer {
     
     public static func main() {
         guard
-            let baseURL = URL(string: "http://host.docker.internal:8080")
+            let baseURL = URL(string: "http://localhost:8080")
         else { return }
         
         let completed = DispatchSemaphore(value: 0)
