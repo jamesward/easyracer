@@ -15,24 +15,11 @@
     - completed
 jobs:
   test:
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
     - uses: actions/checkout@v4
-    - uses: atomicjar/testcontainers-cloud-setup-action@v1
-      with:
-        token: ${{ secrets.TC_CLOUD_TOKEN }}
-    - name: Set up Docker socket
-      run: |-
-        brew install socat
-        DOCKER_PORT=$(grep tc.host ~/.testcontainers.properties | cut -d: -f3)
-        sudo socat UNIX-LISTEN:/var/run/docker.sock,reuseaddr,fork TCP-CONNECT:127.0.0.1:$DOCKER_PORT &
-        sleep 2
-        sudo chmod a+rw /var/run/docker.sock
-    - name: Select Xcode version
-      run: sudo xcode-select -s '/Applications/Xcode_16.3.app/Contents/Developer'
-    - name: Run scenarios
-      run: swift test --disable-swift-testing
+    - run: swift test -c release --disable-swift-testing
     defaults:
       run:
         working-directory: swift-combine
