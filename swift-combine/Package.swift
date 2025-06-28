@@ -10,7 +10,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/OpenCombine/OpenCombine.git", from: "0.14.0"),
-        .package(url: "https://github.com/alexsteinerde/docker-client-swift.git", from: "0.1.2"),
+        .package(url: "https://github.com/jackgene/DockerSwift.git", branch: "main"),
     ],
     targets: [
         .executableTarget(
@@ -22,9 +22,6 @@ let package = Package(
             ]),
         .testTarget(
             name: "EasyRacerTests",
-            dependencies: [
-                "EasyRacer",
-                .product(name: "DockerClientSwift", package: "docker-client-swift"),
-            ]),
+            dependencies: ["EasyRacer", "DockerSwift"]),
     ]
 )
