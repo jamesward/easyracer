@@ -1,6 +1,6 @@
 scalaVersion := "3.7.1"
 
-val SoundnessVersion = "0.36.0"
+val SoundnessVersion = "0.37.0"
 libraryDependencies ++= Seq(
   "dev.soundness" % "exoskeleton-core" % SoundnessVersion,
   "dev.soundness" % "nomenclature-core" % SoundnessVersion,
