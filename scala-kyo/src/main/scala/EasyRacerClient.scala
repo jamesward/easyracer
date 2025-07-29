@@ -56,13 +56,13 @@ object EasyRacerClient extends KyoApp:
       def close: Unit < Async =
         Abort.run(req(uri"${scenarioUrl(8)}?close=$id")).unit
 
-    val myResource = defer:
+    val myResource = direct:
       val id = req(uri"${scenarioUrl(8)}?open").now
       Resource.acquireRelease(MyResource(id))(_.close).now
 
     val reqRes =
       Resource.run:
-        defer:
+        direct:
           val resource: MyResource = myResource.now
           req(uri"${scenarioUrl(8)}?use=${resource.id}").now
 
@@ -73,14 +73,14 @@ object EasyRacerClient extends KyoApp:
     val url = scenarioUrl(9)
 
     val req =
-        defer:
+        direct:
           val body = Requests(_.get(url)).now
           val now = Clock.now.now
           now -> body
 
     val reqs = Seq.fill(10)(req)
 
-    defer:
+    direct:
       val successes = SortedMap.from(Async.gather(reqs).now)
       successes.values.mkString
 
@@ -97,7 +97,7 @@ object EasyRacerClient extends KyoApp:
 
     // recursive digesting
     def blocking(bytesEffect: Seq[Byte] < (Abort[FailedRequest] & Async)): Seq[Byte] < (Abort[FailedRequest] & Async) =
-      IO:
+      Sync.defer:
         bytesEffect.map: bytes =>
           blocking(messageDigest.digest(bytes.toArray).toSeq)
 
@@ -113,7 +113,7 @@ object EasyRacerClient extends KyoApp:
       val osBean = ManagementFactory.getPlatformMXBean(classOf[OperatingSystemMXBean])
       val load = osBean.getProcessCpuLoad * osBean.getAvailableProcessors
 
-      defer:
+      direct:
         val (maybeResponseBody, responseMetadata) =
           req(_.addQuerySegment(QuerySegment.KeyValue(id, load.toString))).now
 
@@ -124,7 +124,7 @@ object EasyRacerClient extends KyoApp:
         else
           Abort.fail(FailedRequest(maybeResponseBody)).now
 
-    defer:
+    direct:
       val id = Random.nextStringAlphanumeric(8).now
       val (_, result) = Async.zip(blocker(id), reporter(id)).now
       result
