@@ -316,20 +316,20 @@ public struct EasyRacer: Sendable {
         return result
     }
     
-    public func scenarios() async -> [String?] {
+    public var scenarios: [(Int, () async -> String?)] {
         [
-            (1, await scenario1()),
-            (2, await scenario2()),
-            (4, await scenario4()),
-            (5, await scenario5()),
-            (6, await scenario6()),
-            (7, await scenario7()),
-            (8, await scenario8()),
-            (9, await scenario9()),
-            (10, await scenario10()),
-            (11, await scenario11()),
-            (3, await scenario3()), // This has to come last, as it frequently causes other scenarios to fail
-        ].sorted { $0.0 < $1.0 }.map { $0.1 }
+            (1, scenario1),
+            (2, scenario2),
+            (4, scenario4),
+            (5, scenario5),
+            (6, scenario6),
+            (7, scenario7),
+            (8, scenario8),
+            (9, scenario9),
+            (10, scenario10),
+            (11, scenario11),
+            (3, scenario3),
+        ]
     }
     
     public static func main() async throws {
@@ -337,10 +337,14 @@ public struct EasyRacer: Sendable {
             let baseURL = URL(string: "http://localhost:8080")
         else { return }
         
-        let results = await EasyRacer(baseURL: baseURL).scenarios()
-        for (idx, result) in results.enumerated() {
-            print("Scenario \(idx + 1): \(result ?? "error")")
+        var exitCode = EXIT_SUCCESS
+        for (num, scenario) in EasyRacer(baseURL: baseURL).scenarios {
+            let result = await scenario()
+            print("Scenario \(num): \(result ?? "error")")
+            if result == nil {
+                exitCode = EXIT_FAILURE
+            }
         }
-        exit(results.allSatisfy { $0 != nil } ? EXIT_SUCCESS : EXIT_FAILURE)
+        exit(exitCode)
     }
 }
