@@ -1,37 +1,72 @@
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "daily"
-  - package-ecosystem: "elm"
-    directory: "/elm-worker"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "gomod"
-    directory: "/go-stdlib"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "gradle"
-    directory: "/java-loom"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "gradle"
-    directory: "/kotlin-arrow"
-    schedule:
-      interval: "weekly"
+  # Kotlin projects (Gradle)
   - package-ecosystem: "gradle"
     directory: "/kotlin-coroutines"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/kotlin-flow"
     schedule:
       interval: "weekly"
   - package-ecosystem: "gradle"
     directory: "/kotlin-splitties"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/kotlin-arrow"
+    schedule:
+      interval: "weekly"
+
+  # Java projects
+  - package-ecosystem: "gradle"
+    directory: "/java-loom"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/java-jox"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "maven"
+    directory: "/java-cf"
+    schedule:
+      interval: "weekly"
+
+  # Go projects
+  - package-ecosystem: "gomod"
+    directory: "/go-stdlib"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/go-conc"
+    schedule:
+      interval: "weekly"
+
+  # JavaScript/TypeScript projects
+  - package-ecosystem: "npm"
+    directory: "/typescript-effect"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/javascript-stdlib"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/javascript-effection"
+    schedule:
+      interval: "weekly"
+
+  # Rust projects
   - package-ecosystem: "cargo"
     directory: "/rust-tokio"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "cargo"
+    directory: "/rust-futures"
+    schedule:
+      interval: "weekly"
+
+  # Swift projects
   - package-ecosystem: "swift"
     directory: "/swift-async"
     schedule:
@@ -44,3 +79,59 @@ updates:
     directory: "/swift-dispatch"
     schedule:
       interval: "weekly"
+
+  # Elm projects
+  - package-ecosystem: "elm"
+    directory: "/elm-worker"
+    schedule:
+      interval: "weekly"
+
+  # .NET projects
+  - package-ecosystem: "nuget"
+    directory: "/dotnet"
+    schedule:
+      interval: "weekly"
+
+  # Python projects
+  - package-ecosystem: "pip"
+    directory: "/python-aiohttp"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/python-aiohttp-taskgroup"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/python-httpx-asyncio"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/python-httpx-trio"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/python-rxpy"
+    schedule:
+      interval: "weekly"
+
+  # Haskell projects
+  - package-ecosystem: "cabal"
+    directory: "/haskell-async"
+    schedule:
+      interval: "weekly"
+
+  # F# projects
+  - package-ecosystem: "nuget"
+    directory: "/fsharp-reactive"
+    schedule:
+      interval: "weekly"
+
+  # OCaml projects (using opam files, but dependabot doesn't support opam yet)
+  # - package-ecosystem: "opam"
+  #   directory: "/ocaml-cohttp-lwt"
+  #   schedule:
+  #     interval: "weekly"
+  # - package-ecosystem: "opam"
+  #   directory: "/ocaml-cohttp-eio"
+  #   schedule:
+  #     interval: "weekly"
