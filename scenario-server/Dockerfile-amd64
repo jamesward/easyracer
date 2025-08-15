@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/native-image-community:21-muslib AS builder
+FROM ghcr.io/graalvm/native-image-community:24-muslib AS builder
 
 WORKDIR /app
 COPY . /app

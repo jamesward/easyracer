@@ -15,7 +15,7 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio-concurrent" % zioVersion,
   "dev.zio" %% "zio-direct" % "1.0.0-RC7",
   "dev.zio" %% "zio-logging" % "2.5.1",
-  "dev.zio" %% "zio-http" % "3.3.3",
+  "dev.zio" %% "zio-http" % "3.4.0",
   "dev.zio" %% "zio-test" % zioVersion % Test,
   "dev.zio" %% "zio-test-sbt" % zioVersion % Test
 )
@@ -29,23 +29,26 @@ Compile / doc / sources := Seq.empty
 graalVMNativeImageOptions ++= Seq(
   "--no-fallback",
   "--install-exit-handlers",
-  "--initialize-at-run-time=io.netty.channel.DefaultFileRegion",
-  "--initialize-at-run-time=io.netty.channel.epoll.Native",
-  "--initialize-at-run-time=io.netty.channel.epoll.Epoll",
-  "--initialize-at-run-time=io.netty.channel.epoll.EpollEventLoop",
-  "--initialize-at-run-time=io.netty.channel.epoll.EpollEventArray",
-  "--initialize-at-run-time=io.netty.channel.kqueue.KQueue",
-  "--initialize-at-run-time=io.netty.channel.kqueue.KQueueEventLoop",
-  "--initialize-at-run-time=io.netty.channel.kqueue.KQueueEventArray",
+  "--enable-native-access=ALL-UNNAMED",
+//  "--sun-misc-unsafe-memory-access=allow",
   "--initialize-at-run-time=io.netty.channel.kqueue.KQueueIoHandler",
-  "--initialize-at-run-time=io.netty.channel.kqueue.Native",
-  "--initialize-at-run-time=io.netty.incubator.channel.uring.IOUringEventLoopGroup",
-  "--initialize-at-run-time=io.netty.channel.unix.Limits",
-  "--initialize-at-run-time=io.netty.channel.unix.Errors",
-  "--initialize-at-run-time=io.netty.channel.unix.IovArray",
-  "--initialize-at-run-time=io.netty.handler.codec.compression.ZstdOptions",
+  //  "--initialize-at-run-time=io.netty.channel.DefaultFileRegion",
+//  "--initialize-at-run-time=io.netty.channel.epoll.Native",
+//  "--initialize-at-run-time=io.netty.channel.epoll.Epoll",
+//  "--initialize-at-run-time=io.netty.channel.epoll.EpollEventLoop",
+//  "--initialize-at-run-time=io.netty.channel.epoll.EpollEventArray",
+//  "--initialize-at-run-time=io.netty.channel.kqueue.KQueue",
+//  "--initialize-at-run-time=io.netty.channel.kqueue.KQueueEventLoop",
+//  "--initialize-at-run-time=io.netty.channel.kqueue.KQueueEventArray",
+//  "--initialize-at-run-time=io.netty.channel.kqueue.KQueueIoHandler",
+//  "--initialize-at-run-time=io.netty.channel.kqueue.Native",
+//  "--initialize-at-run-time=io.netty.incubator.channel.uring.IOUringEventLoopGroup",
+//  "--initialize-at-run-time=io.netty.channel.unix.Limits",
+//  "--initialize-at-run-time=io.netty.channel.unix.Errors",
+//  "--initialize-at-run-time=io.netty.channel.unix.IovArray",
+//  "--initialize-at-run-time=io.netty.handler.codec.compression.ZstdOptions",
   "--initialize-at-run-time=io.netty.handler.ssl.BouncyCastleAlpnSslUtils",
-  "--initialize-at-run-time=io.netty.handler.ssl.JdkSslServerContext",
+//  "--initialize-at-run-time=io.netty.handler.ssl.JdkSslServerContext",
   "-H:+ReportExceptionStackTraces"
 )
 
@@ -65,6 +68,9 @@ if (sys.env.get("TARGETARCH").contains("arm64")) {
     "--libc=musl"
   )
 }
+
+run / javaOptions += "--enable-native-access=ALL-UNNAMED"
+run / javaOptions += "--sun-misc-unsafe-memory-access=allow"
 
 //fork := true
 
