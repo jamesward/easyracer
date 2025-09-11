@@ -1,4 +1,4 @@
-scalaVersion := "3.7.2"
+scalaVersion := "3.7.3"
 
 resolvers += "Akka library repository".at("https://repo.akka.io/maven")
 
