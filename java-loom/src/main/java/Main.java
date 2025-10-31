@@ -9,6 +9,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
@@ -18,11 +19,11 @@ import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
-import java.util.concurrent.StructuredTaskScope;
 
 // Note: Intentionally, code is not shared across scenarios
 public class Main {
 
+    @SuppressWarnings("preview")
     static class Scenarios {
         private final URI url;
         private final HttpClient client;
@@ -32,65 +33,59 @@ public class Main {
             this.client = HttpClient.newHttpClient();
         }
 
-        public String scenario1() throws ExecutionException, InterruptedException {
+        public String scenario1() throws InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/1")).build();
-            try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+            try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<HttpResponse<String>>anySuccessfulResultOrThrow())) {
                 scope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
                 scope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
-                scope.join();
-                return scope.result().body();
+                return scope.join().body();
             }
         }
 
 
-        public String scenario2() throws ExecutionException, InterruptedException {
+        public String scenario2() throws InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/2")).build();
-            try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+            try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<HttpResponse<String>>anySuccessfulResultOrThrow())) {
                 scope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
                 scope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
-                scope.join();
-                return scope.result().body();
+                return scope.join().body();
             }
         }
 
 
         public String scenario3() throws ExecutionException, InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/3")).build();
-            try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+            try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<HttpResponse<String>>anySuccessfulResultOrThrow())) {
                 IntStream.rangeClosed(1, 10_000)
-                        .forEach(i ->
+                        .forEach(_ ->
                                 scope.fork(() ->
                                         client.send(req, HttpResponse.BodyHandlers.ofString())
                                 )
                         );
 
-                scope.join();
-                return scope.result().body();
+                return scope.join().body();
             }
         }
 
 
-        public String scenario4() throws ExecutionException, InterruptedException {
+        public String scenario4() throws InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/4")).build();
-            try (var outer = new StructuredTaskScope.ShutdownOnSuccess<String>()) {
+            try (var outer = StructuredTaskScope.open(StructuredTaskScope.Joiner.<String>anySuccessfulResultOrThrow())) {
                 outer.fork(() -> {
-                    try (var inner = new StructuredTaskScope.ShutdownOnSuccess<String>()) {
+                    try (var inner = StructuredTaskScope.open(StructuredTaskScope.Joiner.<String>anySuccessfulResultOrThrow(), cf -> cf.withTimeout(Duration.ofSeconds(1)))) {
                         inner.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()).body());
-                        inner.joinUntil(Instant.now().plusSeconds(1));
-                        return inner.result();
+                        return inner.join();
                     }
                 });
 
                 outer.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()).body());
 
-                outer.join();
-
-                return outer.result();
+                return outer.join();
             }
         }
 
 
-        public String scenario5() throws ExecutionException, InterruptedException {
+        public String scenario5() throws InterruptedException {
             class Req {
                 final HttpRequest req = HttpRequest.newBuilder(url.resolve("/5")).build();
 
@@ -104,16 +99,15 @@ public class Main {
                 }
             }
 
-            try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+            try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<HttpResponse<String>>anySuccessfulResultOrThrow())) {
                 scope.fork(() -> new Req().make());
                 scope.fork(() -> new Req().make());
-                scope.join();
-                return scope.result().body();
+                return scope.join().body();
             }
         }
 
 
-        public String scenario6() throws ExecutionException, InterruptedException {
+        public String scenario6() throws InterruptedException {
             class Req {
                 final HttpRequest req = HttpRequest.newBuilder(url.resolve("/6")).build();
 
@@ -127,31 +121,29 @@ public class Main {
                 }
             }
 
-            try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+            try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<HttpResponse<String>>anySuccessfulResultOrThrow())) {
                 scope.fork(() -> new Req().make());
                 scope.fork(() -> new Req().make());
                 scope.fork(() -> new Req().make());
-                scope.join();
-                return scope.result().body();
+                return scope.join().body();
             }
         }
 
 
-        public String scenario7() throws ExecutionException, InterruptedException {
+        public String scenario7() throws InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/7")).build();
-            try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+            try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<HttpResponse<String>>anySuccessfulResultOrThrow())) {
                 scope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
                 scope.fork(() -> {
                     Thread.sleep(3000);
                     return client.send(req, HttpResponse.BodyHandlers.ofString());
                 });
-                scope.join();
-                return scope.result().body();
+                return scope.join().body();
             }
         }
 
 
-        public String scenario8() throws InterruptedException, ExecutionException {
+        public String scenario8() throws InterruptedException {
             class Req implements AutoCloseable {
                 final HttpRequest openReq =
                         HttpRequest.newBuilder(url.resolve("/8?open")).build();
@@ -181,7 +173,7 @@ public class Main {
                 }
             }
 
-            try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+            try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<HttpResponse<String>>anySuccessfulResultOrThrow())) {
                 scope.fork(() -> {
                     try (var req = new Req()) {
                         return req.make();
@@ -193,9 +185,7 @@ public class Main {
                     }
                 });
 
-                scope.join();
-
-                return scope.result().body();
+                return scope.join().body();
             }
         }
 
@@ -204,9 +194,9 @@ public class Main {
             }
 
             final HttpRequest req = HttpRequest.newBuilder(url.resolve("/9")).build();
-            try (var scope = new StructuredTaskScope<TimedResponse>()) {
+            try (var scope = StructuredTaskScope.open()) {
                 var futures = IntStream.rangeClosed(1, 10)
-                        .mapToObj(i ->
+                        .mapToObj(_ ->
                                 scope.fork(() -> {
                                     var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
                                     return new TimedResponse(Instant.now(), resp);
@@ -230,8 +220,8 @@ public class Main {
             var id = UUID.randomUUID().toString();
 
             Supplier<String> blocker = () -> {
-                try (var scope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
-                    var req = HttpRequest.newBuilder(url.resolve(STR."/10?\{id}")).build();
+                try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<HttpResponse<String>>anySuccessfulResultOrThrow())) {
+                    var req = HttpRequest.newBuilder(url.resolve("/10?" + id)).build();
                     var messageDigest = MessageDigest.getInstance("SHA-512");
 
                     scope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
@@ -242,9 +232,8 @@ public class Main {
                             result = messageDigest.digest(result);
                         return null;
                     });
-                    scope.join();
-                    return scope.result().body();
-                } catch (ExecutionException | InterruptedException | NoSuchAlgorithmException e) {
+                    return scope.join().body();
+                } catch (InterruptedException | NoSuchAlgorithmException e) {
                     throw new RuntimeException(e);
                 }
             };
@@ -257,7 +246,7 @@ public class Main {
             recursive.func = () -> {
                 var osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
                 var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
-                var req = HttpRequest.newBuilder(url.resolve(STR."/10?\{id}=\{load}")).build();
+                var req = HttpRequest.newBuilder(url.resolve("/10?" + id + "=" + load)).build();
                 try {
                     var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
                     if ((resp.statusCode() >= 200) && (resp.statusCode() < 300)) {
@@ -273,7 +262,7 @@ public class Main {
                 }
             };
 
-            try (var scope = new StructuredTaskScope<String>()) {
+            try (var scope = StructuredTaskScope.open()) {
                 scope.fork(blocker::get);
                 var task = scope.fork(recursive.func::get);
                 scope.join();
@@ -281,21 +270,19 @@ public class Main {
             }
         }
 
-        public String scenario11() throws ExecutionException, InterruptedException {
+        public String scenario11() throws InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/11")).build();
 
-            try (var outerScope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+            try (var outerScope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<HttpResponse<String>>anySuccessfulResultOrThrow())) {
                 outerScope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
                 outerScope.fork(() -> {
-                    try (var innerScope = new StructuredTaskScope.ShutdownOnSuccess<HttpResponse<String>>()) {
+                    try (var innerScope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<HttpResponse<String>>anySuccessfulResultOrThrow())) {
                         innerScope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
                         innerScope.fork(() -> client.send(req, HttpResponse.BodyHandlers.ofString()));
-                        innerScope.join();
-                        return innerScope.result();
+                        return innerScope.join();
                     }
                 });
-                outerScope.join();
-                return outerScope.result().body();
+                return outerScope.join().body();
             }
         }
 
