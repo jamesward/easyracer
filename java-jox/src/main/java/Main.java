@@ -32,7 +32,7 @@ public class Main {
             this.client = HttpClient.newHttpClient();
         }
 
-        public String scenario1() throws ExecutionException, InterruptedException {
+        public String scenario1() throws InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/1")).build();
             return race(
                     () -> client.send(req, HttpResponse.BodyHandlers.ofString()),
@@ -41,8 +41,8 @@ public class Main {
         }
 
 
-        public String scenario2() throws ExecutionException, InterruptedException {
-            var req = HttpRequest.newBuilder(url.resolve("/1")).build();
+        public String scenario2() throws InterruptedException {
+            var req = HttpRequest.newBuilder(url.resolve("/2")).build();
             return race(
                     () -> client.send(req, HttpResponse.BodyHandlers.ofString()),
                     () -> client.send(req, HttpResponse.BodyHandlers.ofString())
@@ -50,7 +50,7 @@ public class Main {
         }
 
 
-        public String scenario3() throws ExecutionException, InterruptedException {
+        public String scenario3() throws InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/3")).build();
             List<Callable<HttpResponse<String>>> reqs =
                     Collections.nCopies(10_000, () ->
@@ -60,7 +60,7 @@ public class Main {
         }
 
 
-        public String scenario4() throws ExecutionException, InterruptedException {
+        public String scenario4() throws InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/4")).build();
             return race(
                     () -> client.send(req, HttpResponse.BodyHandlers.ofString()),
@@ -69,7 +69,7 @@ public class Main {
         }
 
 
-        public String scenario5() throws ExecutionException, InterruptedException {
+        public String scenario5() throws InterruptedException {
             final HttpRequest req = HttpRequest.newBuilder(url.resolve("/5")).build();
             Callable<HttpResponse<String>> makeReq = () -> {
                 var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
@@ -84,8 +84,8 @@ public class Main {
         }
 
 
-        public String scenario6() throws ExecutionException, InterruptedException {
-            final HttpRequest req = HttpRequest.newBuilder(url.resolve("/5")).build();
+        public String scenario6() throws InterruptedException {
+            final HttpRequest req = HttpRequest.newBuilder(url.resolve("/6")).build();
             Callable<HttpResponse<String>> makeReq = () -> {
                 var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
                 if (resp.statusCode() == 200) {
@@ -99,7 +99,7 @@ public class Main {
         }
 
 
-        public String scenario7() throws ExecutionException, InterruptedException {
+        public String scenario7() throws InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/7")).build();
             return race(
                     () -> client.send(req, HttpResponse.BodyHandlers.ofString()),
@@ -111,7 +111,7 @@ public class Main {
         }
 
 
-        public String scenario8() throws InterruptedException, ExecutionException {
+        public String scenario8() throws InterruptedException {
             class Req implements AutoCloseable {
                 final HttpRequest openReq =
                         HttpRequest.newBuilder(url.resolve("/8?open")).build();
@@ -156,7 +156,7 @@ public class Main {
         }
 
 
-        public String scenario9() throws InterruptedException, ExecutionException {
+        public String scenario9() throws InterruptedException {
             record TimedResponse(Instant instant, HttpResponse<String> response) { }
 
             final HttpRequest req = HttpRequest.newBuilder(url.resolve("/9")).build();
@@ -180,12 +180,12 @@ public class Main {
         }
 
 
-        public String scenario10() throws InterruptedException, ExecutionException {
+        public String scenario10() throws InterruptedException {
             var id = UUID.randomUUID().toString();
 
             Supplier<String> blocker = () -> {
                 try {
-                    var req = HttpRequest.newBuilder(url.resolve(STR."/10?\{id}")).build();
+                    var req = HttpRequest.newBuilder(url.resolve("/10?" + id)).build();
                     var messageDigest = MessageDigest.getInstance("SHA-512");
 
                     return race(
@@ -199,7 +199,7 @@ public class Main {
                             }
                     ).body();
                 }
-                catch (ExecutionException | InterruptedException | NoSuchAlgorithmException e) {
+                catch (InterruptedException | NoSuchAlgorithmException e) {
                     throw new RuntimeException(e);
                 }
             };
@@ -212,7 +212,7 @@ public class Main {
             recursive.func = () -> {
                 var osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
                 var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
-                var req = HttpRequest.newBuilder(url.resolve(STR."/10?\{id}=\{load}")).build();
+                var req = HttpRequest.newBuilder(url.resolve("/10?" + id + "=" + load)).build();
                 try {
                     var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
                     if ((resp.statusCode() >= 200) && (resp.statusCode() < 300)) {
@@ -237,7 +237,7 @@ public class Main {
         }
 
 
-        public String scenario11() throws ExecutionException, InterruptedException {
+        public String scenario11() throws InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/11")).build();
             return race(
                     () -> client.send(req, HttpResponse.BodyHandlers.ofString()),
@@ -249,13 +249,13 @@ public class Main {
         }
 
 
-        List<String> results() throws ExecutionException, InterruptedException {
+        List<String> results() throws InterruptedException {
             return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
 //            return List.of(scenario11());
         }
     }
 
-    void main() throws URISyntaxException, ExecutionException, InterruptedException {
+    void main() throws URISyntaxException, InterruptedException {
         var scenarios = new Scenarios(new URI("http://localhost:8080"));
         scenarios.results().forEach(System.out::println);
     }

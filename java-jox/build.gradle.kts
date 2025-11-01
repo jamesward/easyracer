@@ -16,7 +16,7 @@ dependencies {
     implementation("com.softwaremill.jox:structured:0.5.0")
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.1")
     testImplementation("org.testcontainers:testcontainers:2.0.1")
-    testImplementation("org.testcontainers:junit-jupiter:2.0.1")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.1")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.16")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
