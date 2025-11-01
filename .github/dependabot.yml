@@ -115,10 +115,10 @@ updates:
       interval: "weekly"
 
   # Haskell projects
-  - package-ecosystem: "cabal"
-    directory: "/haskell-async"
-    schedule:
-      interval: "weekly"
+#  - package-ecosystem: "cabal"
+#    directory: "/haskell-async"
+#    schedule:
+#      interval: "weekly"
 
   # F# projects
   - package-ecosystem: "nuget"
