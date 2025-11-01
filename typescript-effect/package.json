@@ -22,7 +22,7 @@
     "ts-node": "latest"
   },
   "dependencies": {
-    "@effect/platform": "0.80.11",
+    "@effect/platform": "0.92.1",
     "@effect/platform-node": "0.76.21",
     "effect": "3.14.11"
   },
