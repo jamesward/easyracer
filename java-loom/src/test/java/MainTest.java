@@ -5,14 +5,13 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class MainTest {
 
     @Test
-    public void testScenarios() throws URISyntaxException, ExecutionException, InterruptedException {
+    public void testScenarios() throws URISyntaxException, InterruptedException {
         try (GenericContainer<?> scenarioServer = new GenericContainer<>(DockerImageName.parse("ghcr.io/jamesward/easyracer"))) {
             scenarioServer.withExposedPorts(8080).waitingFor(new HttpWaitStrategy()).start();
 

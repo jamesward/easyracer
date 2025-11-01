@@ -53,7 +53,7 @@ public class Main {
         }
 
 
-        public String scenario3() throws ExecutionException, InterruptedException {
+        public String scenario3() throws InterruptedException {
             var req = HttpRequest.newBuilder(url.resolve("/3")).build();
             try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<HttpResponse<String>>anySuccessfulResultOrThrow())) {
                 IntStream.rangeClosed(1, 10_000)
@@ -286,13 +286,13 @@ public class Main {
             }
         }
 
-        List<String> results() throws ExecutionException, InterruptedException {
+        List<String> results() throws InterruptedException {
             return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
 //            return List.of(scenario11());
         }
     }
 
-    void main() throws URISyntaxException, ExecutionException, InterruptedException {
+    void main() throws URISyntaxException, InterruptedException {
         var scenarios = new Scenarios(new URI("http://localhost:8080"));
         scenarios.results().forEach(System.out::println);
     }
