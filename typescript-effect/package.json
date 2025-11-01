@@ -24,7 +24,7 @@
   "dependencies": {
     "@effect/platform": "0.80.11",
     "@effect/platform-node": "0.76.21",
-    "effect": "3.14.11"
+    "effect": "3.18.4"
   },
   "jest": {
     "transform": {
