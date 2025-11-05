@@ -1,9 +1,6 @@
 {
   "devDependencies": {
     "@gerhobbelt/markdown-it-code-snippet-enhanced": "latest",
-    "@kazumatu981/markdown-it-kroki": "latest",
-    "@marp-team/marp-cli": "latest",
-    "markdown-it-mark": "latest",
-    "markdown-it-mermaid": "latest"
+    "@marp-team/marp-cli": "latest"
   }
 }
