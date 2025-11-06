@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 // Note: Intentionally, code is not shared across scenarios
@@ -190,29 +191,23 @@ public class Main {
         }
 
         public String scenario9() throws InterruptedException {
-            record TimedResponse(Instant instant, HttpResponse<String> response) {
-            }
+            record TimedResponse(Instant instant, HttpResponse<String> response) { }
 
             final HttpRequest req = HttpRequest.newBuilder(url.resolve("/9")).build();
-            try (var scope = StructuredTaskScope.open()) {
-                var futures = IntStream.rangeClosed(1, 10)
-                        .mapToObj(_ ->
-                                scope.fork(() -> {
-                                    var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
-                                    return new TimedResponse(Instant.now(), resp);
-                                })
-                        ).toList();
+            try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.<TimedResponse>allSuccessfulOrThrow())) {
+                IntStream.rangeClosed(1, 10).forEach(_ ->
+                        scope.fork(() -> {
+                            var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+                            return new TimedResponse(Instant.now(), resp);
+                        })
+                );
 
-                scope.join();
-
-                return futures.stream()
+                return scope.join()
                         .map(StructuredTaskScope.Subtask::get)
                         .filter(r -> r.response.statusCode() == 200)
-                        .sorted(Comparator.comparing(TimedResponse::instant)).collect(
-                                StringBuilder::new,
-                                (acc, timedResponse) -> acc.append(timedResponse.response.body()),
-                                StringBuilder::append
-                        ).toString();
+                        .sorted(Comparator.comparing(TimedResponse::instant))
+                        .map(r -> r.response.body())
+                        .collect(Collectors.joining());
             }
         }
 
@@ -288,7 +283,7 @@ public class Main {
 
         List<String> results() throws InterruptedException {
             return List.of(scenario1(), scenario2(), scenario3(), scenario4(), scenario5(), scenario6(), scenario7(), scenario8(), scenario9(), scenario10(), scenario11());
-//            return List.of(scenario11());
+//            return List.of(scenario9());
         }
     }
 
