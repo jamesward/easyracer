@@ -22,16 +22,17 @@ jobs:
         working-directory: .presos
 
       # don't process the README
-      - env:
-          PUPPETEER_TIMEOUT: 0
-        run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf *_*.md
-        working-directory: .presos
+      # disable for now due to hang
+#      - env:
+#          PUPPETEER_TIMEOUT: 0
+#        run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf *_*.md
+#        working-directory: .presos
 
       - run: |
           mkdir _site
           cp -r .presos/img _site/
           cp .presos/*.html _site/
-          cp .presos/*.pdf _site/
+#          cp .presos/*.pdf _site/
 
       - name: setup pages
         uses: actions/configure-pages@v5
