@@ -103,75 +103,31 @@ graph TD
 
 ---
 
-## Scenario 1
+## Scenario 9
 
-### Race 2 concurrent requests
-
-<!--
-* First one wins
-* What is a race?
-    * Do multiple things at the same time, get the first result
-* Loser cancellation (but not validated in this scenario)
-    * Cancellation means stopping and cleaning up
-
-* Java
-    * Scopes to define SC
-        * ShutdownOnSuccess is the race
-    * Direct Loom usage
-        * client.send is blocking but not really
-* Kotlin
-    * Also Scope Based
-    * But explicit cancellation of loser
--->
+### 10 concurrent requests, combine successes
 
 ---
 
-## Scenario 1 - Scala Ox (Direct Style)
+## Scenario 9 - Kotlin Coroutines (Direct Style)
 
-@[code lang=scala transclude={20-22}](@/../scala-ox/src/main/scala/EasyRacerClient.scala)
-
-<!--
-Higher level abstraction on Loom
-No special datatype or syntax
--->
+@[code lang=kotlin transclude={163-175}](@/../kotlin-coroutines/src/main/kotlin/Main.kt)
 
 ---
 
-## Scenario 1 - Rust Futures (Direct Style)
+## Scenario 9 - Java Loom (Scope Driven)
 
-@[code lang=rust transclude={6-16}](@/../rust-futures/src/main.rs)
-
----
-
-## Scenario 1 - Rust Tokio (Direct Style)
-
-@[code lang=rust transclude={21-29}](@/../rust-tokio/src/lib.rs)
+@[code lang=java transclude={193-212}](@/../java-loom/src/main/java/Main.java)
 
 ---
 
-## Scenario 1 - Python asyncio (Scope Driven)
+## Scenario 9 - Scala Kyo (Effect Oriented)
 
-@[code lang=python transclude={13-24}](@/../python-aiohttp/main.py)
-
----
-
-## Scenario 1 - Java Loom (Scope Driven)
-
-@[code lang=java transclude={36-42}](@/../java-loom/src/main/java/Main.java)
-
----
-## Scenario 1 - TypeScript Effect (Effect Oriented)
-
-@[code lang=typescript transclude={11-18}](@/../typescript-effect/src/lib.ts)
-
----
-## Scenario 1 - Scala ZIO (Effect Oriented)
-
-@[code lang=scala transclude={17-21}](@/../scala-zio/src/main/scala/EasyRacerClient.scala)
+@[code lang=scala transclude={72-85}](@/../scala-kyo/src/main/scala/EasyRacerClient.scala)
 
 ---
 
-## Races
+## Scenario 1 - Race 2 concurrent requests
 
 ```mermaid
 graph TD
@@ -194,6 +150,47 @@ graph TD
     style J fill:#ccf,stroke:#333,stroke-width:2px
     style K fill:#f9f,stroke:#333,stroke-width:2px
 ```
+
+---
+
+## Scenario 1 - Kotlin Coroutines (Direct Style)
+
+@[code lang=kotlin transclude={23-32}](@/../kotlin-coroutines/src/main/kotlin/Main.kt)
+
+---
+
+## Scenario 1 - Kotlin Arrow (Direct Style)
+
+@[code lang=kotlin transclude={32-33}](@/../kotlin-arrow/src/main/kotlin/Main.kt)
+
+---
+
+## Scenario 1 - Java Loom (Scope Driven)
+
+@[code lang=java transclude={38-43}](@/../java-loom/src/main/java/Main.java)
+
+---
+
+## Scenario 1 - Java Jox (Direct Style)
+
+@[code lang=java transclude={36-40}](@/../java-jox/src/main/java/Main.java)
+
+---
+
+## Scenario 1 - Scala Ox (Direct Style)
+
+@[code lang=scala transclude={20-22}](@/../scala-ox/src/main/scala/EasyRacerClient.scala)
+
+<!--
+Higher level abstraction on Loom
+No special datatype or syntax
+-->
+
+---
+
+## Scenario 1 - Scala Kyo (Effect Oriented)
+
+@[code lang=scala transclude={16-18}](@/../scala-kyo/src/main/scala/EasyRacerClient.scala)
 
 ---
 
@@ -261,7 +258,7 @@ graph TD
 
 ## Scenario 2 - Java Loom
 
-@[code lang=java transclude={47-53}](@/../java-loom/src/main/java/Main.java)
+@[code lang=java transclude={48-53}](@/../java-loom/src/main/java/Main.java)
 
 ---
 
@@ -289,13 +286,19 @@ graph TD
 
 ## Scenario 3 - Java Loom
 
-@[code lang=java transclude={58-69}](@/../java-loom/src/main/java/Main.java)
+@[code lang=java transclude={58-68}](@/../java-loom/src/main/java/Main.java)
 
 ---
 
 ## Scenario 3 - Java Jox
 
 @[code lang=java transclude={54-59}](@/../java-jox/src/main/java/Main.java)
+
+---
+
+## Scenario 3 - Scala Ox
+
+@[code lang=scala transclude={30-33}](@/../scala-ox/src/main/scala/EasyRacerClient.scala)
 
 ---
 
@@ -317,141 +320,29 @@ graph TD
 
 ## Scenario 4 - Java Loom
 
-@[code lang=java transclude={74-89}](@/../java-loom/src/main/java/Main.java)
+@[code lang=java transclude={73-85}](@/../java-loom/src/main/java/Main.java)
 
 ---
 
-## Scenario 4 - Scala Ox
+## Scenario 4 - Java Jox
 
-@[code lang=scala transclude={36-38}](@/../scala-ox/src/main/scala/EasyRacerClient.scala)
+@[code lang=java transclude={64-68}](@/../java-jox/src/main/java/Main.java)
 
 ---
 
-## Scenario 8
+## Scenario 7 - Hedging (Java Jox)
+
+### Start a request, wait at least 3 seconds then start a second request
+
+@[code lang=java transclude={103-110}](@/../java-jox/src/main/java/Main.java)
+
+---
+
+## Scenario 8 - Resource Management (Scala Ox)
 
 ### Race 2 concurrent requests that "use" a resource which is obtained and released through other requests. The "use" request can return a non-20x request, in which case it is not a winner.
 
-<!--
-* Resource management - how hard is it to be sure open resources get closed with success & failures
-* Effect systems make resources management + concurrency easy
-* Java
-    * ???
-* Ox
-    * unsupervised & forkPlain
--->
-
----
-
-## Scenario 8 - Scala Ox
-
 @[code lang=scala transclude={59-69}](@/../scala-ox/src/main/scala/EasyRacerClient.scala)
-
----
-
-## Scenario 8 - Java Loom (Part 1)
-
-@[code lang=java transclude={155-182}](@/../java-loom/src/main/java/Main.java)
-
----
-
-## Scenario 8 - Java Loom (Part 2)
-
-@[code lang=java transclude={184-199}](@/../java-loom/src/main/java/Main.java)
-
----
-
-## Scenario 7
-
-### Start a request, wait at least 3 seconds then start a second request (hedging)
-
-<!--
-* Hedging is a common use case for race
-* why & example of hedging. P99
-* Different approaches to a “delay” and like timeout, it shouldn’t block the main thread
--->
-
----
-
-## Scenario 7 - Scala Ox
-
-@[code lang=scala transclude={51-56}](@/../scala-ox/src/main/scala/EasyRacerClient.scala)
-
----
-
-## ScopedValue
-
-* Immutable: Values cannot be changed once set
-* Scoped: Automatically cleaned up when the scope ends
-* Thread-confined: Only accessible within the thread where they're set
-
-```mermaid
-graph LR
-    A[Thread Execution] --> B{Create ScopedValue}
-    B --> C[Define initial container]
-    C --> D{where.run}
-    D --> E[Create new binding]
-    E --> F[Execute code within scope]
-    F --> G[Use value with .get]
-    G --> H[Continue execution]
-    H --> I{Exit scope?}
-    I -->|No| G
-    I -->|Yes| J[Cleanup value]
-
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style B fill:#bbf,stroke:#333,stroke-width:2px
-    style D fill:#bbf,stroke:#333,stroke-width:2px
-    style I fill:#bbf,stroke:#333,stroke-width:2px
-    style F fill:#bfb,stroke:#333,stroke-width:2px
-    style J fill:#fbb,stroke:#333,stroke-width:2px
-```
-
----
-
-## Scenario 7 - Java Loom - Scoped Values Setup
-
-```java
-private static final ScopedValue<String> OPERATION_ID = ScopedValue.newInstance();
-
-try {
-    return ScopedValue.where(OPERATION_ID, "SCENARIO_7").call(this::runScenario7);
-} catch (Exception e) {
-    return "Unhandled error occurred";
-}
-```
-
----
-
-## Scenario 7 - Java Loom - Scoped Values Usage
-
-```java
-var req = HttpRequest.newBuilder(url.resolve("/7")).build();
-try (var scope = new StructuredTaskScope.ShutdownOnSuccess<String>()) {
-    scope.fork(() -> {
-        return sendRequest(req);
-    });
-    
-    scope.fork(() -> {
-        // Wait for 3 seconds before starting the second request
-        Thread.sleep(3000);
-        return sendRequest(req);
-    });
-
-    scope.join();
-    return scope.result();
-}
-```
-
----
-
-## Scenario 7 - Java Loom - Scoped Values Usage
-
-```java
-private String sendRequest(HttpRequest req) throws Exception {
-    LOGGER.info("Sending request for operation: " + OPERATION_ID.get());
-    HttpResponse<String> response = client.send(req, HttpResponse.BodyHandlers.ofString());
-    return response.body();
-}
-```
 
 ---
 
