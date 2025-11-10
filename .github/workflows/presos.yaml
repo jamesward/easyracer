@@ -1,3 +1,7 @@
+# this only regenerates the html files when the source markdown changes
+# this is so that code references in the generated presentation are consistent
+# because the code can change after a presentation but we want to keep the old embedded code / not overwrite it with new code
+
 on:
   push:
     branches:

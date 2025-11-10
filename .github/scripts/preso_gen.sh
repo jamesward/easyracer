@@ -2,9 +2,9 @@
 
 mkdir -p _site
 
-ls -al .presos
-
-ls -al _site
+#ls -al .presos
+#
+#ls -al _site
 
 cd .presos
 
