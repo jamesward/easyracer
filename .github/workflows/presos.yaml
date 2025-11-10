@@ -9,15 +9,15 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
       - name: Site cache
         uses: actions/cache@v4
         with:
           path: _site/
-          key: site-cache-${{ hashFiles('/.presos/*.md') }}
+          key: site-cache-${{ hashFiles('.presos/*.md') }}
           restore-keys: site-cache-
-
-      - name: checkout
-        uses: actions/checkout@v4
 
       - uses: actions/setup-node@v6
 
