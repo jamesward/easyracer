@@ -9,6 +9,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Site cache
+        uses: actions/cache@v4
+        with:
+          path: _site/
+          key: site-cache
+          restore-keys: site-cache
+
       - name: checkout
         uses: actions/checkout@v4
 
@@ -17,22 +24,7 @@ jobs:
       - run: npm install
         working-directory: .presos
 
-      # don't process the README
-      - run: npx @marp-team/marp-cli --engine ./engine.mjs *_*.md
-        working-directory: .presos
-
-      # don't process the README
-      # disable for now due to hang
-#      - env:
-#          PUPPETEER_TIMEOUT: 0
-#        run: npx @marp-team/marp-cli --engine ./engine.mjs --pdf *_*.md
-#        working-directory: .presos
-
-      - run: |
-          mkdir _site
-          cp -r .presos/img _site/
-          cp .presos/*.html _site/
-#          cp .presos/*.pdf _site/
+      - run: ./.github/scripts/preso_gen.sh
 
       - name: setup pages
         uses: actions/configure-pages@v5
