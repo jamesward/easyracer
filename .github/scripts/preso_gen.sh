@@ -21,6 +21,8 @@ for md_file in *_*.md; do
     echo "Creating html for: ${md_file}"
     npx @marp-team/marp-cli --engine ./engine.mjs --output=${html_file} ${md_file}
 
+    echo "$current_hash" > "$md_hashfile"
+
     # todo: create pdfs
     # currently hanging
     # npx @marp-team/marp-cli --engine ./engine.mjs --pdf *_*.md
