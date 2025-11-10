@@ -13,7 +13,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: _site/
-          key: site-cache-${{ github.run_id }}
+          key: site-cache-${{ hashFiles('.presos/*.md') }}
           restore-keys: site-cache-
 
       - name: checkout
