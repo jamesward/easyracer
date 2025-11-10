@@ -2,6 +2,8 @@
 
 mkdir -p _site
 
+ls -al _site
+
 cd .presos
 
 for md_file in *_*.md; do
