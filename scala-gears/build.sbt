@@ -1,4 +1,4 @@
-scalaVersion := "3.7.3"
+scalaVersion := "3.7.4"
 
 libraryDependencies ++= Seq(
   "ch.epfl.lamp" %% "gears" % "0.2.0",
