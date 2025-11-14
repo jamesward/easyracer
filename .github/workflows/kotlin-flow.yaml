@@ -22,7 +22,7 @@ jobs:
     - uses: actions/setup-java@v5
       with:
         distribution: temurin
-        java-version: '20'
+        java-version: '21'
         cache: gradle
     - uses: gradle/actions/setup-gradle@v5
     - run: ./gradlew test

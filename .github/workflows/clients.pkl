@@ -1,6 +1,6 @@
 // pkl eval --multiple-file-output-path . clients.pkl
 
-import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.25#/GitHubAction.pkl"
+import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.27#/GitHubAction.pkl"
 //import "../../../pklgha/src/GitHubAction.pkl"
 
 
@@ -72,7 +72,7 @@ clients = new Mapping<String, Run> {
   }
 
   ["javascript-stdlib"] = new {
-    steps = GitHubAction.Node.testSteps(null, "21.6.0", "javascript-stdlib/package-lock.json")
+    steps = GitHubAction.Node.testSteps(null, null, "javascript-stdlib/package-lock.json", "package.json")
   }
 
   ["kotlin-arrow"] = new {
@@ -220,7 +220,7 @@ clients = new Mapping<String, Run> {
   }
 
   ["typescript-effect"] = new {
-    steps = GitHubAction.Node.testSteps(null, "23.2.0", "typescript-effect/package-lock.json")
+    steps = GitHubAction.Node.testSteps(null, null, "typescript-effect/package-lock.json", "package.json")
   }
 }
 

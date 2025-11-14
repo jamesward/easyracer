@@ -21,7 +21,7 @@ jobs:
     - uses: actions/checkout@v5
     - uses: actions/setup-node@v6
       with:
-        node-version: 23.2.0
+        node-version-file: package.json
         cache: npm
         cache-dependency-path: typescript-effect/package-lock.json
     - run: |-
