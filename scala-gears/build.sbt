@@ -2,7 +2,7 @@ scalaVersion := "3.7.4"
 
 libraryDependencies ++= Seq(
   "ch.epfl.lamp" %% "gears" % "0.2.0",
-  "com.squareup.okhttp3" % "okhttp" % "5.3.0",
+  "com.squareup.okhttp3" % "okhttp" % "5.3.1",
   "org.asynchttpclient" % "async-http-client" % "3.0.3",
   "org.scalatest" %% "scalatest" % "3.2.19" % Test,
   "org.slf4j" % "slf4j-simple" % "2.0.17" % Test,
