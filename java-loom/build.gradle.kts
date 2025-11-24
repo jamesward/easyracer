@@ -10,8 +10,8 @@ java {
 
 dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.1")
-    testImplementation("org.testcontainers:testcontainers:2.0.1")
-    testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.1")
+    testImplementation("org.testcontainers:testcontainers:2.0.2")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.0.1")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
 }
