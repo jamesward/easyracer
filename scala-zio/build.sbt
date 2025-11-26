@@ -12,7 +12,7 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio-test" % zioVersion % Test,
   "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
   "org.slf4j" % "slf4j-simple" % "2.0.17" % Test,
-  "com.dimafeng" %% "testcontainers-scala-core" % "0.43.6" % Test
+  "com.dimafeng" %% "testcontainers-scala-core" % "0.44.0" % Test
 )
 
 testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
