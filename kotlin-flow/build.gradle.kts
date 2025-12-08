@@ -21,8 +21,8 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:3.3.3")
     implementation("io.ktor:ktor-client-cio-jvm:3.3.3")
 
-    testImplementation("io.kotest:kotest-runner-junit5:6.0.4")
-    testImplementation("io.kotest:kotest-assertions-core:6.0.4")
+    testImplementation("io.kotest:kotest-runner-junit5:6.0.7")
+    testImplementation("io.kotest:kotest-assertions-core:6.0.7")
     testImplementation("io.kotest.extensions:kotest-extensions-testcontainers:2.0.2")
     runtimeOnly("org.slf4j:slf4j-simple:2.0.17")
 }
