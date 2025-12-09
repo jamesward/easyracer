@@ -2,7 +2,7 @@ scalaVersion := "2.13.17"
 
 libraryDependencies ++= List(
   "org.http4s" %% "http4s-ember-client" % "0.23.33",
-  "org.typelevel" %% "weaver-cats" % "0.11.1" % Test,
+  "org.typelevel" %% "weaver-cats" % "0.11.3" % Test,
   "com.dimafeng" %% "testcontainers-scala" % "0.43.0" % Test,
   "ch.qos.logback" % "logback-classic" % "1.5.23" % Runtime
 )
