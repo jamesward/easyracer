@@ -5,30 +5,63 @@ function url(port, scenario) {
 }
 
 async function raceWithCancellation(racers) {
-    const racersAndSignals = racers.map((racer) => {
+    const racersWithCleanup = racers.map((racer) => {
         const controller = new AbortController()
-        const signal = controller.signal
 
-        return {
-            promise: racer(signal).then((result) => {
-                controller.isFinished = true
-                return result
-            }),
-            controller: controller
+        const promise = racer(controller.signal).then(
+            (response) => ({ response, status: 'completed', controller }),
+            (error) => ({ error, status: 'failed', controller })
+        )
+
+        return { promise, controller }
+    })
+
+    const racerPromises = racersWithCleanup.map(r => r.promise)
+
+    // Wait for first successful completion
+    const results = await new Promise((resolve) => {
+        const settled = []
+        let resolved = false
+
+        racerPromises.forEach((p, i) => {
+            p.then((result) => {
+                settled[i] = result
+                if (!resolved && result.status === 'completed') {
+                    resolved = true
+                    resolve({ winner: result, all: racerPromises })
+                }
+            })
+        })
+
+        // Fallback if all fail
+        Promise.allSettled(racerPromises).then((all) => {
+            if (!resolved) resolve({ winner: null, all })
+        })
+    })
+
+    // Abort all non-winners
+    racersWithCleanup.forEach((racer, i) => {
+        if (racer !== results.winner?.controller) {
+            racer.controller.abort()
         }
     })
 
-    const racerPromises = racersAndSignals.map(racer => racer.promise)
-    return Promise.any(racerPromises).then((winner) =>  {
-        racersAndSignals.forEach((racer) => {
-            if (racer.controller.isFinished === undefined) {
-                racer.controller.abort()
-            }
-        })
-        // wait for all the promises to settle before completing the winner
-        // note that this doesn't actually wait for all the loser connections to close
-        return Promise.allSettled(racerPromises).then(() => winner)
+    // Wait for all connections to fully close by cancelling response bodies
+    const cleanupPromises = racerPromises.map(async (p) => {
+        const result = await p
+        if (result !== results.winner && result.status === 'completed') {
+            // Cancel the response body stream to close the connection
+            await result.response.body?.cancel()
+        }
     })
+
+    await Promise.all(cleanupPromises)
+
+    if (!results.winner) {
+        throw new AggregateError(racersWithCleanup.map(r => r.error), 'All racers failed')
+    }
+
+    return results.winner.response
 }
 
 export async function scenario1(port) {
@@ -58,33 +91,24 @@ export async function scenario3(port) {
     return raceWithCancellation(reqs)
 }
 
-/*
-On slow machines this one can't use fetch for the timeout'd request because:
-scenario3 finishes and the connections are still being closed (there doesn't seem to be a way to wait until they are all closed to continue).
-Then when scenario4 runs, fetch doesn't immediately make a connection (because the libuv thread pool is exhausted).
-This causes the timeout to stop making the second connection before it actually makes the connection.
-So instead of using a fetch for the timeout'd request, use a Socket and do not start the timeout until the request connects.
- */
 export async function scenario4(port) {
     const req = async () => {
         const resp = await fetch(url(port, 4))
         return resp.text()
     }
 
-    const reqWithTimeout = () => {
-        const client = net.createConnection({ port }, () => {
-            client.write('GET /4 HTTP/1.1\n\n');
-        })
+    const reqWithTimeout = async () => {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 1000)
 
-        // don't worry about this request returning a result, cause it will always be the loser
-        return new Promise((_, reject) => {
-            client.on("connect", () => {
-                setTimeout(() => {
-                    client.end()
-                    reject(new Error("Request timed out"))
-                }, 1000)
-            })
-        })
+        try {
+            const resp = await fetch(url(port, 4), {signal: controller.signal})
+            clearTimeout(timeoutId)
+            return resp.text()
+        } catch (error) {
+            clearTimeout(timeoutId)
+            throw error
+        }
     }
 
     return Promise.any([req(), reqWithTimeout()])
