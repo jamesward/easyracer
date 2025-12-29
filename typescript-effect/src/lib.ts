@@ -1,6 +1,7 @@
 import {Array, Effect} from "effect"
-import {seconds} from "effect/Duration";
-import {FetchHttpClient, HttpClient, HttpClientResponse} from "@effect/platform";
+import {seconds} from "effect/Duration"
+import {HttpClient, HttpClientResponse} from "@effect/platform"
+import {NodeHttpClient} from "@effect/platform-node"
 
 
 function scenarioUrl(port: number, scenario: number): string {
@@ -110,13 +111,13 @@ export function program(port: number) {
             yield* scenario1(port),
             yield* scenario2(port),
             yield* scenario3(port),
-            yield* scenario4(port).pipe(Effect.delay("30 seconds")), // wait for scenario3 connections to actually close,
+            yield* scenario4(port),
             yield* scenario5(port),
             yield* scenario6(port),
             yield* scenario7(port),
             yield* scenario8(port),
         ]
     }).pipe(
-        Effect.provide(FetchHttpClient.layer)
+        Effect.provide(NodeHttpClient.layer)
     )
 }
