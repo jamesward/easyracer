@@ -72,7 +72,7 @@ clients = new Mapping<String, Run> {
   }
 
   ["javascript-stdlib"] = new {
-    steps = GitHubAction.Node.testSteps(null, null, "javascript-stdlib/package-lock.json", "package.json")
+    steps = GitHubAction.Node.testSteps(null, null, "javascript-stdlib/package-lock.json", "javascript-stdlib/package.json")
   }
 
   ["kotlin-arrow"] = new {
@@ -220,7 +220,7 @@ clients = new Mapping<String, Run> {
   }
 
   ["typescript-effect"] = new {
-    steps = GitHubAction.Node.testSteps(null, null, "typescript-effect/package-lock.json", "package.json")
+    steps = GitHubAction.Node.testSteps(null, null, "typescript-effect/package-lock.json", "typescript-effect/package.json")
   }
 }
 

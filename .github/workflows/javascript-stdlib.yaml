@@ -21,7 +21,7 @@ jobs:
     - uses: actions/checkout@v5
     - uses: actions/setup-node@v6
       with:
-        node-version-file: package.json
+        node-version-file: javascript-stdlib/package.json
         cache: npm
         cache-dependency-path: javascript-stdlib/package-lock.json
     - run: |-
