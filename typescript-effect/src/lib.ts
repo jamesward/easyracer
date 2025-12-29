@@ -8,7 +8,7 @@ function scenarioUrl(port: number, scenario: number): string {
     return `http://localhost:${port}/${scenario}`
 }
 
-function scenario1(port: number) {
+export function scenario1(port: number) {
     const req = Effect.scoped(
         Effect.gen(function*() {
             const resp = yield* HttpClient.get(scenarioUrl(port, 1))
@@ -19,7 +19,7 @@ function scenario1(port: number) {
     return Effect.race(req, req)
 }
 
-function scenario2(port: number) {
+export function scenario2(port: number) {
     const req = Effect.scoped(
         Effect.gen(function*() {
             const resp = yield* HttpClient.get(scenarioUrl(port, 2))
@@ -30,7 +30,7 @@ function scenario2(port: number) {
     return Effect.race(req, req)
 }
 
-function scenario3(port: number) {
+export function scenario3(port: number) {
     const req = Effect.scoped(
         Effect.gen(function*() {
             const resp = yield* HttpClient.get(scenarioUrl(port, 3))
@@ -41,7 +41,7 @@ function scenario3(port: number) {
     return Effect.raceAll(Array.replicate(req, 10000))
 }
 
-function scenario4(port: number) {
+export function scenario4(port: number) {
     const req = Effect.scoped(
         Effect.gen(function*() {
             const resp = yield* HttpClient.get(scenarioUrl(port, 4))
@@ -52,7 +52,7 @@ function scenario4(port: number) {
     return Effect.race(req, req.pipe(Effect.timeout("1 second")))
 }
 
-function scenario5(port: number) {
+export function scenario5(port: number) {
     const req = Effect.scoped(
         Effect.gen(function*() {
             const resp = yield* HttpClient.get(scenarioUrl(port, 5))
@@ -64,7 +64,7 @@ function scenario5(port: number) {
     return Effect.race(req, req)
 }
 
-function scenario6(port: number) {
+export function scenario6(port: number) {
     const req = Effect.scoped(
         Effect.gen(function*() {
             const resp = yield* HttpClient.get(scenarioUrl(port, 6))
@@ -76,7 +76,7 @@ function scenario6(port: number) {
     return Effect.raceAll([req, req, req])
 }
 
-function scenario7(port: number) {
+export function scenario7(port: number) {
     const req = Effect.scoped(
         Effect.gen(function*() {
             const resp = yield* HttpClient.get(scenarioUrl(port, 7))
@@ -87,7 +87,7 @@ function scenario7(port: number) {
     return Effect.race(req, Effect.delay(req, seconds(3)))
 }
 
-function scenario8(port: number) {
+export function scenario8(port: number) {
     const req = (url: string) => Effect.scoped(
         Effect.gen(function*() {
             const resp = yield* HttpClient.get(url)
