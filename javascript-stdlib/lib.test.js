@@ -33,19 +33,13 @@ describe("all work", () => {
         const httpPort = container.getFirstMappedPort()
         const controller = new AbortController()
         const promise = lib.httpGet(lib.url(httpPort, 1), controller.signal)
-
-        // Abort immediately
         controller.abort()
-
-        // Check that promise hasn't rejected yet (still pending)
         const pending = Symbol('pending')
         const raceResult = await Promise.race([
             promise.catch(() => 'rejected'),
             Promise.resolve(pending)
         ])
         expect(raceResult).toBe(pending)
-
-        // Eventually it should reject after connection closes
         await expect(promise).rejects.toThrow()
     })
 
@@ -90,6 +84,69 @@ describe("all work", () => {
         )
         const result = await lib.raceWithCancellation(racers)
         expect(result).toBe(0)
+    })
+
+    it("httpGet cleans up abort listener after completion", async () => {
+        const httpPort = container.getFirstMappedPort()
+        const controller = new AbortController()
+
+        let listenerRemoved = false
+        const originalRemoveEventListener = controller.signal.removeEventListener.bind(controller.signal)
+        controller.signal.removeEventListener = (type, listener) => {
+            if (type === 'abort') {
+                listenerRemoved = true
+            }
+            return originalRemoveEventListener(type, listener)
+        }
+
+        await lib.httpGet(lib.url(httpPort, ""), controller.signal)
+
+        expect(listenerRemoved).toBe(true)
+    })
+
+    it("scenario 1 works", async () => {
+        const result = await lib.scenario1(container.getFirstMappedPort())
+        expect(result).toBe("right")
+    })
+
+    it("scenario 2 works", async () => {
+        const result = await lib.scenario2(container.getFirstMappedPort())
+        expect(result).toBe("right")
+    })
+
+    it("scenario 3 works", async () => {
+        const result = await lib.scenario3(container.getFirstMappedPort())
+        expect(result).toBe("right")
+    }, 20000)
+
+    it("scenario 4 works", async () => {
+        const result = await lib.scenario4(container.getFirstMappedPort())
+        expect(result).toBe("right")
+    })
+
+    it("scenario 5 works", async () => {
+        const result = await lib.scenario5(container.getFirstMappedPort())
+        expect(result).toBe("right")
+    })
+
+    it("scenario 6 works", async () => {
+        const result = await lib.scenario6(container.getFirstMappedPort())
+        expect(result).toBe("right")
+    })
+
+    it("scenario 7 works", async () => {
+        const result = await lib.scenario7(container.getFirstMappedPort())
+        expect(result).toBe("right")
+    })
+
+    it("scenario 8 works", async () => {
+        const result = await lib.scenario8(container.getFirstMappedPort())
+        expect(result).toBe("right")
+    })
+
+    it("scenario 9 works", async () => {
+        const result = await lib.scenario9(container.getFirstMappedPort())
+        expect(result).toBe("right")
     })
 
 })
