@@ -9,54 +9,87 @@ describe("all work", () => {
             .withExposedPorts(8080)
             .withWaitStrategy(Wait.forHttp("/", 8080))
             .start()
-    }, 15000);
+    }, 15000)
 
     afterAll(async () => {
         await container.stop()
     })
 
-    it("scenario1 works", async () => {
+    it("get / works", async () => {
         const httpPort = container.getFirstMappedPort()
-        expect(await lib.scenario1(httpPort)).toBe("right")
-    }, 600000)
+        const resp = await lib.httpGet(lib.url(httpPort, ""))
+        expect(resp.statusCode).toBe(200)
+    })
 
-    it("scenario2 works", async () => {
+    it("get /1 can be canceled after 100ms", async () => {
         const httpPort = container.getFirstMappedPort()
-        expect(await lib.scenario2(httpPort)).toBe("right")
-    }, 600000)
+        const controller = new AbortController()
+        const promise = lib.httpGet(lib.url(httpPort, 1), controller.signal)
+        setTimeout(() => controller.abort(), 100)
+        await expect(promise).rejects.toThrow()
+    })
 
-    it("scenario3 works", async () => {
+    it("cancelled request does not reject until connection is closed", async () => {
         const httpPort = container.getFirstMappedPort()
-        expect(await lib.scenario3(httpPort)).toBe("right")
-    }, 600000)
+        const controller = new AbortController()
+        const promise = lib.httpGet(lib.url(httpPort, 1), controller.signal)
 
-    it("scenario4 works", async () => {
-        const httpPort = container.getFirstMappedPort()
-        expect(await lib.scenario4(httpPort)).toBe("right")
-    }, 600000)
+        // Abort immediately
+        controller.abort()
 
-    it("scenario5 works", async () => {
-        const httpPort = container.getFirstMappedPort()
-        expect(await lib.scenario5(httpPort)).toBe("right")
-    }, 600000)
+        // Check that promise hasn't rejected yet (still pending)
+        const pending = Symbol('pending')
+        const raceResult = await Promise.race([
+            promise.catch(() => 'rejected'),
+            Promise.resolve(pending)
+        ])
+        expect(raceResult).toBe(pending)
 
-    it("scenario6 works", async () => {
-        const httpPort = container.getFirstMappedPort()
-        expect(await lib.scenario6(httpPort)).toBe("right")
-    }, 600000)
+        // Eventually it should reject after connection closes
+        await expect(promise).rejects.toThrow()
+    })
 
-    it("scenario7 works", async () => {
-        const httpPort = container.getFirstMappedPort()
-        expect(await lib.scenario7(httpPort)).toBe("right")
-    }, 600000)
+    it("race works", async () => {
+        const racers = [
+            (signal) => new Promise((resolve) => setTimeout(() => resolve("first"), 50)),
+            (signal) => new Promise((resolve) => setTimeout(() => resolve("second"), 100)),
+        ]
+        const result = await lib.raceWithCancellation(racers)
+        expect(result).toBe("first")
+    })
 
-    it("scenario8 works", async () => {
-        const httpPort = container.getFirstMappedPort()
-        expect(await lib.scenario8(httpPort)).toBe("right")
-    }, 600000)
+    it("race cancels the losers", async () => {
+        const aborted = []
+        const racers = [
+            (signal) => new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => resolve("first"), 50)
+                signal.addEventListener('abort', () => {
+                    clearTimeout(timeout)
+                    aborted.push(1)
+                    reject(new Error('aborted'))
+                })
+            }),
+            (signal) => new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => resolve("second"), 100)
+                signal.addEventListener('abort', () => {
+                    clearTimeout(timeout)
+                    aborted.push(2)
+                    reject(new Error('aborted'))
+                })
+            }),
+        ]
+        const result = await lib.raceWithCancellation(racers)
+        expect(result).toBe("first")
+        expect(aborted).toContain(2)
+        expect(aborted).not.toContain(1)
+    })
 
-    it("scenario9 works", async () => {
-        const httpPort = container.getFirstMappedPort()
-        expect(await lib.scenario9(httpPort)).toBe("right")
-    }, 600000)
+    it("race works with 10000 promises", async () => {
+        const racers = Array.from({ length: 10000 }, (_, i) =>
+            (signal) => new Promise((resolve) => setTimeout(() => resolve(i), 50 + i))
+        )
+        const result = await lib.raceWithCancellation(racers)
+        expect(result).toBe(0)
+    })
+
 })
