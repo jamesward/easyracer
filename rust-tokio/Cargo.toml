@@ -5,7 +5,7 @@ edition = "2021"
 rust-version = "1.79"
 
 [dependencies]
-reqwest = "0.12.5"
+reqwest = "0.13.1"
 testcontainers = "0.26.2"
 tokio = { version = "1.45.0", features = ["rt-multi-thread", "macros"] }
 rand = "0.9.1"
