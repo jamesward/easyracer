@@ -199,12 +199,12 @@ clients = new Mapping<String, Run> {
   }
 
   ["swift-async"] = new {
-    `runs-on` = "macos-15"
+    `runs-on` = "macos-26"
     steps = swiftSteps
   }
 
   ["swift-combine"] = new {
-    `runs-on` = "macos-15"
+    `runs-on` = "macos-26"
     steps = swiftSteps
   }
 
