@@ -29,8 +29,6 @@ jobs:
         sudo socat UNIX-LISTEN:/var/run/docker.sock,reuseaddr,fork TCP-CONNECT:127.0.0.1:$DOCKER_PORT &
         sleep 2
         sudo chmod a+rw /var/run/docker.sock
-    - name: Select Xcode version
-      run: sudo xcode-select -s '/Applications/Xcode_16.3.app/Contents/Developer'
     - name: Run scenarios
       run: swift test -c release --disable-swift-testing
     defaults:
