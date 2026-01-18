@@ -32,7 +32,7 @@ jobs:
     - name: Select Xcode version
       run: sudo xcode-select -s '/Applications/Xcode_16.3.app/Contents/Developer'
     - name: Run scenarios
-      run: swift test --disable-swift-testing
+      run: swift test -c release --disable-swift-testing
     defaults:
       run:
         working-directory: swift-async

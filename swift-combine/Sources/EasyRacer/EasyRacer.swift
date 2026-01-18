@@ -293,8 +293,8 @@ public struct EasyRacer {
         withExtendedLifetime(subscriptions) {
             EasyRacer(baseURL: baseURL).scenarios()
                 .sink(
-                    receiveCompletion: { _ in completed.signal() },
-                    receiveValue: { scenarioAndResult in
+                    receiveCompletion: { @Sendable _ in completed.signal() },
+                    receiveValue: { @Sendable scenarioAndResult in
                         let (scenario, result) = scenarioAndResult
                         print("Scenario \(scenario): \(result ?? "error")")
                     }

@@ -194,7 +194,7 @@ clients = new Mapping<String, Run> {
     }
     new {
       name = "Run scenarios"
-      run = "swift test --disable-swift-testing"
+      run = "swift test -c release --disable-swift-testing"
     }
   }
 
