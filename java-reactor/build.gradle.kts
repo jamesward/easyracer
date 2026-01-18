@@ -1,0 +1,33 @@
+plugins {
+    application
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+dependencies {
+    implementation("io.projectreactor.netty:reactor-netty-http:1.3.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.0.1")
+    testImplementation("org.testcontainers:testcontainers:2.0.3")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.3")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.0.1")
+    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
+}
+
+application {
+    mainClass.set("Main")
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+
+    testLogging {
+        showStandardStreams = true
+        showExceptions = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        events(org.gradle.api.tasks.testing.logging.TestLogEvent.STARTED, org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED, org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED, org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
+    }
+}

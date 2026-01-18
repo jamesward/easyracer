@@ -31,6 +31,10 @@ updates:
     directory: "/java-cf"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/java-reactor"
+    schedule:
+      interval: "weekly"
 
   # Go projects
   - package-ecosystem: "gomod"

@@ -71,6 +71,10 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Java.gradleTestSteps(null, "java-jox")
   }
 
+  ["java-reactor"] = new {
+    steps = GitHubAction.Java.gradleTestSteps(null, "java-reactor")
+  }
+
   ["javascript-stdlib"] = new {
     steps = GitHubAction.Node.testSteps(null, null, "javascript-stdlib/package-lock.json", "javascript-stdlib/package.json")
   }
