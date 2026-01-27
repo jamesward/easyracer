@@ -22,7 +22,7 @@
     "ts-node": "latest"
   },
   "dependencies": {
-    "@effect/platform-node": "0.104.0",
+    "@effect/platform-node": "0.104.1",
     "effect": "3.19.14"
   },
   "jest": {
