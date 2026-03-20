@@ -1,6 +1,6 @@
 // pkl eval --multiple-file-output-path . clients.pkl
 
-import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.27#/GitHubAction.pkl"
+import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.28#/GitHubAction.pkl"
 //import "../../../pklgha/src/GitHubAction.pkl"
 
 
@@ -239,6 +239,9 @@ function workflow(client: String, s: Run): GitHubAction = new GitHubAction {
       }
     }
     push {
+      branches {
+        "main"
+      }
       paths {
         "\(client)/**"
         ".github/workflows/\(client).yaml"

@@ -1,6 +1,8 @@
 # Generated file. DO NOT EDIT.
 'on':
   push:
+    branches:
+    - main
     paths:
     - kotlin-arrow/**
     - .github/workflows/kotlin-arrow.yaml
