@@ -1,10 +1,10 @@
-import nettlesome.Url
+import urticose.Url
 import soundness.*
 
 extension [scheme <: Label](url: Url[scheme])
   def withQuery(query: Optional[Text]): Url[scheme] = new Url[scheme](
     origin = url.origin,
-    pathText = url.pathText,
+    location = url.location,
     query = query,
     fragment = url.fragment
   )

@@ -3,7 +3,7 @@ use tokio::sync::mpsc;
 use tokio::time::{Instant, sleep, timeout};
 use tokio::time::error::Elapsed;
 use tokio_util::sync::CancellationToken;
-use rand::Rng;
+use rand::RngExt;
 use rand::distr::{Alphanumeric, SampleString};
 use reqwest::Response;
 use sha2::{Sha512, Digest};

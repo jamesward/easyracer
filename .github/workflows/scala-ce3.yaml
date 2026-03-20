@@ -1,6 +1,8 @@
 # Generated file. DO NOT EDIT.
 'on':
   push:
+    branches:
+    - main
     paths:
     - scala-ce3/**
     - .github/workflows/scala-ce3.yaml

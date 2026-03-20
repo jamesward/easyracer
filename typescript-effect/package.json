@@ -22,8 +22,8 @@
     "ts-node": "latest"
   },
   "dependencies": {
-    "@effect/platform-node": "0.104.0",
-    "effect": "3.19.14"
+    "@effect/platform-node": "0.106.0",
+    "effect": "3.21.0"
   },
   "jest": {
     "transform": {

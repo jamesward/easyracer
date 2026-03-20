@@ -1,6 +1,8 @@
 # Generated file. DO NOT EDIT.
 'on':
   push:
+    branches:
+    - main
     paths:
     - typescript-effect/**
     - .github/workflows/typescript-effect.yaml

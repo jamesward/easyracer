@@ -1,5 +1,5 @@
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import com.dimafeng.testcontainers.GenericContainer
 import io.netty.channel.nio.NioEventLoopGroup
 import org.asynchttpclient.Dsl.*
@@ -38,13 +38,13 @@ class EasyRacerClientSpec extends AnyFlatSpec with Matchers with ScalaFutures wi
   private val es = Executors.newWorkStealingPool()
   implicit private val system: ActorSystem = ActorSystem("easyracer", defaultExecutionContext = Some(ExecutionContext.fromExecutorService(es)))
   implicit private val ec: ExecutionContext = system.dispatcher
-  private lazy val httpFlow =
-    asyncHttpClient(
-      config()
-        .setEventLoopGroup(NioEventLoopGroup(1, es))
-        .setMaxConnections(12_000)
-        .setMaxConnectionsPerHost(12_000)
-    ).outgoingConnection("localhost", port)
+  private lazy val ahc = asyncHttpClient(
+    config()
+      .setEventLoopGroup(NioEventLoopGroup(1, es))
+      .setMaxConnections(12_000)
+      .setMaxConnectionsPerHost(12_000)
+  )
+  private def httpFlow = ahc.outgoingConnection("localhost", port)
 
   EasyRacerClient.scenarios.zipWithIndex.foreach: (flow, number) =>
     s"scenario ${number + 1}" should "work" in:

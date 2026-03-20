@@ -1,6 +1,8 @@
 # Generated file. DO NOT EDIT.
 'on':
   push:
+    branches:
+    - main
     paths:
     - kotlin-coroutines/**
     - .github/workflows/kotlin-coroutines.yaml

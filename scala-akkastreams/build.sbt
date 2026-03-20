@@ -1,12 +1,10 @@
-scalaVersion := "3.7.4"
+scalaVersion := "3.8.2"
 
-resolvers += "Akka library repository".at("https://repo.akka.io/maven")
-
-val AkkaVersion = "2.9.3"
-val AkkaHttpVersion = "10.6.3"
+val PekkoVersion = "1.1.5"
+val PekkoHttpVersion = "1.1.0"
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
-  "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
+  "org.apache.pekko" %% "pekko-stream" % PekkoVersion,
+  "org.apache.pekko" %% "pekko-http" % PekkoHttpVersion,
   "org.asynchttpclient" % "async-http-client" % "3.0.7",
   "org.scalatest" %% "scalatest" % "3.2.19" % Test,
   "org.slf4j" % "slf4j-simple" % "2.0.17" % Test,
