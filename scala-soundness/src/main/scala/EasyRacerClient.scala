@@ -2,13 +2,14 @@ import capricious.RandomSize
 import com.sun.management.OperatingSystemMXBean
 import soundness.*
 import soundness.AsyncError.Reason.Cancelled
-import soundness.asyncTermination.cancel
+import soundness.backstops.stackTrace as backstopStackTrace
+import soundness.codicils.cancel
 import soundness.executives.direct
 import soundness.internetAccess.enabled
 import soundness.logging.silent
 import soundness.parameterInterpretation.posix
 import soundness.stdioSources.virtualMachine.ansi
-import soundness.threadModels.virtual
+import soundness.threading.virtual
 import soundness.unhandledErrors.stackTrace
 
 import java.lang.management.ManagementFactory
