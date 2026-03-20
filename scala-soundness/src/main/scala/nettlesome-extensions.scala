@@ -1,4 +1,4 @@
-import nettlesome.Url
+import urticose.Url
 import soundness.*
 
 extension [scheme <: Label](url: Url[scheme])
