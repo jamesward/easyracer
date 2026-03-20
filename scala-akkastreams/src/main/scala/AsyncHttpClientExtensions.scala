@@ -1,6 +1,6 @@
-import akka.{Done, NotUsed}
-import akka.http.scaladsl.model.*
-import akka.stream.scaladsl.{Flow, Source}
+import org.apache.pekko.{Done, NotUsed}
+import org.apache.pekko.http.scaladsl.model.*
+import org.apache.pekko.stream.scaladsl.{Flow, Source}
 import org.asynchttpclient.{AsyncHttpClient, ListenableFuture, Response}
 
 import scala.concurrent.{ExecutionContext, Future}

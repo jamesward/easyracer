@@ -1,5 +1,5 @@
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import com.dimafeng.testcontainers.GenericContainer
 import io.netty.channel.nio.NioEventLoopGroup
 import org.asynchttpclient.Dsl.*

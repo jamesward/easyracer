@@ -1,8 +1,8 @@
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model.Uri.Query
-import akka.http.scaladsl.model.{HttpResponse, StatusCode, StatusCodes}
-import akka.stream.scaladsl.Keep
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.model.Uri.Query
+import org.apache.pekko.http.scaladsl.model.{HttpResponse, StatusCode, StatusCodes}
+import org.apache.pekko.stream.scaladsl.Keep
 import com.sun.management.OperatingSystemMXBean
 import io.netty.channel.nio.NioEventLoopGroup
 import org.asynchttpclient.Dsl.*
@@ -12,10 +12,10 @@ import java.security.MessageDigest
 import java.util.concurrent.{ExecutorService, Executors}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
-//import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpRequest, Uri}
-import akka.stream.scaladsl.{Flow, Source}
-import akka.util.ByteString
+//import org.apache.pekko.http.scaladsl.Http
+import org.apache.pekko.http.scaladsl.model.{HttpRequest, Uri}
+import org.apache.pekko.stream.scaladsl.{Flow, Source}
+import org.apache.pekko.util.ByteString
 
 import scala.concurrent.Await
 import scala.concurrent.duration.*
@@ -189,7 +189,7 @@ object EasyRacerClient:
 
 @main def run(): Unit =
   import EasyRacerClient.*
-  // Akka HTTP does not handle request cancellation, hence using AsyncHttpClient adapted to Akka Streams
+  // Akka HTTP does not handle request cancellation, hence using AsyncHttpClient adapted to Pekko Streams
   val ahc = asyncHttpClient(
     config()
       .setEventLoopGroup(NioEventLoopGroup(1, es))
