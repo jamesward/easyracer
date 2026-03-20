@@ -16,7 +16,7 @@ jobs:
     - uses: actions/setup-java@v5
       with:
         distribution: temurin
-        java-version: '20'
+        java-version: '25'
         cache: sbt
     - uses: sbt/setup-sbt@v1
     - run: sbt test
@@ -25,53 +25,57 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v5
+    - uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: '25'
+        cache: sbt
+    - uses: sbt/setup-sbt@v1
     - uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ghcr.io/${{ github.repository }}
-        tags: |-
-          type=sha,suffix=-amd64
-          type=raw,value=latest-amd64,enable={{is_default_branch}}
-    - uses: docker/setup-buildx-action@v3
-    - uses: docker/build-push-action@v6
-      with:
-        platforms: linux/amd64
-        context: scenario-server
-        file: scenario-server/Dockerfile-amd64
-        push: ${{ github.actor == github.repository_owner }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+    - env:
+        DOCKER_IMAGE: ghcr.io/${{ github.repository }}
+        DOCKER_TAG: ${{ github.sha }}-amd64
+      run: sbt Docker/publishLocal
+      working-directory: scenario-server
+    - if: ${{ github.actor == github.repository_owner }}
+      run: |-
+        docker push ghcr.io/${{ github.repository }}:${{ github.sha }}-amd64
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          docker tag ghcr.io/${{ github.repository }}:${{ github.sha }}-amd64 ghcr.io/${{ github.repository }}:latest-amd64
+          docker push ghcr.io/${{ github.repository }}:latest-amd64
+        fi
     needs: test
   build-and-push-aarch64:
     runs-on: ubuntu-24.04-arm
     steps:
     - uses: actions/checkout@v5
+    - uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: '25'
+        cache: sbt
+    - uses: sbt/setup-sbt@v1
     - uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ghcr.io/${{ github.repository }}
-        tags: |-
-          type=sha,suffix=-aarch64
-          type=raw,value=latest-aarch64,enable={{is_default_branch}}
-    - uses: docker/setup-buildx-action@v3
-    - uses: docker/build-push-action@v6
-      with:
-        platforms: linux/arm64/v8
-        context: scenario-server
-        file: scenario-server/Dockerfile-aarch64
-        push: ${{ github.actor == github.repository_owner }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+    - env:
+        DOCKER_IMAGE: ghcr.io/${{ github.repository }}
+        DOCKER_TAG: ${{ github.sha }}-aarch64
+      run: sbt Docker/publishLocal
+      working-directory: scenario-server
+    - if: ${{ github.actor == github.repository_owner }}
+      run: |-
+        docker push ghcr.io/${{ github.repository }}:${{ github.sha }}-aarch64
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          docker tag ghcr.io/${{ github.repository }}:${{ github.sha }}-aarch64 ghcr.io/${{ github.repository }}:latest-aarch64
+          docker push ghcr.io/${{ github.repository }}:latest-aarch64
+        fi
     needs: test
   create-manifests:
     runs-on: ubuntu-24.04
