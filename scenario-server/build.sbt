@@ -15,9 +15,10 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio-concurrent" % zioVersion,
   "dev.zio" %% "zio-direct" % "1.0.0-RC7",
   "dev.zio" %% "zio-logging" % "2.5.3",
-  "dev.zio" %% "zio-http" % "3.10.1",
+  "dev.zio" %% "zio-http" % "3.10.1" exclude("io.netty", "netty-pkitesting"),
   "dev.zio" %% "zio-test" % zioVersion % Test,
-  "dev.zio" %% "zio-test-sbt" % zioVersion % Test
+  "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+  "org.graalvm.nativeimage" % "svm" % "25.0.2" % Provided
 )
 
 testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
@@ -30,7 +31,7 @@ graalVMNativeImageOptions ++= Seq(
   "--no-fallback",
   "--install-exit-handlers",
   "--enable-native-access=ALL-UNNAMED",
-//  "--sun-misc-unsafe-memory-access=allow",
+  "-J--sun-misc-unsafe-memory-access=allow",
   "--initialize-at-run-time=io.netty.channel.kqueue.KQueueIoHandler",
   //  "--initialize-at-run-time=io.netty.channel.DefaultFileRegion",
 //  "--initialize-at-run-time=io.netty.channel.epoll.Native",
@@ -64,8 +65,7 @@ if (sys.env.get("TARGETARCH").contains("arm64")) {
   )
 } else {
   graalVMNativeImageOptions ++= Seq(
-    "--static",
-    "--libc=musl"
+    "-H:+StaticExecutableWithDynamicLibC"
   )
 }
 

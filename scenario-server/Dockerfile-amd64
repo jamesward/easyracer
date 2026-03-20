@@ -1,26 +1,12 @@
-FROM ghcr.io/graalvm/native-image-community:24-muslib AS builder
+FROM ghcr.io/graalvm/native-image-community:25 AS builder
 
 WORKDIR /app
 COPY . /app
 
-ARG RESULT_LIB="/staticlibs"
-
-RUN mkdir ${RESULT_LIB}
-
-RUN cd ${RESULT_LIB} && \
-    microdnf install xz && \
-    curl -L -s -o upx.tar.xz https://github.com/upx/upx/releases/download/v4.2.2/upx-4.2.2-amd64_linux.tar.xz && \
-    xz -d upx.tar.xz && \
-    tar -xvf upx.tar && \
-    rm -f upx.tar
-
-ENV PATH="$PATH:${TOOLCHAIN_DIR}/bin"
-
 RUN cd /app && ./sbt clean GraalVMNativeImage/packageBin
 
-RUN ${RESULT_LIB}/upx-4.2.2-amd64_linux/upx -7 /app/target/graalvm-native-image/easyracer-server
 
-FROM scratch
+FROM oraclelinux:9-slim
 
 WORKDIR /tmp
 
