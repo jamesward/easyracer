@@ -4,12 +4,12 @@
     branches:
     - main
     paths:
-    - scala-akkastreams/**
-    - .github/workflows/scala-akkastreams.yaml
+    - scala-pekko/**
+    - .github/workflows/scala-pekko.yaml
   pull_request:
     paths:
-    - scala-akkastreams/**
-    - .github/workflows/scala-akkastreams.yaml
+    - scala-pekko/**
+    - .github/workflows/scala-pekko.yaml
   workflow_run:
     workflows:
     - scenario-server
@@ -28,7 +28,7 @@ jobs:
         cache: sbt
     - uses: sbt/setup-sbt@v1
     - run: sbt test
-      working-directory: ./scala-akkastreams
+      working-directory: ./scala-pekko
     defaults:
       run:
-        working-directory: scala-akkastreams
+        working-directory: scala-pekko

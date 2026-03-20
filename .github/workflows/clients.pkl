@@ -144,8 +144,8 @@ clients = new Mapping<String, Run> {
     }
   }
 
-  ["scala-akkastreams"] = new {
-    steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-akkastreams", "21")
+  ["scala-pekko"] = new {
+    steps = GitHubAction.Scala.sbtTestSteps(null, "./scala-pekko", "21")
   }
 
   ["scala-ce3"] = new {

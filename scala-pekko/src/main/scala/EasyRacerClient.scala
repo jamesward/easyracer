@@ -189,7 +189,7 @@ object EasyRacerClient:
 
 @main def run(): Unit =
   import EasyRacerClient.*
-  // Akka HTTP does not handle request cancellation, hence using AsyncHttpClient adapted to Pekko Streams
+  // Pekko HTTP does not handle request cancellation, hence using AsyncHttpClient adapted to Pekko Streams
   val ahc = asyncHttpClient(
     config()
       .setEventLoopGroup(NioEventLoopGroup(1, es))
