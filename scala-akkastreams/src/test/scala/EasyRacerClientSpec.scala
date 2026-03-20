@@ -38,7 +38,7 @@ class EasyRacerClientSpec extends AnyFlatSpec with Matchers with ScalaFutures wi
   private val es = Executors.newWorkStealingPool()
   implicit private val system: ActorSystem = ActorSystem("easyracer", defaultExecutionContext = Some(ExecutionContext.fromExecutorService(es)))
   implicit private val ec: ExecutionContext = system.dispatcher
-  private lazy val httpFlow =
+  private def httpFlow =
     asyncHttpClient(
       config()
         .setEventLoopGroup(NioEventLoopGroup(1, es))
