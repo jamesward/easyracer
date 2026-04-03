@@ -1,6 +1,6 @@
 scalaVersion := "3.8.2"
 
-val PekkoVersion = "1.4.0"
+val PekkoVersion = "1.5.0"
 val PekkoHttpVersion = "1.3.0"
 
 libraryDependencies ++= Seq(
