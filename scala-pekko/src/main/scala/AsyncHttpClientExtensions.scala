@@ -1,7 +1,7 @@
-import org.apache.pekko.{Done, NotUsed}
+import org.apache.pekko.NotUsed
 import org.apache.pekko.http.scaladsl.model.*
-import org.apache.pekko.stream.scaladsl.{Flow, Source}
-import org.asynchttpclient.{AsyncHttpClient, ListenableFuture, Response}
+import org.apache.pekko.stream.scaladsl.{Flow, Keep, Source}
+import org.asynchttpclient.{AsyncHttpClient, ListenableFuture}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.FutureConverters.*
@@ -11,21 +11,11 @@ extension (client: AsyncHttpClient)
     Flow[HttpRequest]
       .flatMapConcat:
         case HttpRequest(HttpMethods.GET, uri, Nil, HttpEntity.Empty, HttpProtocols.`HTTP/1.1`) =>
-          Source.unfoldResourceAsync(
-            create = () =>
-              Future.successful(
-                (
-                  client.prepareGet(uri.toEffectiveHttpRequestUri(Uri.Host(host), port).toString).execute(),
-                  Iterator(()) // To ensure no more than one read
-                )
-              ),
-            read = (ahcRespFut, iter) =>
-              ahcRespFut.asScala.map: ahcResp =>
-                iter.nextOption.map(_ => ahcResp),
-            close = (ahcRespFut, iter) =>
-              ahcRespFut.cancel(true)
-              Future.successful(Done)
-          )
+          val ahcRespFut = client.prepareGet(uri.toEffectiveHttpRequestUri(Uri.Host(host), port).toString).execute()
+          Source.future(ahcRespFut.toCompletableFuture.asScala)
+            .watchTermination(): (_, done) =>
+              done.onComplete(_ => ahcRespFut.cancel(true))
+              NotUsed
         case _ =>
           Source.failed(UnsupportedOperationException()) // Only support what we need
       .map: ahcResp =>
@@ -35,6 +25,3 @@ extension (client: AsyncHttpClient)
           entity = HttpEntity(ahcResp.getResponseBody),
           protocol = HttpProtocols.`HTTP/1.1`
         )
-
-extension [T](future: ListenableFuture[T])
-  def asScala: Future[T] = future.toCompletableFuture.asScala
