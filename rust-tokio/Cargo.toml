@@ -9,7 +9,7 @@ reqwest = "0.13.1"
 testcontainers = "0.27.1"
 tokio = { version = "1.45.0", features = ["rt-multi-thread", "macros"] }
 rand = "0.10.0"
-sha2 = "0.10.9"
+sha2 = "0.11.0"
 tokio-util = "0.7.15"
 procinfo = "0.4.2"
 procfs = "0.18.0"
