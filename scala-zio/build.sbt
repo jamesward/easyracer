@@ -1,8 +1,8 @@
-scalaVersion := "3.8.2"
+scalaVersion := "3.8.3"
 
 fork := true
 
-val zioVersion = "2.1.24"
+val zioVersion = "2.1.25"
 
 libraryDependencies ++= Seq(
   "dev.zio" %% "zio" % zioVersion,
