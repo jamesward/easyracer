@@ -9,7 +9,7 @@ java {
 }
 
 dependencies {
-    implementation("io.projectreactor.netty:reactor-netty-http:1.3.4")
+    implementation("io.projectreactor.netty:reactor-netty-http:1.3.5")
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.3")
     testImplementation("org.testcontainers:testcontainers:2.0.4")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.4")
