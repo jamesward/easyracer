@@ -12,6 +12,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": "22.21.1"
+  },
   "devDependencies": {
     "@types/jest": "latest",
     "testcontainers": "latest",
