@@ -78,6 +78,30 @@ describe("all work", () => {
         expect(result).toEqual("right")
     }, 600_000)
 
+    it("scenario 9 works", async () => {
+        const httpPort = container.getFirstMappedPort()
+        const result = await Effect.runPromise(
+          lib.scenario9(httpPort).pipe(Effect.provide(NodeHttpClient.layer))
+        )
+        expect(result).toEqual("right")
+    }, 600_000)
+
+    it("scenario 10 works", async () => {
+        const httpPort = container.getFirstMappedPort()
+        const result = await Effect.runPromise(
+          lib.scenario10(httpPort).pipe(Effect.provide(NodeHttpClient.layer))
+        )
+        expect(result).toEqual("right")
+    }, 600_000)
+
+    it("scenario 11 works", async () => {
+        const httpPort = container.getFirstMappedPort()
+        const result = await Effect.runPromise(
+          lib.scenario11(httpPort).pipe(Effect.provide(NodeHttpClient.layer))
+        )
+        expect(result).toEqual("right")
+    }, 600_000)
+
     afterAll(async () => {
         await container.stop()
     })
