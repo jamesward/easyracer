@@ -21,6 +21,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -121,26 +122,29 @@ public class Scenarios {
             CompletableFuture<Value> winner = new CompletableFuture<>();
             AtomicInteger remaining = new AtomicInteger(futures.size());
 
-            futures.forEach(future -> future.whenComplete((value, _) -> {
-                Value current;
-                if (value == null) {
-                    current = Value.LEFT;
-                } else {
-                    current = value;
-                }
-
-                if (Value.compareRight(current)) {
-                    if (winner.complete(current)) {
-                        futures.forEach(other -> {
-                            if (other != future) {
-                                other.cancel(true);
-                            }
-                        });
+            Function1<CompletableFuture<Value>, BiConsumer<Value, Throwable>> callback =
+                (future) -> (value, _) -> {
+                    Value current;
+                    if (value == null) {
+                        current = Value.LEFT;
+                    } else {
+                        current = value;
                     }
-                } else if (remaining.decrementAndGet() == 0) {
-                    winner.complete(Value.LEFT);
-                }
-            }));
+
+                    if (Value.compareRight(current)) {
+                        if (winner.complete(current)) {
+                            futures.forEach(other -> {
+                                if (other != future) {
+                                    other.cancel(true);
+                                }
+                            });
+                        }
+                    } else if (remaining.decrementAndGet() == 0) {
+                        winner.complete(Value.LEFT);
+                    }
+                };
+
+            futures.forEach(future -> future.whenComplete(callback.apply(future)));
 
             return winner.join();
         };
