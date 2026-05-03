@@ -25,6 +25,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
+import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +35,7 @@ import io.vavr.Function1;
 import io.vavr.Function3;
 import io.vavr.Function4;
 
+@NullMarked
 public class Scenarios {
 
     private static final Logger logger = LoggerFactory.getLogger(Scenarios.class);
@@ -144,10 +146,17 @@ public class Scenarios {
                     }
                 };
 
-            futures.forEach(future -> future.whenComplete(callback.apply(future)));
+                attachRaceHandlers(futures, callback);
 
             return winner.join();
         };
+
+    @SuppressWarnings("FutureReturnValueIgnored")
+    private static void attachRaceHandlers(
+            List<CompletableFuture<Value>> futures,
+            Function1<CompletableFuture<Value>, BiConsumer<Value, Throwable>> callbackFactory) {
+        futures.forEach(future -> future.whenComplete(callbackFactory.apply(future)));
+    }
 
     Value scenario1() {
         logger.info("Scenario 1");
