@@ -17,6 +17,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -36,12 +37,14 @@ public class Scenarios {
     private static final Logger logger = LoggerFactory.getLogger(Scenarios.class);
 
     private static final int DEFAULT_TIMEOUT_SECONDS = 5;
+    private static final ThreadFactory VIRTUAL_THREAD_FACTORY =
+        Thread.ofVirtual().name("easyracer-vt-", 0).factory();
 
     private final URI url;
     private final HttpClient client;
     private final HttpResponse.BodyHandler<String> config = HttpResponse.BodyHandlers.ofString();
 
-    private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService executorService = Executors.newThreadPerTaskExecutor(VIRTUAL_THREAD_FACTORY);
 
     public Scenarios(URI url) {
         this.url = url;
@@ -82,10 +85,10 @@ public class Scenarios {
     }
 
     private final Function3<Integer, HttpClient, HttpRequest, CompletableFuture<Values>> asyncCall =
-        (timeoutSeconds, client, request) ->
-            client.sendAsync(request, config)
+        (timeoutSeconds, client, request) -> client.sendAsync(request, config)
             .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
-            .handle((result, ex) -> {
+            .handleAsync((result, ex) -> {
+                logger.info("asyncCall handler");
                 if (!Objects.isNull(ex)) {
                     return Values.LEFT;
                 }
@@ -93,7 +96,7 @@ public class Scenarios {
                     return Values.fromString(result.body());
                 }
                 return Values.LEFT;
-            });
+            }, executorService);
 
     private final Function4<Integer, Integer, HttpClient, HttpRequest, List<CompletableFuture<Values>>> getPromises =
         (n, timeoutSeconds, client, request) -> IntStream.rangeClosed(1, n)
@@ -168,10 +171,18 @@ public class Scenarios {
         var timeoutSeconds = 3;
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/7")).build();
 
-        var promise1 = client.sendAsync(request, config).thenApply(Values::fromHttpResponse);
+        var promise1 = client.sendAsync(request, config)
+            .thenApplyAsync(response -> {
+                logger.info("scenario7 promise1");
+                return Values.fromHttpResponse(response);
+            }, executorService);
         var promise2 = CompletableFuture.supplyAsync(
                 () -> client.sendAsync(request, config).thenApply(Values::fromHttpResponse).join(),
-                CompletableFuture.delayedExecutor(timeoutSeconds, TimeUnit.SECONDS));
+                CompletableFuture.delayedExecutor(timeoutSeconds, TimeUnit.SECONDS, executorService))
+            .thenApplyAsync(value -> {
+                logger.info("scenario7 promise2");
+                return value;
+            }, executorService);
 
         var promises = List.of(promise1,promise2);
 
@@ -188,17 +199,18 @@ public class Scenarios {
             Function1<String, HttpRequest> useRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?use=" + resourceId)).build();
             Function1<String, HttpRequest> closeRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?close=" + resourceId)).build();
 
-            return client.sendAsync(openRequest, config).thenApply(HttpResponse::body)
-                .thenCompose(resourceId -> {
+            return client.sendAsync(openRequest, config).thenApplyAsync(HttpResponse::body, executorService)
+                .thenComposeAsync(resourceId -> {
                     logger.info("id: {}", resourceId);
                     return client.sendAsync(useRequest.apply(resourceId), config)
-                        .thenApply(HttpResponse::body)
-                        .thenApply(response -> new ResourceResult(resourceId, response));
-                })
-                .thenCompose(resourceResult -> {
+                        .thenApplyAsync(HttpResponse::body, executorService)
+                        .thenApplyAsync(response -> new ResourceResult(resourceId, response), executorService);
+                }, executorService)
+                .thenComposeAsync(resourceResult -> {
                     logger.info("closed");
-                    return client.sendAsync(closeRequest.apply(resourceResult.resourceId()), config).thenApply(_ -> Values.RIGHT);
-                });
+                    return client.sendAsync(closeRequest.apply(resourceResult.resourceId()), config)
+                        .thenApplyAsync(_ -> Values.RIGHT, executorService);
+                }, executorService);
         };
 
         var promises = List.of(
@@ -216,7 +228,11 @@ public class Scenarios {
         record TimedResponse(Instant instant, HttpResponse<String> response) {}
 
         var promises = IntStream.rangeClosed(1, 10)
-            .mapToObj(_ -> client.sendAsync(request, config).thenApply(response -> new TimedResponse(Instant.now(), response)))
+            .mapToObj(index -> client.sendAsync(request, config)
+                .thenApplyAsync(response -> {
+                    logger.info("scenario9 promise{}", index);
+                    return new TimedResponse(Instant.now(), response);
+                }, executorService))
             .toList();
 
         Comparator<TimedResponse> timeComparator = Comparator.comparing(TimedResponse::instant);
@@ -241,6 +257,7 @@ public class Scenarios {
         // cooperative AtomicBoolean flag flipped by the blocker callback.
         var cancelled = new AtomicBoolean(false);
         CompletableFuture<Void> cpuTask = CompletableFuture.runAsync(() -> {
+            logger.info("scenario10 cpuTask");
             try {
                 var messageDigest = MessageDigest.getInstance("SHA-512");
                 var buf = new byte[512];
@@ -256,11 +273,15 @@ public class Scenarios {
         // Part 1 (blocker): hold the HTTP connection open; signal the CPU task to stop once it closes.
         HttpRequest blockerRequest = HttpRequest.newBuilder(url.resolve("/10?" + id)).build();
         var blocker = client.sendAsync(blockerRequest, config)
-            .whenComplete((response, ex) -> cancelled.set(true));
+            .whenCompleteAsync((response, ex) -> {
+                logger.info("scenario10 blocker");
+                cancelled.set(true);
+            }, executorService);
 
         // Part 2 (load poller): every 1s send the current process CPU load.
         // 2xx -> done, 3xx -> keep polling, 4xx -> error.
         var loader = CompletableFuture.supplyAsync(() -> {
+            logger.info("scenario10 loader");
             while (true) {
                 try {
                     var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
@@ -296,7 +317,7 @@ public class Scenarios {
 
         // Combine the inner race with another request
         var outerRace = List.of(
-            CompletableFuture.supplyAsync(() -> innerRace),
+            CompletableFuture.supplyAsync(() -> innerRace, executorService),
             client.sendAsync(request, config).thenApply(Values::fromHttpResponse)
         );
 
