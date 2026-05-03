@@ -18,6 +18,7 @@ Prepared to test in OSX
 
 ```bash
 docker compose build verify
+docker compose build --no-cache verify
 docker compose run --rm verify
 ```
 

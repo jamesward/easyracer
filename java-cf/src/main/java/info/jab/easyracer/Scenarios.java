@@ -20,6 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -56,13 +57,13 @@ public class Scenarios {
     /**
      * Enum to represent the possible values of the scenarios
      */
-    enum Values {
+    enum Value {
         LEFT("left"),
         RIGHT("right");
 
         private final String value;
 
-        Values(String value) {
+        Value(String value) {
             this.value = value;
         }
 
@@ -70,15 +71,15 @@ public class Scenarios {
             return value;
         }
 
-        public static boolean compareRight(Values value) {
+        public static boolean compareRight(Value value) {
             return value == RIGHT;
         }
 
-        public static Values fromHttpResponse(HttpResponse<String> response) {
+        public static Value fromHttpResponse(HttpResponse<String> response) {
             return fromString(response.body());
         }
 
-        public static Values fromString(String value) {
+        public static Value fromString(String value) {
             return value.equals(RIGHT.get()) ? RIGHT : LEFT;
         }
     }
@@ -93,58 +94,82 @@ public class Scenarios {
         }, executorService);
     }
 
-    private final Function3<Integer, HttpClient, HttpRequest, CompletableFuture<Values>> asyncCall =
+    private final Function3<Integer, HttpClient, HttpRequest, CompletableFuture<Value>> asyncCall =
         (timeoutSeconds, client, request) -> requestCompletableFutureFactory(client, request).get()
             .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
             .handle((result, ex) -> {
                 logger.info("asyncCall handler");
                 if (ex != null) {
-                    return Values.LEFT;
+                    return Value.LEFT;
                 }
                 if (result.statusCode() == 200) {
-                    return Values.fromString(result.body());
+                    return Value.fromString(result.body());
                 }
-                return Values.LEFT;
+                return Value.LEFT;
             });
 
-    private final Function4<Integer, Integer, HttpClient, HttpRequest, List<CompletableFuture<Values>>> getPromises =
+    private final Function4<Integer, Integer, HttpClient, HttpRequest, List<CompletableFuture<Value>>> getPromises =
         (n, timeoutSeconds, client, request) -> IntStream.rangeClosed(1, n)
             .mapToObj(_ -> asyncCall.apply(timeoutSeconds, client, request))
             .toList();
 
-    //TODO: Improve race logic behavior.
-    private final Function1<List<CompletableFuture<Values>>, Values> process =
-        (futures) -> futures.stream()
-            .map(CompletableFuture::join)
-            .filter(Values::compareRight)
-            .findFirst()
-            .orElse(Values.LEFT);
+    private final Function1<List<CompletableFuture<Value>>, Value> race =
+        (futures) -> {
+            if (futures.isEmpty()) {
+                return Value.LEFT;
+            }
+            CompletableFuture<Value> winner = new CompletableFuture<>();
+            AtomicInteger remaining = new AtomicInteger(futures.size());
 
-    Values scenario1() {
+            futures.forEach(future -> future.whenComplete((value, _) -> {
+                Value current;
+                if (value == null) {
+                    current = Value.LEFT;
+                } else {
+                    current = value;
+                }
+
+                if (Value.compareRight(current)) {
+                    if (winner.complete(current)) {
+                        futures.forEach(other -> {
+                            if (other != future) {
+                                other.cancel(true);
+                            }
+                        });
+                    }
+                } else if (remaining.decrementAndGet() == 0) {
+                    winner.complete(Value.LEFT);
+                }
+            }));
+
+            return winner.join();
+        };
+
+    Value scenario1() {
         logger.info("Scenario 1");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/1")).build();
 
-        return getPromises.andThen(process).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
+        return getPromises.andThen(race).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
     }
 
-    Values scenario2() {
+    Value scenario2() {
         logger.info("Scenario 2");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/2")).build();
 
-        return getPromises.andThen(process).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
+        return getPromises.andThen(race).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
     }
 
-    Values scenario3() {
+    Value scenario3() {
         logger.info("Scenario 3");
         var timeoutSeconds = 120;
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
         //OSX issue detected when you open 10k http connections
         //https://www.tianxiangxiong.com/2024/07/08/virtual-threads.html
-        return getPromises.andThen(process).apply(10_000, timeoutSeconds, client, request);
+        return getPromises.andThen(race).apply(10_000, timeoutSeconds, client, request);
     }
 
-    Values scenario4() {
+    Value scenario4() {
         logger.info("Scenario 4");
         // Timeout set on the HttpRequest so the underlying connection is actually
         // closed on timeout (server only releases the winner once the loser is gone).
@@ -158,24 +183,24 @@ public class Scenarios {
             asyncCall.apply(DEFAULT_TIMEOUT_SECONDS, client, request)
         );
 
-        return process.apply(promises);
+        return race.apply(promises);
     }
 
-    Values scenario5() {
+    Value scenario5() {
         logger.info("Scenario 5");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/5")).build();
 
-        return getPromises.andThen(process).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
+        return getPromises.andThen(race).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
     }
 
-    Values scenario6() {
+    Value scenario6() {
         logger.info("Scenario 6");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/6")).build();
 
-        return getPromises.andThen(process).apply(3, DEFAULT_TIMEOUT_SECONDS, client, request);
+        return getPromises.andThen(race).apply(3, DEFAULT_TIMEOUT_SECONDS, client, request);
     }
 
-    Values scenario7() {
+    Value scenario7() {
         logger.info("Scenario 7");
         var timeoutSeconds = 3;
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/7")).build();
@@ -183,13 +208,13 @@ public class Scenarios {
         var promise1 = requestCompletableFutureFactory(client, request).get()
             .thenApply(response -> {
                 logger.info("scenario7 promise1");
-                return Values.fromHttpResponse(response);
+                return Value.fromHttpResponse(response);
             });
         var promise2 = CompletableFuture.supplyAsync(
                 () -> requestCompletableFutureFactory(client, request),
                 CompletableFuture.delayedExecutor(timeoutSeconds, TimeUnit.SECONDS, executorService))
             .thenCompose(Supplier::get)
-            .thenApply(Values::fromHttpResponse)
+            .thenApply(Value::fromHttpResponse)
             .thenApply(value -> {
                 logger.info("scenario7 promise2");
                 return value;
@@ -197,13 +222,13 @@ public class Scenarios {
 
         var promises = List.of(promise1,promise2);
 
-        return process.apply(promises);
+        return race.apply(promises);
     }
 
-    Values scenario8() {
+    Value scenario8() {
         logger.info("Scenario 8");
 
-        Supplier<CompletableFuture<Values>> resourceFlow = () -> {
+        Supplier<CompletableFuture<Value>> resourceFlow = () -> {
             record ResourceResult(String resourceId, String result) {}
 
             HttpRequest openRequest = HttpRequest.newBuilder(url.resolve("/8?open")).build();
@@ -220,7 +245,7 @@ public class Scenarios {
                 .thenCompose(resourceResult -> {
                     logger.info("closed");
                     return requestCompletableFutureFactory(client, closeRequest.apply(resourceResult.resourceId())).get()
-                        .thenApply(_ -> Values.RIGHT);
+                        .thenApply(_ -> Value.RIGHT);
                 });
         };
 
@@ -229,10 +254,10 @@ public class Scenarios {
             resourceFlow.get()
         );
 
-        return process.apply(promises);
+        return race.apply(promises);
     }
 
-    Values scenario9() {
+    Value scenario9() {
         logger.info("Scenario 9");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/9")).build();
 
@@ -255,10 +280,10 @@ public class Scenarios {
             .map(timedResponse -> timedResponse.response.body())
             .reduce("", String::concat);
 
-        return Values.fromString(rawResult);
+        return Value.fromString(rawResult);
     }
 
-    Values scenario10() {
+    Value scenario10() {
         logger.info("Scenario 10");
         var id = UUID.randomUUID().toString();
         var osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
@@ -301,14 +326,14 @@ public class Scenarios {
                     int status = response.statusCode();
                     //TODO: Use pattern matching with ranges.
                     if (status >= 200 && status < 300) {
-                        return Values.fromString(response.body());
+                        return Value.fromString(response.body());
                     } else if (status >= 300 && status < 400) {
                         Thread.sleep(1000);
                     } else {
-                        return Values.LEFT;
+                        return Value.LEFT;
                     }
                 } catch (Exception e) {
-                    return Values.LEFT;
+                    return Value.LEFT;
                 }
             }
         }, executorService);
@@ -319,19 +344,19 @@ public class Scenarios {
         return result;
     }
 
-    Values scenario11() {
+    Value scenario11() {
         logger.info("Scenario 11");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/11")).build();
 
         // Create an inner race with 2 requests
-        var innerRace = getPromises.andThen(process).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
+        var innerRace = getPromises.andThen(race).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
 
         // Combine the inner race with another request
         var outerRace = List.of(
             CompletableFuture.supplyAsync(() -> innerRace, executorService),
-            requestCompletableFutureFactory(client, request).get().thenApply(Values::fromHttpResponse)
+            requestCompletableFutureFactory(client, request).get().thenApply(Value::fromHttpResponse)
         );
 
-        return process.apply(outerRace);
+        return race.apply(outerRace);
     }
 }

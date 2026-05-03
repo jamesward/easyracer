@@ -35,7 +35,7 @@ public class ScenariosTest {
 
     @ParameterizedTest(name = "scenario {0}")
     @MethodSource("scenarios")
-    void scenarioReturnsRight(int scenarioNumber, Function<Scenarios, Scenarios.Values> runScenario) throws Exception {
+    void scenarioReturnsRight(int scenarioNumber, Function<Scenarios, Scenarios.Value> runScenario) throws Exception {
         // given
         var url = new URI("http://" + scenarioServer.getHost() + ":" + scenarioServer.getFirstMappedPort());
         var scenarioPath = new Scenarios(url);
@@ -46,7 +46,7 @@ public class ScenariosTest {
         // then
         assertThat(result)
                 .as("scenario %s", scenarioNumber)
-                .isEqualTo(Scenarios.Values.RIGHT);
+                .isEqualTo(Scenarios.Value.RIGHT);
     }
 
     static Stream<Arguments> scenarios() {
@@ -64,7 +64,7 @@ public class ScenariosTest {
                 scenarioCase(11, Scenarios::scenario11));
     }
 
-    private static Arguments scenarioCase(int number, Function<Scenarios, Scenarios.Values> runner) {
+    private static Arguments scenarioCase(int number, Function<Scenarios, Scenarios.Value> runner) {
         return Arguments.of(number, runner);
     }
 }
