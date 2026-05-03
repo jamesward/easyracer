@@ -12,6 +12,15 @@ sdk env install
 ./mvnw versions:display-plugin-updates
 ```
 
+## Docker
+
+Prepared to test in OSX
+
+```bash
+docker compose build verify
+docker compose run --rm verify
+```
+
 ## Work in progress
 
 ```

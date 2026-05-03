@@ -24,7 +24,7 @@ jobs:
     - uses: actions/setup-java@v5
       with:
         distribution: graalvm
-        java-version: '23'
+        java-version: '25'
         cache: maven
     - run: ./mvnw --batch-mode --no-transfer-progress verify
       working-directory: java-cf

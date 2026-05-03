@@ -9,7 +9,7 @@
   <version>0.1.0</version>
 
   <properties>
-    <java.version>23</java.version>
+    <java.version>25</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -77,6 +77,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
@@ -100,7 +105,7 @@
                   <version>3.9.9</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
-                  <version>23</version>
+                  <version>${java.version}</version>
                 </requireJavaVersion>
                 <bannedDependencies>
                   <excludes>
@@ -122,20 +127,13 @@
         <version>3.15.0</version>
         <configuration>
           <compilerArgument>-Xlint:all</compilerArgument><!-- -Werror -->
-          <compilerArgument>--enable-preview</compilerArgument>
           <release>${java.version}</release>
-            <source>23</source>
-            <target>23</target>
-            <compilerArgs>--enable-preview</compilerArgs>
         </configuration>
       </plugin>
 
       <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.5.5</version>
-          <configuration>
-            <argLine>--enable-preview</argLine>
-          </configuration>
       </plugin>
 
       <plugin>
