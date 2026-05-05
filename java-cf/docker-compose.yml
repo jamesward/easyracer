@@ -1,0 +1,15 @@
+services:
+  verify:
+    build: .
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    environment:
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+    deploy:
+      resources:
+        reservations:
+          memory: 4G
+        limits:
+          memory: 8G
