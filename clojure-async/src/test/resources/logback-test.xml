@@ -1,0 +1,15 @@
+<configuration>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Keep test output concise but preserve useful Testcontainers events. -->
+  <logger name="org.testcontainers" level="INFO"/>
+  <logger name="com.github.dockerjava" level="WARN"/>
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT"/>
+  </root>
+</configuration>
