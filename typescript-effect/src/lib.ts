@@ -129,7 +129,7 @@ export function scenario9(port: number) {
                 const text = yield* valid.text
                 yield* Queue.offer(responses, text)
             })
-        )
+        ).pipe(Effect.ignore)
 
         yield* Effect.all(Array.replicate(req, 10), {concurrency: "unbounded", discard: true})
         return Chunk.toArray(yield* Queue.takeAll(responses)).join("")
