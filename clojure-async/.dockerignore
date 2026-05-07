@@ -1,0 +1,6 @@
+target/
+.git
+.gitignore
+.cursor
+agent-transcripts
+docker-compose.yml
