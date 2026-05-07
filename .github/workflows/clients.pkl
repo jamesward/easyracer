@@ -60,7 +60,7 @@ clients = new Mapping<String, Run> {
   }
 
   ["java-cf"] = new {
-    steps = GitHubAction.Java.mavenTestSteps("--batch-mode --no-transfer-progress verify", "java-cf", "graalvm", "23")
+    steps = GitHubAction.Java.mavenTestSteps("--batch-mode --no-transfer-progress verify", "java-cf", "graalvm", "25")
   }
 
   ["clojure-async"] = new {
@@ -71,14 +71,14 @@ clients = new Mapping<String, Run> {
       new {
         uses = "actions/setup-java@v4"
         with {
-          distribution = "temurin"
+          ["distribution"] = "temurin"
           ["java-version"] = "21"
         }
       }
       new {
         uses = "DeLaGuardo/setup-clojure@13"
         with {
-          cli = "latest"
+          ["cli"] = "latest"
         }
       }
       new {
