@@ -63,6 +63,30 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Java.mavenTestSteps("--batch-mode --no-transfer-progress verify", "java-cf", "graalvm", "23")
   }
 
+  ["clojure-async"] = new {
+    steps {
+      new {
+        uses = "actions/checkout@v4"
+      }
+      new {
+        uses = "actions/setup-java@v4"
+        with {
+          distribution = "temurin"
+          ["java-version"] = "21"
+        }
+      }
+      new {
+        uses = "DeLaGuardo/setup-clojure@13"
+        with {
+          cli = "latest"
+        }
+      }
+      new {
+        run = "clojure -M:test"
+      }
+    }
+  }
+
   ["java-loom"] = new {
     steps = GitHubAction.Java.gradleTestSteps(null, "java-loom")
   }

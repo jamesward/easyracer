@@ -1,5 +1,4 @@
-name: Build
-
+# Generated file. DO NOT EDIT.
 'on':
   push:
     branches:
@@ -16,25 +15,20 @@ name: Build
     - scenario-server
     types:
     - completed
-
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Install Clojure CLI
-        uses: DeLaGuardo/setup-clojure@13
-        with:
-          cli: latest
-
-      - name: Run tests (Clojure CLI + deps.edn)
-        run: clojure -M:test
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+    - uses: DeLaGuardo/setup-clojure@13
+      with:
+        cli: latest
+    - run: clojure -M:test
+    defaults:
+      run:
         working-directory: clojure-async
