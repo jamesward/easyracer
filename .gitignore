@@ -48,3 +48,6 @@ bin/
 
 # OCaml
 _build/
+
+# Clojure
+.cpcache/
