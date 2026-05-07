@@ -8,7 +8,7 @@ fork := true
 
 reStartArgs := Seq("--debug")
 
-val zioVersion = "2.1.25"
+val zioVersion = "2.1.26"
 
 libraryDependencies ++= Seq(
   "dev.zio" %% "zio" % zioVersion,
