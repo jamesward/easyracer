@@ -15,7 +15,7 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio-concurrent" % zioVersion,
   "dev.zio" %% "zio-direct" % "1.0.0-RC7" exclude ("org.scalameta", "scalafmt-core_2.13"),
   "dev.zio" %% "zio-logging" % "2.5.3",
-  "dev.zio" %% "zio-http" % "3.10.1"
+  "dev.zio" %% "zio-http" % "3.11.1"
     exclude ("io.netty", "netty-pkitesting")
     exclude ("com.lihaoyi", "unroll-plugin_3")
     exclude ("io.netty", "netty-transport-native-kqueue"),
