@@ -21,7 +21,7 @@
     <error-prone.version>2.49.0</error-prone.version>
     <nullaway.version>0.13.4</nullaway.version>
 
-    <testcontainers-bom.version>2.0.4</testcontainers-bom.version>
+    <testcontainers-bom.version>2.0.5</testcontainers-bom.version>
     <junit-bom.version>6.0.3</junit-bom.version>
     <assertj-bom.version>3.27.7</assertj-bom.version>
     <slf4j-bom.version>2.1.0-alpha1</slf4j-bom.version>
