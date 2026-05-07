@@ -12,9 +12,6 @@
     [clojure.test :refer [deftest do-report is testing use-fixtures]]
     [info.jab.easyracer.scenarios :as ez]))
 
-(def ^:private logger
-  (org.slf4j.LoggerFactory/getLogger "info.jab.easyracer.scenarios-test"))
-
 (def ^:private easyracer-image "ghcr.io/jamesward/easyracer")
 
 (def ^:private default-test-timeout-ms
@@ -77,21 +74,20 @@
 (use-fixtures :once with-easyracer-server)
 
 (def ^:private scenarios
-  [{:id 1 :name "scenario-1-test" :run ez/scenario-1}
-   {:id 2 :name "scenario-2-test" :run ez/scenario-2}
-   {:id 3 :name "scenario-3-test" :run ez/scenario-3}
-   {:id 4 :name "scenario-4-test" :run ez/scenario-4}
-   {:id 5 :name "scenario-5-test" :run ez/scenario-5}
-   {:id 6 :name "scenario-6-test" :run ez/scenario-6}
-   {:id 7 :name "scenario-7-test" :run ez/scenario-7}
-   {:id 8 :name "scenario-8-test" :run ez/scenario-8}
-   {:id 9 :name "scenario-9-test" :run ez/scenario-9}
-   {:id 10 :name "scenario-10-test" :run ez/scenario-10}
-   {:id 11 :name "scenario-11-test" :run ez/scenario-11}])
+  [{:id 1 :run ez/scenario-1}
+   {:id 2 :run ez/scenario-2}
+   {:id 3 :run ez/scenario-3}
+   {:id 4 :run ez/scenario-4}
+   {:id 5 :run ez/scenario-5}
+   {:id 6 :run ez/scenario-6}
+   {:id 7 :run ez/scenario-7}
+   {:id 8 :run ez/scenario-8}
+   {:id 9 :run ez/scenario-9}
+   {:id 10 :run ez/scenario-10}
+   {:id 11 :run ez/scenario-11}])
 
 (deftest all-scenarios-test
-  (doseq [{:keys [id name run]} scenarios]
-    (.info logger (format "Scenario %d" id))
-    (testing name
+  (doseq [{:keys [id run]} scenarios]
+    (testing (str "scenario-" id "-test")
       (run-with-timeout default-test-timeout-ms
                         #(is (= :right (run *base-url*)))))))

@@ -13,8 +13,12 @@
     (java.time Instant)
     (java.util Random)
     (java.util.concurrent CompletableFuture Executor Executors TimeUnit)
-    (java.util.function BiConsumer))
+    (java.util.function BiConsumer)
+    (org.slf4j Logger LoggerFactory))
   (:gen-class))
+
+(def ^Logger logger
+  (LoggerFactory/getLogger "info.jab.easyracer.Scenarios"))
 
 ;; ---------------------------------------------------------------------------
 ;; HTTP client utilities
@@ -80,6 +84,7 @@
     (.whenComplete cf
       (reify BiConsumer
         (accept [_ result ex]
+          (.info logger "asyncCall handler")
           (let [v (cond
                     ex     :left
                     result (response->verdict result)
@@ -120,6 +125,7 @@
 (defn scenario-1
   "Race two concurrent requests; the winner returns 'right'."
   [base-url]
+  (.info logger "Scenario 1")
   (race-futures
     [(get-async (str base-url "/1"))
      (get-async (str base-url "/1"))]))
@@ -127,6 +133,7 @@
 (defn scenario-2
   "Race two requests; one of them errors out."
   [base-url]
+  (.info logger "Scenario 2")
   (race-futures
     [(get-async (str base-url "/2"))
      (get-async (str base-url "/2"))]))
@@ -134,6 +141,7 @@
 (defn scenario-3
   "Race 10 000 concurrent requests."
   [base-url]
+  (.info logger "Scenario 3")
   (let [url (str base-url "/3")
         futures (mapv (fn [_] (get-async url {:timeout 120000}))
                       (range 10000))]
@@ -144,6 +152,7 @@
    request is given a 1s :timeout so the underlying connection is
    actually closed when it expires."
   [base-url]
+  (.info logger "Scenario 4")
   (race-futures
     [(get-async (str base-url "/4") {:timeout 1000})
      (get-async (str base-url "/4"))]))
@@ -151,6 +160,7 @@
 (defn scenario-5
   "Race two requests; non-200 is a loser."
   [base-url]
+  (.info logger "Scenario 5")
   (race-futures
     [(get-async (str base-url "/5"))
      (get-async (str base-url "/5"))]))
@@ -158,6 +168,7 @@
 (defn scenario-6
   "Race three requests; non-200 is a loser."
   [base-url]
+  (.info logger "Scenario 6")
   (race-futures
     [(get-async (str base-url "/6"))
      (get-async (str base-url "/6"))
@@ -166,8 +177,14 @@
 (defn scenario-7
   "Hedging: start a request, wait at least 3 s, then start a second one."
   [base-url]
+  (.info logger "Scenario 7")
   (let [url (str base-url "/7")
-        first-cf  (get-async url)
+        first-cf  (-> (get-async url)
+                      (.thenApply
+                        (reify java.util.function.Function
+                          (apply [_ resp]
+                            (.info logger "scenario7 promise1")
+                            resp))))
         ;; Build a CompletableFuture that fires the second call
         ;; after a 3-second delay using the JDK delayedExecutor.
         delayed-exec (CompletableFuture/delayedExecutor
@@ -179,12 +196,18 @@
                         delayed-exec)
                       (.thenCompose
                         (reify java.util.function.Function
-                          (apply [_ cf] cf))))]
+                          (apply [_ cf] cf)))
+                      (.thenApply
+                        (reify java.util.function.Function
+                          (apply [_ resp]
+                            (.info logger "scenario7 promise2")
+                            resp))))]
     (race-futures [first-cf second-cf])))
 
 (defn scenario-8
   "Resource management: open -> use -> close. Race two such flows."
   [base-url]
+  (.info logger "Scenario 8")
   (letfn [(resource-flow []
             (let [open-cf (get-async (str base-url "/8?open"))]
               (-> open-cf
@@ -196,10 +219,12 @@
                               ;; Always close, regardless of use outcome.
                               close!  (fn [_]
                                         (get-async (str base-url "/8?close=" resource-id)))]
+                          (.info logger (str "id: " resource-id))
                           (-> use-cf
                               (.whenComplete
                                 (reify BiConsumer
                                   (accept [_ _r _ex]
+                                    (.info logger "closed")
                                     (close! resource-id)))))))))))) ]
     (race-futures [(resource-flow) (resource-flow)])))
 
@@ -207,12 +232,14 @@
   "Make 10 concurrent requests; 5 return 200 with a single letter.
    Concatenated in response-arrival order they spell 'right'."
   [base-url]
+  (.info logger "Scenario 9")
   (let [url (str base-url "/9")
-        cfs (mapv (fn [_]
+        cfs (mapv (fn [idx]
                     (-> (get-async url)
                         (.thenApply
                           (reify java.util.function.Function
                             (apply [_ resp]
+                              (.info logger (str "scenario9 promise" (inc idx)))
                               {:at   (Instant/now)
                                :resp resp})))))
                   (range 10))
@@ -233,6 +260,7 @@
    Part 2: every second, POST current process load to /10?<id>=<load>.
            2xx => done, 3xx => keep polling, 4xx => failure."
   [base-url]
+  (.info logger "Scenario 10")
   (let [id        (str (random-uuid))
         cancelled (volatile! false)
         ;; OperatingSystemMXBean is the Sun-specific extended bean.
@@ -242,6 +270,7 @@
     ;; Part 1a: SHA loop on a virtual thread.
     (run-on-vt
       (fn []
+        (.info logger "scenario10 cpuTask")
         (let [md (MessageDigest/getInstance "SHA-512")
               buf (byte-array 512)]
           (.nextBytes (Random.) buf)
@@ -254,9 +283,11 @@
           _ (.whenComplete blocker-cf
               (reify BiConsumer
                 (accept [_ _r _ex]
+                  (.info logger "scenario10 blocker")
                   (vreset! cancelled true))))
           ;; Part 2: load-reporting loop until 2xx/4xx.
           poll (fn []
+                 (.info logger "scenario10 loader")
                  (loop []
                    (let [load (* (.getProcessCpuLoad os-bean) cpus)
                          {:keys [status body]}
@@ -282,6 +313,7 @@
   "All-failures-handled race: race a single request against a nested
    race of two requests."
   [base-url]
+  (.info logger "Scenario 11")
   (let [url (str base-url "/11")
         inner-future (CompletableFuture/supplyAsync
                        ^java.util.function.Supplier
@@ -299,4 +331,3 @@
     (race-futures
       [inner-future
        (get-async url)])))
-
