@@ -84,7 +84,7 @@
     (.whenComplete cf
       (reify BiConsumer
         (accept [_ result ex]
-          (.info logger "asyncCall handler")
+          (.info logger "Async response handler completed")
           (let [v (cond
                     ex     :left
                     result (response->verdict result)
@@ -117,6 +117,14 @@
   "Run function `f` on the shared virtual-thread executor."
   [f]
   (.execute ^Executor @virtual-executor f))
+
+(defn- log-and-pass
+  "Return a Java Function that logs a message and passes through input."
+  [message]
+  (reify java.util.function.Function
+    (apply [_ x]
+      (.info logger message)
+      x)))
 
 ;; ---------------------------------------------------------------------------
 ;; Scenarios
@@ -183,7 +191,7 @@
                       (.thenApply
                         (reify java.util.function.Function
                           (apply [_ resp]
-                            (.info logger "scenario7 promise1")
+                            (.info logger "Scenario 7: primary request completed")
                             resp))))
         ;; Build a CompletableFuture that fires the second call
         ;; after a 3-second delay using the JDK delayedExecutor.
@@ -200,7 +208,7 @@
                       (.thenApply
                         (reify java.util.function.Function
                           (apply [_ resp]
-                            (.info logger "scenario7 promise2")
+                            (.info logger "Scenario 7: hedged request completed")
                             resp))))]
     (race-futures [first-cf second-cf])))
 
@@ -219,12 +227,12 @@
                               ;; Always close, regardless of use outcome.
                               close!  (fn [_]
                                         (get-async (str base-url "/8?close=" resource-id)))]
-                          (.info logger (str "id: " resource-id))
+                          (.info logger (str "Scenario 8: opened resource id=" resource-id))
                           (-> use-cf
                               (.whenComplete
                                 (reify BiConsumer
                                   (accept [_ _r _ex]
-                                    (.info logger "closed")
+                                    (.info logger (str "Scenario 8: closing resource id=" resource-id))
                                     (close! resource-id)))))))))))) ]
     (race-futures [(resource-flow) (resource-flow)])))
 
@@ -236,10 +244,10 @@
   (let [url (str base-url "/9")
         cfs (mapv (fn [idx]
                     (-> (get-async url)
+                        (.thenApply (log-and-pass (str "scenario9 promise" (inc idx))))
                         (.thenApply
                           (reify java.util.function.Function
                             (apply [_ resp]
-                              (.info logger (str "scenario9 promise" (inc idx)))
                               {:at   (Instant/now)
                                :resp resp})))))
                   (range 10))
@@ -270,7 +278,7 @@
     ;; Part 1a: SHA loop on a virtual thread.
     (run-on-vt
       (fn []
-        (.info logger "scenario10 cpuTask")
+        (.info logger "Scenario 10: CPU hashing task started")
         (let [md (MessageDigest/getInstance "SHA-512")
               buf (byte-array 512)]
           (.nextBytes (Random.) buf)
@@ -283,11 +291,11 @@
           _ (.whenComplete blocker-cf
               (reify BiConsumer
                 (accept [_ _r _ex]
-                  (.info logger "scenario10 blocker")
+                  (.info logger "Scenario 10: blocker connection completed, signalling cancellation")
                   (vreset! cancelled true))))
           ;; Part 2: load-reporting loop until 2xx/4xx.
           poll (fn []
-                 (.info logger "scenario10 loader")
+                 (.info logger "Scenario 10: load-reporting loop started")
                  (loop []
                    (let [load (* (.getProcessCpuLoad os-bean) cpus)
                          {:keys [status body]}
