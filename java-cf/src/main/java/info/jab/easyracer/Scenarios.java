@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -226,7 +225,7 @@ public class Scenarios implements AutoCloseable {
         var promise2 = CompletableFuture.supplyAsync(
                 () -> requestCompletableFutureFactoryAsync(client, request),
                 CompletableFuture.delayedExecutor(timeoutSeconds, TimeUnit.SECONDS, executorService))
-            .thenCompose(Function.identity())
+            .thenCompose(Function1.identity())
             .thenApply(Value::fromHttpResponse);
 
         var promises = List.of(promise1,promise2);
