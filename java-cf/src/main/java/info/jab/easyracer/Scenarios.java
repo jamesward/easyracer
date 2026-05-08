@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -32,17 +33,18 @@ import org.slf4j.LoggerFactory;
 import com.sun.management.OperatingSystemMXBean;
 
 import io.vavr.Function1;
+import io.vavr.Function2;
 import io.vavr.Function3;
-import io.vavr.Function4;
 
 @NullMarked
-public class Scenarios {
+public class Scenarios implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(Scenarios.class);
 
-    private static final int DEFAULT_TIMEOUT_SECONDS = 5;
+    private static final long CONNECT_TIMEOUT_SECONDS = 5;
     private static final ThreadFactory VIRTUAL_THREAD_FACTORY =
         Thread.ofVirtual().name("easyracer-vt-cf-", 0).factory();
+
 
     private final URI url;
     private final HttpClient client;
@@ -52,8 +54,12 @@ public class Scenarios {
 
     public Scenarios(URI url) {
         this.url = url;
+        // HTTP/2 multiplexes on few connections and is capped by SETTINGS_MAX_CONCURRENT_STREAMS; scenario 3 needs
+        // ~10k requests active on the server at once or its handler never reaches the winning branch (see scenario-server).
         this.client = HttpClient.newBuilder()
-            .version(HttpClient.Version.HTTP_2)
+            .version(HttpClient.Version.HTTP_1_1)
+            .connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
+            .executor(executorService)
             .build();
     }
 
@@ -87,9 +93,12 @@ public class Scenarios {
         }
     }
 
-    private Supplier<CompletableFuture<HttpResponse<String>>> requestCompletableFutureFactory(HttpClient client, HttpRequest request) {
-        return () -> CompletableFuture.supplyAsync(() -> {
+    //Helper methods for CompletableFuture
+    
+    private CompletableFuture<HttpResponse<String>> requestCompletableFutureFactory(HttpClient client, HttpRequest request) {
+        return CompletableFuture.supplyAsync(() -> {
             try {
+                logger.info("asyncCall handler");
                 return client.send(request, config);
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
@@ -97,11 +106,15 @@ public class Scenarios {
         }, executorService);
     }
 
-    private final Function3<Integer, HttpClient, HttpRequest, CompletableFuture<Value>> asyncCall =
-        (timeoutSeconds, client, request) -> requestCompletableFutureFactory(client, request).get()
-            .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
+    private CompletableFuture<HttpResponse<String>> requestCompletableFutureFactoryAsync(HttpClient client, HttpRequest request) {
+        return CompletableFuture
+            .runAsync(() -> logger.info("asyncCall handler"), executorService)
+            .thenCompose(_ -> client.sendAsync(request, config));
+    }
+
+    private final Function2<HttpClient, HttpRequest, CompletableFuture<Value>> asyncCall =
+        (client, request) -> requestCompletableFutureFactoryAsync(client, request)
             .handle((result, ex) -> {
-                logger.info("asyncCall handler");
                 if (ex != null) {
                     return Value.LEFT;
                 }
@@ -111,11 +124,30 @@ public class Scenarios {
                 return Value.LEFT;
             });
 
-    private final Function4<Integer, Integer, HttpClient, HttpRequest, List<CompletableFuture<Value>>> getPromises =
-        (n, timeoutSeconds, client, request) -> IntStream.rangeClosed(1, n)
-            .mapToObj(_ -> asyncCall.apply(timeoutSeconds, client, request))
+    @SuppressWarnings("UnusedVariable")
+    private final Function2<HttpClient, HttpRequest, CompletableFuture<Value>> call = 
+        (client, request) -> requestCompletableFutureFactory(client, request)
+            .handle((result, ex) -> {
+                if (ex != null) {
+                    return Value.LEFT;
+                }
+                if (result.statusCode() == 200) {
+                    return Value.fromString(result.body());
+                }
+                return Value.LEFT;
+            });
+
+    private final Function3<Integer, HttpClient, HttpRequest, List<CompletableFuture<Value>>> getPromises =
+        (n, client, request) -> IntStream.rangeClosed(1, n)
+            .mapToObj(_ -> call.apply(client, request))
             .toList();
 
+    private final Function3<Integer, HttpClient, HttpRequest, List<CompletableFuture<Value>>> getPromisesAsync = (n, client,
+            request) -> IntStream.rangeClosed(1, n)
+                    .mapToObj(_ -> asyncCall.apply(client, request))
+                    .toList();
+
+    @SuppressWarnings("FutureReturnValueIgnored")
     private final Function1<List<CompletableFuture<Value>>, Value> race =
         (futures) -> {
             if (futures.isEmpty()) {
@@ -146,40 +178,32 @@ public class Scenarios {
                     }
                 };
 
-                attachRaceHandlers(futures, callback);
+                futures.forEach(future -> future.whenComplete(callback.apply(future)));
 
             return winner.join();
         };
-
-    @SuppressWarnings("FutureReturnValueIgnored")
-    private static void attachRaceHandlers(
-            List<CompletableFuture<Value>> futures,
-            Function1<CompletableFuture<Value>, BiConsumer<Value, Throwable>> callbackFactory) {
-        futures.forEach(future -> future.whenComplete(callbackFactory.apply(future)));
-    }
 
     Value scenario1() {
         logger.info("Scenario 1");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/1")).build();
 
-        return getPromises.andThen(race).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
+        return getPromisesAsync.andThen(race).apply(2, client, request);
     }
 
     Value scenario2() {
         logger.info("Scenario 2");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/2")).build();
 
-        return getPromises.andThen(race).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
+        return getPromisesAsync.andThen(race).apply(2, client, request);
     }
 
     Value scenario3() {
         logger.info("Scenario 3");
-        var timeoutSeconds = 120;
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/3")).build();
 
         //OSX issue detected when you open 10k http connections
         //https://www.tianxiangxiong.com/2024/07/08/virtual-threads.html
-        return getPromises.andThen(race).apply(10_000, timeoutSeconds, client, request);
+        return getPromisesAsync.andThen(race).apply(10_000, client, request);
     }
 
     Value scenario4() {
@@ -192,8 +216,8 @@ public class Scenarios {
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/4")).build();
 
         var promises = List.of(
-            asyncCall.apply(DEFAULT_TIMEOUT_SECONDS, client, shortRequest),
-            asyncCall.apply(DEFAULT_TIMEOUT_SECONDS, client, request)
+            asyncCall.apply(client, shortRequest),
+            asyncCall.apply(client, request)
         );
 
         return race.apply(promises);
@@ -203,14 +227,14 @@ public class Scenarios {
         logger.info("Scenario 5");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/5")).build();
 
-        return getPromises.andThen(race).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
+        return getPromisesAsync.andThen(race).apply(2, client, request);
     }
 
     Value scenario6() {
         logger.info("Scenario 6");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/6")).build();
 
-        return getPromises.andThen(race).apply(3, DEFAULT_TIMEOUT_SECONDS, client, request);
+        return getPromisesAsync.andThen(race).apply(3, client, request);
     }
 
     Value scenario7() {
@@ -218,7 +242,7 @@ public class Scenarios {
         var timeoutSeconds = 3;
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/7")).build();
 
-        var promise1 = requestCompletableFutureFactory(client, request).get()
+        var promise1 = requestCompletableFutureFactory(client, request)
             .thenApply(response -> {
                 logger.info("scenario7 promise1");
                 return Value.fromHttpResponse(response);
@@ -226,7 +250,7 @@ public class Scenarios {
         var promise2 = CompletableFuture.supplyAsync(
                 () -> requestCompletableFutureFactory(client, request),
                 CompletableFuture.delayedExecutor(timeoutSeconds, TimeUnit.SECONDS, executorService))
-            .thenCompose(Supplier::get)
+            .thenCompose(Function.identity())
             .thenApply(Value::fromHttpResponse)
             .thenApply(value -> {
                 logger.info("scenario7 promise2");
@@ -248,16 +272,16 @@ public class Scenarios {
             Function1<String, HttpRequest> useRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?use=" + resourceId)).build();
             Function1<String, HttpRequest> closeRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?close=" + resourceId)).build();
 
-            return requestCompletableFutureFactory(client, openRequest).get().thenApply(HttpResponse::body)
+            return requestCompletableFutureFactory(client, openRequest).thenApply(HttpResponse::body)
                 .thenCompose(resourceId -> {
                     logger.info("id: {}", resourceId);
-                    return requestCompletableFutureFactory(client, useRequest.apply(resourceId)).get()
+                    return requestCompletableFutureFactory(client, useRequest.apply(resourceId))
                         .thenApply(HttpResponse::body)
                         .thenApply(response -> new ResourceResult(resourceId, response));
                 })
                 .thenCompose(resourceResult -> {
                     logger.info("closed");
-                    return requestCompletableFutureFactory(client, closeRequest.apply(resourceResult.resourceId())).get()
+                    return requestCompletableFutureFactory(client, closeRequest.apply(resourceResult.resourceId()))
                         .thenApply(_ -> Value.RIGHT);
                 });
         };
@@ -277,7 +301,7 @@ public class Scenarios {
         record TimedResponse(Instant instant, HttpResponse<String> response) {}
 
         var promises = IntStream.rangeClosed(1, 10)
-            .mapToObj(index -> requestCompletableFutureFactory(client, request).get()
+            .mapToObj(index -> requestCompletableFutureFactory(client, request)
                 .thenApply(response -> {
                     logger.info("scenario9 promise{}", index);
                     return new TimedResponse(Instant.now(), response);
@@ -321,7 +345,7 @@ public class Scenarios {
 
         // Part 1 (blocker): hold the HTTP connection open; signal the CPU task to stop once it closes.
         HttpRequest blockerRequest = HttpRequest.newBuilder(url.resolve("/10?" + id)).build();
-        var blocker = requestCompletableFutureFactory(client, blockerRequest).get()
+        var blocker = requestCompletableFutureFactory(client, blockerRequest)
             .whenComplete((response, ex) -> {
                 logger.info("scenario10 blocker");
                 cancelled.set(true);
@@ -337,7 +361,6 @@ public class Scenarios {
                     HttpRequest request = HttpRequest.newBuilder(url.resolve("/10?" + id + "=" + load)).build();
                     HttpResponse<String> response = client.send(request, config);
                     int status = response.statusCode();
-                    //TODO: Use pattern matching with ranges.
                     if (status >= 200 && status < 300) {
                         return Value.fromString(response.body());
                     } else if (status >= 300 && status < 400) {
@@ -361,15 +384,26 @@ public class Scenarios {
         logger.info("Scenario 11");
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/11")).build();
 
-        // Create an inner race with 2 requests
-        var innerRace = getPromises.andThen(race).apply(2, DEFAULT_TIMEOUT_SECONDS, client, request);
+        // Server unblocks when three connections are open; the inner pair and the third must overlap.
+        CompletableFuture<Value> innerRace = CompletableFuture.supplyAsync(
+            () -> getPromisesAsync.andThen(race).apply(2, client, request),
+            executorService);
+        CompletableFuture<Value> third =
+            requestCompletableFutureFactoryAsync(client, request).thenApply(Value::fromHttpResponse);
 
-        // Combine the inner race with another request
-        var outerRace = List.of(
-            CompletableFuture.supplyAsync(() -> innerRace, executorService),
-            requestCompletableFutureFactory(client, request).get().thenApply(Value::fromHttpResponse)
-        );
+        return race.apply(List.of(innerRace, third));
+    }
 
-        return race.apply(outerRace);
+    @Override
+    public void close() {
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 }

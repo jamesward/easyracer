@@ -22,6 +22,7 @@ public class ScenariosTest {
     private static final String EASY_RACER_IMAGE = "ghcr.io/jamesward/easyracer";
 
     @Container
+    @SuppressWarnings("resource")
     private static final GenericContainer<?> scenarioServer = new GenericContainer<>(DockerImageName.parse(EASY_RACER_IMAGE))
         .withExposedPorts(8080)
         .waitingFor(new HttpWaitStrategy())
@@ -38,10 +39,13 @@ public class ScenariosTest {
     void scenarioReturnsRight(int scenarioNumber, Function<Scenarios, Scenarios.Value> runScenario) throws Exception {
         // given
         var url = new URI("http://" + scenarioServer.getHost() + ":" + scenarioServer.getFirstMappedPort());
-        var scenarioPath = new Scenarios(url);
-
-        // when
-        var result = runScenario.apply(scenarioPath);
+        
+        
+        Scenarios.Value result;
+        try (var scenarioPath = new Scenarios(url)) {
+            // when
+            result = runScenario.apply(scenarioPath);
+        }
 
         // then
         assertThat(result)
