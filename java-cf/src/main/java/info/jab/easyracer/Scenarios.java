@@ -45,7 +45,6 @@ public class Scenarios implements AutoCloseable {
     private static final ThreadFactory VIRTUAL_THREAD_FACTORY =
         Thread.ofVirtual().name("easyracer-vt-cf-", 0).factory();
 
-
     private final URI url;
     private final HttpClient client;
     private final HttpResponse.BodyHandler<String> config = HttpResponse.BodyHandlers.ofString();
@@ -98,7 +97,7 @@ public class Scenarios implements AutoCloseable {
     private CompletableFuture<HttpResponse<String>> requestCompletableFutureFactory(HttpClient client, HttpRequest request) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                logger.info("asyncCall handler");
+                logger.info("call handler");
                 return client.send(request, config);
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
@@ -178,7 +177,7 @@ public class Scenarios implements AutoCloseable {
                     }
                 };
 
-                futures.forEach(future -> future.whenComplete(callback.apply(future)));
+            futures.forEach(future -> future.whenComplete(callback.apply(future)));
 
             return winner.join();
         };
@@ -242,20 +241,15 @@ public class Scenarios implements AutoCloseable {
         var timeoutSeconds = 3;
         HttpRequest request = HttpRequest.newBuilder(url.resolve("/7")).build();
 
-        var promise1 = requestCompletableFutureFactory(client, request)
+        var promise1 = requestCompletableFutureFactoryAsync(client, request)
             .thenApply(response -> {
-                logger.info("scenario7 promise1");
                 return Value.fromHttpResponse(response);
             });
         var promise2 = CompletableFuture.supplyAsync(
-                () -> requestCompletableFutureFactory(client, request),
+                () -> requestCompletableFutureFactoryAsync(client, request),
                 CompletableFuture.delayedExecutor(timeoutSeconds, TimeUnit.SECONDS, executorService))
             .thenCompose(Function.identity())
-            .thenApply(Value::fromHttpResponse)
-            .thenApply(value -> {
-                logger.info("scenario7 promise2");
-                return value;
-            });
+            .thenApply(Value::fromHttpResponse);
 
         var promises = List.of(promise1,promise2);
 
@@ -272,16 +266,16 @@ public class Scenarios implements AutoCloseable {
             Function1<String, HttpRequest> useRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?use=" + resourceId)).build();
             Function1<String, HttpRequest> closeRequest = (resourceId) -> HttpRequest.newBuilder(url.resolve("/8?close=" + resourceId)).build();
 
-            return requestCompletableFutureFactory(client, openRequest).thenApply(HttpResponse::body)
+            return requestCompletableFutureFactoryAsync(client, openRequest).thenApply(HttpResponse::body)
                 .thenCompose(resourceId -> {
                     logger.info("id: {}", resourceId);
-                    return requestCompletableFutureFactory(client, useRequest.apply(resourceId))
+                    return requestCompletableFutureFactoryAsync(client, useRequest.apply(resourceId))
                         .thenApply(HttpResponse::body)
                         .thenApply(response -> new ResourceResult(resourceId, response));
                 })
                 .thenCompose(resourceResult -> {
                     logger.info("closed");
-                    return requestCompletableFutureFactory(client, closeRequest.apply(resourceResult.resourceId()))
+                    return requestCompletableFutureFactoryAsync(client, closeRequest.apply(resourceResult.resourceId()))
                         .thenApply(_ -> Value.RIGHT);
                 });
         };
@@ -301,9 +295,8 @@ public class Scenarios implements AutoCloseable {
         record TimedResponse(Instant instant, HttpResponse<String> response) {}
 
         var promises = IntStream.rangeClosed(1, 10)
-            .mapToObj(index -> requestCompletableFutureFactory(client, request)
+            .mapToObj(index -> requestCompletableFutureFactoryAsync(client, request)
                 .thenApply(response -> {
-                    logger.info("scenario9 promise{}", index);
                     return new TimedResponse(Instant.now(), response);
                 }))
             .toList();
@@ -345,9 +338,8 @@ public class Scenarios implements AutoCloseable {
 
         // Part 1 (blocker): hold the HTTP connection open; signal the CPU task to stop once it closes.
         HttpRequest blockerRequest = HttpRequest.newBuilder(url.resolve("/10?" + id)).build();
-        var blocker = requestCompletableFutureFactory(client, blockerRequest)
+        var blocker = requestCompletableFutureFactoryAsync(client, blockerRequest)
             .whenComplete((response, ex) -> {
-                logger.info("scenario10 blocker");
                 cancelled.set(true);
             });
 

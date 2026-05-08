@@ -25,6 +25,7 @@
     <junit-bom.version>6.0.3</junit-bom.version>
     <assertj-bom.version>3.27.7</assertj-bom.version>
     <slf4j-bom.version>2.1.0-alpha1</slf4j-bom.version>
+    <logback.version>1.5.20</logback.version>
 
     <maven-enforcer-plugin.version>3.6.2</maven-enforcer-plugin.version>
     <extra-enforcer-rules.version>1.10.0</extra-enforcer-rules.version>
@@ -97,8 +98,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
