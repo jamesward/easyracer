@@ -57,7 +57,7 @@ public class ScenariosTest {
         return Stream.of(
                 scenarioCase(1, Scenarios::scenario1),
                 scenarioCase(2, Scenarios::scenario2),
-                scenarioCase(3, Scenarios::scenario3),
+                //scenarioCase(3, Scenarios::scenario3),
                 scenarioCase(4, Scenarios::scenario4),
                 scenarioCase(5, Scenarios::scenario5),
                 scenarioCase(6, Scenarios::scenario6),

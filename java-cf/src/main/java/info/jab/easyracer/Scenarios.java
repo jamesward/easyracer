@@ -97,7 +97,6 @@ public class Scenarios implements AutoCloseable {
     private CompletableFuture<HttpResponse<String>> requestCompletableFutureFactory(HttpClient client, HttpRequest request) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                logger.info("call handler");
                 return client.send(request, config);
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
@@ -106,45 +105,28 @@ public class Scenarios implements AutoCloseable {
     }
 
     private CompletableFuture<HttpResponse<String>> requestCompletableFutureFactoryAsync(HttpClient client, HttpRequest request) {
-        return CompletableFuture
-            .runAsync(() -> logger.info("asyncCall handler"), executorService)
-            .thenCompose(_ -> client.sendAsync(request, config));
+        return client.sendAsync(request, config);
     }
 
     private final Function2<HttpClient, HttpRequest, CompletableFuture<Value>> asyncCall =
         (client, request) -> requestCompletableFutureFactoryAsync(client, request)
-            .handle((result, ex) -> {
-                if (ex != null) {
-                    return Value.LEFT;
-                }
-                if (result.statusCode() == 200) {
-                    return Value.fromString(result.body());
-                }
-                return Value.LEFT;
-            });
+            .thenApply(Value::fromHttpResponse)
+            .exceptionally(_ -> Value.LEFT);
 
-    @SuppressWarnings("UnusedVariable")
     private final Function2<HttpClient, HttpRequest, CompletableFuture<Value>> call = 
         (client, request) -> requestCompletableFutureFactory(client, request)
-            .handle((result, ex) -> {
-                if (ex != null) {
-                    return Value.LEFT;
-                }
-                if (result.statusCode() == 200) {
-                    return Value.fromString(result.body());
-                }
-                return Value.LEFT;
-            });
+            .thenApply(Value::fromHttpResponse)
+            .exceptionally(_ -> Value.LEFT);
 
     private final Function3<Integer, HttpClient, HttpRequest, List<CompletableFuture<Value>>> getPromises =
         (n, client, request) -> IntStream.rangeClosed(1, n)
             .mapToObj(_ -> call.apply(client, request))
             .toList();
 
-    private final Function3<Integer, HttpClient, HttpRequest, List<CompletableFuture<Value>>> getPromisesAsync = (n, client,
-            request) -> IntStream.rangeClosed(1, n)
-                    .mapToObj(_ -> asyncCall.apply(client, request))
-                    .toList();
+    private final Function3<Integer, HttpClient, HttpRequest, List<CompletableFuture<Value>>> getPromisesAsync = 
+        (n, client, request) -> IntStream.rangeClosed(1, n)
+            .mapToObj(_ -> asyncCall.apply(client, request))
+            .toList();
 
     @SuppressWarnings("FutureReturnValueIgnored")
     private final Function1<List<CompletableFuture<Value>>, Value> race =
@@ -156,7 +138,7 @@ public class Scenarios implements AutoCloseable {
             AtomicInteger remaining = new AtomicInteger(futures.size());
 
             Function1<CompletableFuture<Value>, BiConsumer<Value, Throwable>> callback =
-                (future) -> (value, _) -> {
+                (_) -> (value, _) -> {
                     Value current;
                     if (value == null) {
                         current = Value.LEFT;
@@ -165,13 +147,7 @@ public class Scenarios implements AutoCloseable {
                     }
 
                     if (Value.compareRight(current)) {
-                        if (winner.complete(current)) {
-                            futures.forEach(other -> {
-                                if (other != future) {
-                                    other.cancel(true);
-                                }
-                            });
-                        }
+                        winner.complete(current);
                     } else if (remaining.decrementAndGet() == 0) {
                         winner.complete(Value.LEFT);
                     }
@@ -181,6 +157,8 @@ public class Scenarios implements AutoCloseable {
 
             return winner.join();
         };
+
+    //Scenarios
 
     Value scenario1() {
         logger.info("Scenario 1");
@@ -389,13 +367,5 @@ public class Scenarios implements AutoCloseable {
     @Override
     public void close() {
         executorService.shutdown();
-        try {
-            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
-                executorService.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executorService.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
     }
 }
