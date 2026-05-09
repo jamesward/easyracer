@@ -45,6 +45,8 @@ public class ScenariosTest {
         try (var scenarioPath = new Scenarios(url)) {
             // when
             result = runScenario.apply(scenarioPath);
+        } catch (RuntimeException e) {
+            throw new AssertionError("scenario " + scenarioNumber + " failed with exception", e);
         }
 
         // then
