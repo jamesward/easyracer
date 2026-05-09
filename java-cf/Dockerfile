@@ -21,4 +21,4 @@ COPY . .
 RUN chmod +x mvnw \
     && ./mvnw -B -q dependency:go-offline clean package -DskipTests
 
-CMD ["./mvnw", "-B", "clean", "verify"]
+CMD ["timeout", "--signal=SIGTERM", "300", "./mvnw", "-B", "clean", "verify"]

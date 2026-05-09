@@ -7,6 +7,10 @@ services:
       - host.docker.internal:host-gateway
     environment:
       TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
     deploy:
       resources:
         reservations:

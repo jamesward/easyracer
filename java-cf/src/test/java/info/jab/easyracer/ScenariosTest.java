@@ -4,6 +4,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.junit.jupiter.Container;
@@ -19,6 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 public class ScenariosTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(ScenariosTest.class);
+
+    //Docker image
     private static final String EASY_RACER_IMAGE = "ghcr.io/jamesward/easyracer";
 
     @Container
@@ -26,8 +31,8 @@ public class ScenariosTest {
     private static final GenericContainer<?> scenarioServer = new GenericContainer<>(DockerImageName.parse(EASY_RACER_IMAGE))
         .withExposedPorts(8080)
         .waitingFor(new HttpWaitStrategy())
-        //.withCommand("--debug")//DEBUG ONLY
-        .withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
+        //.withCommand("--debug") //DEBUG ONLY
+        .withLogConsumer(outputFrame -> logger.info(outputFrame.getUtf8String()));
 
     @AfterAll
     static void closeScenarioServer() {

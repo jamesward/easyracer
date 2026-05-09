@@ -30,11 +30,7 @@ public class Scenarios implements AutoCloseable {
         this.url = url;
         // HTTP/2 multiplexes on few connections and is capped by SETTINGS_MAX_CONCURRENT_STREAMS; scenario 3 needs
         // ~10k requests active on the server at once or its handler never reaches the winning branch (see scenario-server).
-        this.client = HttpClient.newBuilder()
-            .version(HttpClient.Version.HTTP_1_1)
-            .connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
-            .executor(executorService)
-            .build();
+        this.client = httpClient(executorService, CONNECT_TIMEOUT_SECONDS);
     }
 
     /**
@@ -70,10 +66,18 @@ public class Scenarios implements AutoCloseable {
         }
     }
 
-    //Helper methods for CompletableFuture
+    //Helper methods
     
     private CompletableFuture<HttpResponse<String>> sendAsync(HttpClient client, HttpRequest request) {
         return client.sendAsync(request, config);
+    }
+
+    private HttpClient httpClient(Executor executor, long connectTimeoutSeconds) {
+        return HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
+            .connectTimeout(Duration.ofSeconds(connectTimeoutSeconds))
+            .executor(executor)
+            .build();
     }
 
     private void sleep(long seconds) {
@@ -156,8 +160,9 @@ public class Scenarios implements AutoCloseable {
         logger.info("Scenario 3");
         HttpRequest request = request("/3");
 
-        //OSX issue detected when you open 10k http connections
-        //https://www.tianxiangxiong.com/2024/07/08/virtual-threads.html
+        // OSX issue detected when you open 10k http connections
+        // https://www.tianxiangxiong.com/2024/07/08/virtual-threads.html
+        // In OSX, it is possible to solve the scenario using a Dynamic Headroom approach.
         return race(getPromisesAsync(10_000, client, request));
     }
 
