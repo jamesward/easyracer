@@ -76,10 +76,6 @@ public class Scenarios implements AutoCloseable {
         return client.sendAsync(request, config);
     }
 
-    private <T> CompletableFuture<T> async(Supplier<T> task) {
-        return CompletableFuture.supplyAsync(task, executorService);
-    }
-
     private void sleep(long seconds) {
         try {
             Thread.sleep(seconds * 1000);
@@ -204,10 +200,10 @@ public class Scenarios implements AutoCloseable {
 
         CompletableFuture<Value> immediate = sendNonBlocking(client, request);
 
-        CompletableFuture<Value> delayed = async(() -> {
+        CompletableFuture<Value> delayed = CompletableFuture.supplyAsync(() -> {
                     sleep(timeoutSeconds);
                     return null;
-                })
+                }, executorService)
                 .thenCompose(_ -> sendNonBlocking(client, request));
 
         return race(List.of(immediate, delayed));
