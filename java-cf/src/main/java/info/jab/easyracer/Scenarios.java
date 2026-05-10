@@ -322,8 +322,8 @@ public class Scenarios implements AutoCloseable {
 
         CompletableFuture<Void> cpu = cpuTask.start();
 
-        CompletableFuture<Void> blocker = sendAsync(client, request("/10?" + id))
-                .thenAcceptAsync(_ -> cpuTask.stop(), executorService);
+        CompletableFuture<HttpResponse<String>> blocker = sendAsync(client, request("/10?" + id))
+                .whenCompleteAsync((_, _) -> cpuTask.stop(), executorService);
 
         CompletableFuture<ScenarioResult> result = poller.poll(osBean, id);
 
