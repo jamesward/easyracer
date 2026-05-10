@@ -5,10 +5,10 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>info.jab.easyracer</groupId>
-  <artifactId>java-cf</artifactId>
+  <artifactId>java-rxjava</artifactId>
   <version>0.1.0</version>
-  <name>java-cf</name>
-  <description>Easy Racer scenarios for the java-cf module</description>
+  <name>java-rxjava</name>
+  <description>Easy Racer scenarios for the java-rxjava module</description>
 
   <properties>
     <java.version>25</java.version>
