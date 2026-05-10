@@ -1,0 +1,33 @@
+# Generated file. DO NOT EDIT.
+'on':
+  push:
+    branches:
+    - main
+    paths:
+    - java-rxjava/**
+    - .github/workflows/java-rxjava.yaml
+  pull_request:
+    paths:
+    - java-rxjava/**
+    - .github/workflows/java-rxjava.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-java@v5
+      with:
+        distribution: graalvm
+        java-version: '25'
+        cache: maven
+    - run: ./mvnw --batch-mode --no-transfer-progress verify
+      working-directory: java-rxjava
+    defaults:
+      run:
+        working-directory: java-rxjava
