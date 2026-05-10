@@ -1,6 +1,8 @@
 package info.jab.easyracer;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -13,6 +15,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.net.URI;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -39,16 +43,22 @@ public class ScenariosTest {
         scenarioServer.close();
     }
 
+    @Timeout(value = 15, unit = TimeUnit.SECONDS)
     @ParameterizedTest(name = "scenario {0}")
     @MethodSource("scenarios")
-    void scenarioReturnsRight(int scenarioNumber, Function<Scenarios, Scenarios.Value> runScenario) throws Exception {
+    void scenarioReturnsRight(int scenarioNumber, Function<Scenarios, Scenarios.ScenarioResult> runScenario) throws Exception {
+        if (scenarioNumber == 3) {
+            Assumptions.assumeTrue(
+                    System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux"),
+                    "scenario 3 not run on this OS (Linux only)");
+        }
+
         // given
         var url = new URI("http://" + scenarioServer.getHost() + ":" + scenarioServer.getFirstMappedPort());
         
-        
-        Scenarios.Value result;
+        // when
+        Scenarios.ScenarioResult result;
         try (var scenarioPath = new Scenarios(url)) {
-            // when
             result = runScenario.apply(scenarioPath);
         } catch (RuntimeException e) {
             throw new AssertionError("scenario " + scenarioNumber + " failed with exception", e);
@@ -57,7 +67,7 @@ public class ScenariosTest {
         // then
         assertThat(result)
                 .as("scenario %s", scenarioNumber)
-                .isEqualTo(Scenarios.Value.RIGHT);
+                .isEqualTo(Scenarios.ScenarioResult.RIGHT);
     }
 
     static Stream<Arguments> scenarios() {
@@ -75,7 +85,7 @@ public class ScenariosTest {
                 scenarioCase(11, Scenarios::scenario11));
     }
 
-    private static Arguments scenarioCase(int number, Function<Scenarios, Scenarios.Value> runner) {
+    private static Arguments scenarioCase(int number, Function<Scenarios, Scenarios.ScenarioResult> runner) {
         return Arguments.of(number, runner);
     }
 }

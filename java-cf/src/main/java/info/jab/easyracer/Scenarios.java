@@ -34,27 +34,13 @@ public class Scenarios implements AutoCloseable {
     }
 
     /**
-     * Enum to represent the possible values of the scenarios
+     * Result of a scenario run (response body {@code left} or {@code right}).
      */
-    enum Value {
-        LEFT("left"),
-        RIGHT("right");
+    enum ScenarioResult {
+        LEFT,
+        RIGHT;
 
-        private final String value;
-
-        Value(String value) {
-            this.value = value;
-        }
-
-        public String get() {
-            return value;
-        }
-
-        public static Value fromHttpResponse(HttpResponse<String> response) {
-            return fromString(response.body());
-        }
-
-        public static Value fromString(String value) {
+        public static ScenarioResult fromString(String value) {
             return switch (value) {
                 case "left" -> LEFT;
                 case "right" -> RIGHT;
@@ -92,43 +78,43 @@ public class Scenarios implements AutoCloseable {
         return HttpRequest.newBuilder(url.resolve(path)).build();
     }
 
-    private CompletableFuture<Value> sendNonBlocking(HttpClient client, HttpRequest request) {
+    private CompletableFuture<ScenarioResult> sendNonBlocking(HttpClient client, HttpRequest request) {
         return sendAsync(client, request)
-            .thenApplyAsync(Value::fromHttpResponse, executorService)
-            .exceptionally(_ -> Value.LEFT);
+            .thenApplyAsync(response -> ScenarioResult.fromString(response.body()), executorService)
+            .exceptionally(_ -> ScenarioResult.LEFT);
     }
 
-    private List<CompletableFuture<Value>> getPromisesAsync(int n, HttpClient client, HttpRequest request) {
+    private List<CompletableFuture<ScenarioResult>> getPromisesAsync(int n, HttpClient client, HttpRequest request) {
         return IntStream.rangeClosed(1, n)
             .mapToObj(_ -> sendNonBlocking(client, request))
             .toList();
     }
 
     @SuppressWarnings("FutureReturnValueIgnored")
-    private Value race(List<CompletableFuture<Value>> futures) {
-        if (futures.isEmpty()) {
-            return Value.LEFT;
+    private ScenarioResult race(List<CompletableFuture<ScenarioResult>> promises) {
+        if (promises.isEmpty()) {
+            return ScenarioResult.LEFT;
         }
 
-        CompletableFuture<Value> winner = new CompletableFuture<>();
-        AtomicInteger remaining = new AtomicInteger(futures.size());
+        CompletableFuture<ScenarioResult> winner = new CompletableFuture<>();
+        AtomicInteger remaining = new AtomicInteger(promises.size());
 
-        for (CompletableFuture<Value> future : futures) {
-            future.whenComplete((value, throwable) -> {
-                Value result = throwable != null || value == null
-                        ? Value.LEFT
+        for (CompletableFuture<ScenarioResult> promise : promises) {
+            promise.whenComplete((value, throwable) -> {
+                ScenarioResult result = throwable != null || value == null
+                        ? ScenarioResult.LEFT
                         : value;
-                if (result == Value.RIGHT) {
-                    boolean won = winner.complete(Value.RIGHT);
+                if (result == ScenarioResult.RIGHT) {
+                    boolean won = winner.complete(ScenarioResult.RIGHT);
                     if (won) {
-                        futures.forEach(other -> {
-                            if (other != future) {
-                                other.cancel(true);
+                        promises.forEach(otherPromise -> {
+                            if (otherPromise != promise) {
+                                otherPromise.cancel(true);
                             }
                         });
                     }
                 } else if (remaining.decrementAndGet() == 0) {
-                    winner.complete(Value.LEFT);
+                    winner.complete(ScenarioResult.LEFT);
                 }
             });
         }
@@ -138,7 +124,7 @@ public class Scenarios implements AutoCloseable {
 
     //Scenarios
 
-    Value scenario1() {
+    ScenarioResult scenario1() {
         logger.info("Scenario 1");
         HttpRequest request = request("/1");
 
@@ -147,7 +133,7 @@ public class Scenarios implements AutoCloseable {
                 sendNonBlocking(client, request)));
     }
 
-    Value scenario2() {
+    ScenarioResult scenario2() {
         logger.info("Scenario 2");
         HttpRequest request = request("/2");
 
@@ -156,7 +142,7 @@ public class Scenarios implements AutoCloseable {
                 sendNonBlocking(client, request)));
     }
 
-    Value scenario3() {
+    ScenarioResult scenario3() {
         logger.info("Scenario 3");
         HttpRequest request = request("/3");
 
@@ -166,7 +152,7 @@ public class Scenarios implements AutoCloseable {
         return race(getPromisesAsync(10_000, client, request));
     }
 
-    Value scenario4() {
+    ScenarioResult scenario4() {
         logger.info("Scenario 4");
         HttpRequest shortRequest = HttpRequest.newBuilder(url.resolve("/4"))
             .timeout(Duration.ofSeconds(1))
@@ -178,7 +164,7 @@ public class Scenarios implements AutoCloseable {
                 sendNonBlocking(client, request)));
     }
 
-    Value scenario5() {
+    ScenarioResult scenario5() {
         logger.info("Scenario 5");
         HttpRequest request = request("/5");
 
@@ -187,7 +173,7 @@ public class Scenarios implements AutoCloseable {
                 sendNonBlocking(client, request)));
     }
 
-    Value scenario6() {
+    ScenarioResult scenario6() {
         logger.info("Scenario 6");
         HttpRequest request = request("/6");
 
@@ -197,15 +183,15 @@ public class Scenarios implements AutoCloseable {
                 sendNonBlocking(client, request)));
     }
 
-    Value scenario7() {
+    ScenarioResult scenario7() {
         logger.info("Scenario 7");
 
         var timeoutSeconds = 3;
         HttpRequest request = request("/7");
 
-        CompletableFuture<Value> immediate = sendNonBlocking(client, request);
+        CompletableFuture<ScenarioResult> immediate = sendNonBlocking(client, request);
 
-        CompletableFuture<Value> delayed = CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<ScenarioResult> delayed = CompletableFuture.supplyAsync(() -> {
                     sleep(timeoutSeconds);
                     return null;
                 }, executorService)
@@ -214,24 +200,24 @@ public class Scenarios implements AutoCloseable {
         return race(List.of(immediate, delayed));
     }
 
-    Value scenario8() {
+    ScenarioResult scenario8() {
         logger.info("Scenario 8");
 
         HttpRequest openRequest = request("/8?open");
         Function<String, HttpRequest> useRequest = id -> request("/8?use=" + id);
         Function<String, HttpRequest> closeRequest = id -> request("/8?close=" + id);
 
-        Supplier<CompletableFuture<Value>> flowSupplier = () -> sendAsync(client, openRequest)
+        Supplier<CompletableFuture<ScenarioResult>> flowSupplier = () -> sendAsync(client, openRequest)
             .thenApplyAsync(HttpResponse::body, executorService)
             .thenComposeAsync(resourceId -> sendAsync(client, useRequest.apply(resourceId))
                 .thenApplyAsync(HttpResponse::body, executorService)
                 .thenComposeAsync(ignored -> sendAsync(client, closeRequest.apply(resourceId))
-                    .thenApplyAsync(ignoredResponse -> Value.RIGHT, executorService), executorService), executorService);
+                    .thenApplyAsync(ignoredResponse -> ScenarioResult.RIGHT, executorService), executorService), executorService);
 
         return race(List.of(flowSupplier.get(), flowSupplier.get()));
     }
 
-    Value scenario9() {
+    ScenarioResult scenario9() {
         logger.info("Scenario 9");
 
         HttpRequest request = request("/9");
@@ -252,7 +238,7 @@ public class Scenarios implements AutoCloseable {
                 .map(timedResponse -> timedResponse.response.body())
                 .reduce("", String::concat);
 
-        return Value.fromString(rawResult);
+        return ScenarioResult.fromString(rawResult);
     }
 
     final class CpuTask {
@@ -299,7 +285,7 @@ public class Scenarios implements AutoCloseable {
             this.executor = executor;
         }
 
-        CompletableFuture<Value> poll(OperatingSystemMXBean osBean, String id) {
+        CompletableFuture<ScenarioResult> poll(OperatingSystemMXBean osBean, String id) {
 
             var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
             HttpRequest request = Scenarios.this.request("/10?" + id + "=" + load);
@@ -310,7 +296,7 @@ public class Scenarios implements AutoCloseable {
 
                         if (status >= 200 && status < 300) {
                             return CompletableFuture.completedFuture(
-                                    Value.fromString(response.body()));
+                                    ScenarioResult.fromString(response.body()));
                         }
 
                         if (status >= 300 && status < 400) {
@@ -319,13 +305,13 @@ public class Scenarios implements AutoCloseable {
                                     .thenCompose(_ -> poll(osBean, id));
                         }
 
-                        return CompletableFuture.completedFuture(Value.LEFT);
+                        return CompletableFuture.completedFuture(ScenarioResult.LEFT);
                     }, executor)
-                    .exceptionally(_ -> Value.LEFT);
+                    .exceptionally(_ -> ScenarioResult.LEFT);
         }
     }
 
-    Value scenario10() {
+    ScenarioResult scenario10() {
         logger.info("Scenario 10");
 
         var id = UUID.randomUUID().toString();
@@ -339,7 +325,7 @@ public class Scenarios implements AutoCloseable {
         CompletableFuture<Void> blocker = sendAsync(client, request("/10?" + id))
                 .thenAcceptAsync(_ -> cpuTask.stop(), executorService);
 
-        CompletableFuture<Value> result = poller.poll(osBean, id);
+        CompletableFuture<ScenarioResult> result = poller.poll(osBean, id);
 
         var value = result.join();
 
@@ -349,17 +335,17 @@ public class Scenarios implements AutoCloseable {
         return value;
     }
 
-    Value scenario11() {
+    ScenarioResult scenario11() {
         logger.info("Scenario 11");
 
         HttpRequest request = request("/11");
 
         // inner pair
-        List<CompletableFuture<Value>> inner = getPromisesAsync(2, client, request);
+        List<CompletableFuture<ScenarioResult>> inner = getPromisesAsync(2, client, request);
 
         // third request
-        CompletableFuture<Value> third = sendAsync(client, request)
-                .thenApplyAsync(Value::fromHttpResponse, executorService);
+        CompletableFuture<ScenarioResult> third = sendAsync(client, request)
+                .thenApplyAsync(response -> ScenarioResult.fromString(response.body()), executorService);
 
         // combine all directly
         return race(List.of(
