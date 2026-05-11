@@ -1,36 +1,19 @@
 package info.jab.easyracer;
 
-import com.sun.management.OperatingSystemMXBean;
-
-import java.lang.management.ManagementFactory;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
-import java.util.stream.IntStream;
+import module java.base;
+import module java.net.http;
+import module java.management;
 
 import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.reactivex.rxjava4.core.Completable;
+import io.reactivex.rxjava4.core.Maybe;
 import io.reactivex.rxjava4.core.Observable;
 import io.reactivex.rxjava4.core.Single;
+import io.reactivex.rxjava4.disposables.CompositeDisposable;
+import io.reactivex.rxjava4.disposables.Disposable;
 import io.reactivex.rxjava4.schedulers.Schedulers;
 
 @NullMarked
@@ -58,181 +41,180 @@ public class Scenarios implements AutoCloseable {
             .build();
     }
 
-    public enum Result {
+    /**
+     * Result of a scenario run (response body {@code left} or {@code right}).
+     */
+    public enum ScenarioResult {
         LEFT,
         RIGHT;
 
-        public static Result from(String body) {
-            return "right".equals(body) ? RIGHT : LEFT;
+        public static ScenarioResult fromString(String value) {
+            return switch (value) {
+                case "left" -> LEFT;
+                case "right" -> RIGHT;
+                default -> {
+                    logger.warn("Invalid value '{}', returning LEFT", value);
+                    yield LEFT;
+                }
+            };
         }
     }
 
-    private HttpRequest buildGetRequest(String path) {
-        return HttpRequest.newBuilder(url.resolve(path))
-                .GET()
-                .build();
+    private Single<ScenarioResult> request(String path) {
+        var httpRequest = HttpRequest.newBuilder(url.resolve(path))
+            .GET()
+            .build();
+        return toScenarioResult(exchange(httpRequest));
     }
 
-    private HttpRequest buildGetRequest(String path, Duration timeout) {
-        return HttpRequest.newBuilder(url.resolve(path))
+    private Single<ScenarioResult> request(String path, Duration timeout) {
+        var httpRequest = HttpRequest.newBuilder(url.resolve(path))
             .timeout(timeout)
             .GET()
             .build();
+        return toScenarioResult(exchange(httpRequest));
     }
 
-    private Single<Result> request(String path) {
-        return request(buildGetRequest(path));
-    }
-
-    private Single<Result> request(HttpRequest request) {
-        return exchange(request).map(response -> response.statusCode() == 200
-            ? Result.from(response.body())
-            : Result.LEFT);
+    private static Single<ScenarioResult> toScenarioResult(Single<HttpResponse<String>> response) {
+        return response.map(r -> r.statusCode() == 200
+            ? ScenarioResult.fromString(r.body())
+            : ScenarioResult.LEFT);
     }
 
     /**
      * Sends the request asynchronously; emits the full response (any status code) or fails on transport error.
      */
     private Single<HttpResponse<String>> exchange(HttpRequest request) {
-        return Single.create(emitter -> {
-            CompletableFuture<HttpResponse<String>> responseFuture =
-                client.sendAsync(request, BODY_HANDLER).whenComplete((value, error) -> {
-                    if (emitter.isDisposed()) {
-                        return;
-                    }
-
-                    if (error != null) {
-                        var cause = error instanceof CompletionException completionException
-                            && completionException.getCause() != null
-                                ? completionException.getCause()
-                                : error;
-                        emitter.onError(cause);
-                    } else {
-                        emitter.onSuccess(value);
-                    }
-                });
-            emitter.setCancellable(() -> responseFuture.cancel(true));
-        });
+        return Single.<HttpResponse<String>>create(emitter -> {
+            CompletionStage<HttpResponse<String>> stage = client.sendAsync(request, BODY_HANDLER);
+            Disposable upstream =
+                Single.fromCompletionStage(stage).subscribe(emitter::onSuccess, emitter::onError);
+            emitter.setDisposable(Disposable.fromRunnable(() -> {
+                upstream.dispose();
+                if (stage instanceof Future<?> pending && !pending.isDone()) {
+                    pending.cancel(true);
+                }
+            }));
+        }).onErrorResumeNext(error -> Single.error(
+            error instanceof CompletionException completionException
+                && completionException.getCause() != null
+                    ? completionException.getCause()
+                    : error));
     }
 
     /**
-     * First successful {@link Result#RIGHT} wins; if no request yields RIGHT, returns {@link Result#LEFT}.
+     * First successful {@link ScenarioResult#RIGHT} wins; if no request yields RIGHT, returns {@link ScenarioResult#LEFT}.
      * Needed for scenarios where the server returns 500 on one connection before 200 "right" on another.
      */
-    private static Single<Result> race(List<Single<Result>> requests) {
-        return Observable.fromIterable(requests)
-            .flatMap(request -> request.toObservable().onErrorComplete())
-            .filter(result -> result == Result.RIGHT)
+    @SafeVarargs
+    private static Single<ScenarioResult> race(Single<ScenarioResult>... requests) {
+        return Observable.range(0, requests.length)
+            .flatMap(i -> requests[i].toObservable().onErrorComplete())
+            .filter(result -> result == ScenarioResult.RIGHT)
             .firstElement()
-            .switchIfEmpty(Single.just(Result.LEFT));
+            .switchIfEmpty(Single.just(ScenarioResult.LEFT));
     }
 
-    public Single<Result> scenario1() {
+    public Single<ScenarioResult> scenario1() {
         logger.info("Scenario 1");
-        Supplier<Single<Result>> req = () -> request("/1");
+        Supplier<Single<ScenarioResult>> req = () -> request("/1");
 
-        return race(List.of(
-            req.get(), req.get()
-        ));
+        return race(
+            req.get(), 
+            req.get());
     }
 
-    public Single<Result> scenario2() {
+    public Single<ScenarioResult> scenario2() {
         logger.info("Scenario 2");
-        Supplier<Single<Result>> req = () -> request("/2");
+        Supplier<Single<ScenarioResult>> req = () -> request("/2");
 
-        return race(List.of(
-            req.get(), req.get()
-        ));
+        return race(
+            req.get(), 
+            req.get());
     }
 
-    public Single<Result> scenario3() {
+    @SuppressWarnings("unchecked")
+    public Single<ScenarioResult> scenario3() {
         logger.info("Scenario 3");
-        Supplier<Single<Result>> req = () -> request("/3");
+        Supplier<Single<ScenarioResult>> req = () -> request("/3");
 
-        var requests = IntStream.range(0, 10_000)
+        Single<ScenarioResult>[] requests = IntStream.range(0, 10_000)
             .mapToObj(_ -> req.get())
-            .toList();
+            .toArray(Single[]::new);
+
         return race(requests);
     }
 
-    public Single<Result> scenario4() {
+    public Single<ScenarioResult> scenario4() {
         logger.info("Scenario 4");
-        var shortRequest = request(buildGetRequest("/4", Duration.ofSeconds(1)));
+        var shortRequest = request("/4", Duration.ofSeconds(1));
         var normalRequest = request("/4");
 
-        return race(List.of(
-            shortRequest, normalRequest
-        ));
+        return race(
+            shortRequest, 
+            normalRequest);
     }
 
-    public Single<Result> scenario5() {
+    public Single<ScenarioResult> scenario5() {
         logger.info("Scenario 5");
-        Supplier<Single<Result>> req = () -> request("/5");
+        Supplier<Single<ScenarioResult>> req = () -> request("/5");
 
-        return race(List.of(
-            req.get(), req.get()
-        ));
+        return race(
+            req.get(), 
+            req.get());
     }
 
-    public Single<Result> scenario6() {
+    public Single<ScenarioResult> scenario6() {
         logger.info("Scenario 6");
-        Supplier<Single<Result>> req = () -> request("/6");
+        Supplier<Single<ScenarioResult>> req = () -> request("/6");
         
-        return race(List.of(
+        return race(
             req.get(), 
             req.get(), 
-            req.get()
-        ));
+            req.get());
     }
 
-    public Single<Result> scenario7() {
+    public Single<ScenarioResult> scenario7() {
         logger.info("Scenario 7");
         var hedgeDelaySeconds = 3;
-        Single<Result> immediate = request("/7");
-        Single<Result> hedge = Single.timer(hedgeDelaySeconds, TimeUnit.SECONDS, Schedulers.from(executor))
+        Single<ScenarioResult> immediate = request("/7");
+        Single<ScenarioResult> hedge = Single.timer(hedgeDelaySeconds, TimeUnit.SECONDS, Schedulers.from(executor))
             .flatMap(__ -> request("/7"));
         // Hedge request often never completes HTTP; winner is whichever finishes first — typically immediate.
         return Observable.merge(
                 immediate.toObservable().onErrorComplete(),
                 hedge.toObservable().onErrorComplete())
             .firstElement()
-            .switchIfEmpty(Single.just(Result.LEFT));
+            .switchIfEmpty(Single.just(ScenarioResult.LEFT));
     }
 
-    public Single<Result> scenario8() {
+    public Single<ScenarioResult> scenario8() {
         logger.info("Scenario 8");
 
-        Supplier<Single<Result>> resourceFlow = () -> {
-            var openRequest = buildGetRequest("/8?open");
+        Supplier<Single<ScenarioResult>> resourceFlow = () -> {
+            var openRequest = HttpRequest.newBuilder(url.resolve("/8?open")).GET().build();
             return exchange(openRequest).flatMap(openResponse -> {
                 if (openResponse.statusCode() != 200) {
-                    return Single.just(Result.LEFT);
+                    return Single.just(ScenarioResult.LEFT);
                 }
                 var resourceId = openResponse.body().trim();
-                var useRequest = HttpRequest.newBuilder(url.resolve("/8?use=" + resourceId))
-                    .GET()
-                    .build();
-                return exchange(useRequest).flatMap(useResponse -> {
-                    var closeRequest = HttpRequest.newBuilder(url.resolve("/8?close=" + resourceId))
-                        .GET()
-                        .build();
-                    return exchange(closeRequest).map(__ -> Result.RIGHT);
-                });
+                return request("/8?use=" + resourceId).flatMap(__ ->
+                    exchange(HttpRequest.newBuilder(url.resolve("/8?close=" + resourceId)).GET().build())
+                        .map(___ -> ScenarioResult.RIGHT));
             });
         };
 
-        return race(List.of(
-            resourceFlow.get(),
-            resourceFlow.get()
-        ));
+        return race(
+            resourceFlow.get(), 
+            resourceFlow.get());
     }
 
-    public Single<Result> scenario9() {
+    public Single<ScenarioResult> scenario9() {
         logger.info("Scenario 9");
 
         record TimedResponse(Instant instant, HttpResponse<String> response) {}
 
-        var httpRequest = buildGetRequest("/9");
+        var httpRequest = HttpRequest.newBuilder(url.resolve("/9")).GET().build();
         List<Single<TimedResponse>> requests = IntStream.rangeClosed(1, 10)
             .mapToObj(index -> exchange(httpRequest).map(response -> new TimedResponse(Instant.now(), response)))
             .toList();
@@ -246,84 +228,96 @@ public class Scenarios implements AutoCloseable {
                     .sorted(byCompletionTime)
                     .map(entry -> entry.response.body())
                     .reduce("", String::concat))
-            .map(Result::from);
+            .map(ScenarioResult::fromString);
     }
 
-    public Single<Result> scenario10() {
+    public Single<ScenarioResult> scenario10() {
         logger.info("Scenario 10");
-        return Single.fromCallable(this::scenario10Blocking)
-            .subscribeOn(Schedulers.from(executor));
-    }
-
-    /** Blocking orchestration ported from {@code java-cf} (CPU task + blocker HTTP + load poller). */
-    private Result scenario10Blocking() {
         var id = UUID.randomUUID().toString();
-        var osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
+        var availableProcessors = Runtime.getRuntime().availableProcessors();
+        var scheduler = Schedulers.from(executor);
 
-        var cancelled = new AtomicBoolean(false);
-        CompletableFuture<Void> cpuTask = CompletableFuture.runAsync(() -> {
+        // CPU-burning task: hashes a buffer until the surrounding subscription is disposed.
+        Completable cpuTask = Completable.create(emitter -> {
             logger.info("scenario10 cpuTask");
-            try {
-                var digest = MessageDigest.getInstance("SHA-512");
-                var buf = new byte[512];
-                new Random().nextBytes(buf);
-                while (!cancelled.get()) {
-                    buf = digest.digest(buf);
+            var digest = MessageDigest.getInstance("SHA-512");
+            var buf = new byte[512];
+            new Random().nextBytes(buf);
+            while (!emitter.isDisposed()) {
+                buf = digest.digest(buf);
+            }
+            emitter.onComplete();
+        }).subscribeOn(scheduler);
+
+        // Server-held request that signals "test in progress"; resolves when the server is satisfied.
+        Completable blocker = exchange(HttpRequest.newBuilder(url.resolve("/10?" + id)).GET().build())
+            .doOnSuccess(__ -> logger.info("scenario10 blocker"))
+            .ignoreElement();
+
+        // Reports the measured CPU load once per second, retrying on 3xx until success or terminal status.
+        Single<ScenarioResult> loader = Single
+            .defer(() -> {
+                double load = processCpuLoadFraction() * availableProcessors;
+                return exchange(HttpRequest.newBuilder(url.resolve("/10?" + id + "=" + load)).GET().build());
+            })
+            .flatMapMaybe(response -> {
+                int status = response.statusCode();
+                if (status >= 200 && status < 300) {
+                    return Maybe.just(ScenarioResult.fromString(response.body()));
                 }
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
-            }
-        }, executor);
-
-        HttpRequest blockerRequest = HttpRequest.newBuilder(url.resolve("/10?" + id)).GET().build();
-        CompletableFuture<HttpResponse<String>> blocker = CompletableFuture.supplyAsync(() -> {
-            try {
-                return client.send(blockerRequest, BODY_HANDLER);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }, executor).whenComplete((_response, throwable) -> {
-            logger.info("scenario10 blocker");
-            cancelled.set(true);
-        });
-
-        CompletableFuture<Result> loader = CompletableFuture.supplyAsync(() -> {
-            logger.info("scenario10 loader");
-            while (true) {
-                try {
-                    var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
-                    HttpRequest loadRequest =
-                        HttpRequest.newBuilder(url.resolve("/10?" + id + "=" + load)).GET().build();
-                    HttpResponse<String> response = client.send(loadRequest, BODY_HANDLER);
-                    int status = response.statusCode();
-                    if (status >= 200 && status < 300) {
-                        return Result.from(response.body());
-                    }
-                    if (status >= 300 && status < 400) {
-                        Thread.sleep(1000);
-                    } else {
-                        return Result.LEFT;
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return Result.LEFT;
-                } catch (Exception e) {
-                    return Result.LEFT;
+                if (status >= 300 && status < 400) {
+                    // empty -> repeatWhen schedules another poll after the delay
+                    return Maybe.empty();
                 }
-            }
-        }, executor);
+                return Maybe.just(ScenarioResult.LEFT);
+            })
+            .toObservable()
+            .repeatWhen(completions -> completions.delay(1, TimeUnit.SECONDS, scheduler))
+            .firstOrError()
+            .doOnSubscribe(__ -> logger.info("scenario10 loader"))
+            .onErrorReturnItem(ScenarioResult.LEFT);
 
-        var result = loader.join();
-        blocker.join();
-        cpuTask.join();
-        return result;
+        // Start CPU loop and blocker concurrently; the blocker's completion stops the CPU loop so the loader can observe the drop.
+        return Single.using(
+            () -> {
+                Disposable cpu = cpuTask.subscribe(
+                    () -> {},
+                    error -> logger.warn("scenario10 cpuTask error", error));
+                Disposable blockerSub = blocker.subscribe(
+                    cpu::dispose,
+                    error -> {
+                        logger.warn("scenario10 blocker error", error);
+                        cpu.dispose();
+                    });
+                return new CompositeDisposable(cpu, blockerSub);
+            },
+            __ -> loader,
+            Disposable::dispose);
     }
 
-    public Single<Result> scenario11() {
+    /** JVM process CPU usage in {@code [0, 1]} from {@code java.lang:type=OperatingSystem}, or {@code 0} if absent. */
+    private static double processCpuLoadFraction() {
+        try {
+            var mbeanServer = ManagementFactory.getPlatformMBeanServer();
+            var objectName = ObjectName.getInstance("java.lang:type=OperatingSystem");
+            var value = mbeanServer.getAttribute(objectName, "ProcessCpuLoad");
+            if (value instanceof Double d && !d.isNaN() && d >= 0) {
+                return d;
+            }
+        } catch (JMException | ClassCastException e) {
+            logger.debug("ProcessCpuLoad not available: {}", e.toString());
+        }
+        return 0.0;
+    }
+
+    public Single<ScenarioResult> scenario11() {
         logger.info("Scenario 11");
-        Supplier<Single<Result>> req = () -> request("/11");
-        Single<Result> innerRace = race(List.of(req.get(), req.get()));
-        return race(List.of(innerRace, request("/11")));
+        Supplier<Single<ScenarioResult>> req = () -> request("/11");
+        Single<ScenarioResult> innerRace = race(req.get(), req.get());
+        
+        return race(
+            innerRace, 
+            request("/11"));
     }
 
     @Override

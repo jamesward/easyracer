@@ -3,6 +3,8 @@ package info.jab.easyracer;
 import io.reactivex.rxjava4.core.Single;
 import io.reactivex.rxjava4.observers.TestObserver;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -14,6 +16,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -43,21 +46,28 @@ public class ScenariosTest {
         scenarioServer.close();
     }
 
+    @Timeout(value = 15, unit = TimeUnit.SECONDS)
     @ParameterizedTest(name = "scenario {0}")
     @MethodSource("scenarios")
-    void scenarioReturnsRight(int scenarioNumber, Function<Scenarios, Single<Scenarios.Result>> runScenario)
+    void scenarioReturnsRight(int scenarioNumber, Function<Scenarios, Single<Scenarios.ScenarioResult>> runScenario)
         throws Exception {
+
+        if (scenarioNumber == 3) {
+            Assumptions.assumeTrue(
+                System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux"),
+                "scenario 3 not run on this OS (Linux only)");
+        }
 
         var url = new URI("http://" + scenarioServer.getHost() + ":" + scenarioServer.getFirstMappedPort());
         try (var scenarioPath = new Scenarios(url)) {
-            TestObserver<Scenarios.Result> observer = runScenario.apply(scenarioPath).test();
+            TestObserver<Scenarios.ScenarioResult> observer = runScenario.apply(scenarioPath).test();
             try {
                 observer.awaitDone(SCENARIO_AWAIT_SECONDS, TimeUnit.SECONDS);
                 observer.assertComplete();
                 observer.assertNoErrors();
                 assertThat(observer.values())
                     .as("scenario %s", scenarioNumber)
-                    .containsExactly(Scenarios.Result.RIGHT);
+                    .containsExactly(Scenarios.ScenarioResult.RIGHT);
             } finally {
                 observer.dispose();
             }
@@ -79,7 +89,7 @@ public class ScenariosTest {
                 scenarioCase(11, s -> s.scenario11()));
     }
 
-    private static Arguments scenarioCase(int number, Function<Scenarios, Single<Scenarios.Result>> runner) {
+    private static Arguments scenarioCase(int number, Function<Scenarios, Single<Scenarios.ScenarioResult>> runner) {
         return Arguments.of(number, runner);
     }
 }
