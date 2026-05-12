@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import io.reactivex.rxjava4.core.Completable;
 import io.reactivex.rxjava4.core.Maybe;
 import io.reactivex.rxjava4.core.Observable;
+import io.reactivex.rxjava4.core.Scheduler;
 import io.reactivex.rxjava4.core.Single;
 import io.reactivex.rxjava4.disposables.CompositeDisposable;
 import io.reactivex.rxjava4.disposables.Disposable;
@@ -28,11 +29,13 @@ public class Scenarios implements AutoCloseable {
 
     private final URI url;
     private final ExecutorService executor;
+    private final Scheduler scheduler;
     private final HttpClient client;
 
     public Scenarios(URI url) {
         this.url = url;
         this.executor = Executors.newThreadPerTaskExecutor(VIRTUAL_THREAD_FACTORY);
+        this.scheduler = Schedulers.from(executor);
         this.client = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .connectTimeout(Duration.ofSeconds(5))
@@ -60,6 +63,8 @@ public class Scenarios implements AutoCloseable {
         }
     }
 
+    //Helper methods
+
     private Single<ScenarioResult> request(String path) {
         var httpRequest = HttpRequest.newBuilder(url.resolve(path))
             .GET()
@@ -85,21 +90,16 @@ public class Scenarios implements AutoCloseable {
      * Sends the request asynchronously; emits the full response (any status code) or fails on transport error.
      */
     private Single<HttpResponse<String>> exchange(HttpRequest request) {
-        return Single.<HttpResponse<String>>create(emitter -> {
-            CompletionStage<HttpResponse<String>> stage = client.sendAsync(request, BODY_HANDLER);
-            Disposable upstream =
-                Single.fromCompletionStage(stage).subscribe(emitter::onSuccess, emitter::onError);
-            emitter.setDisposable(Disposable.fromRunnable(() -> {
-                upstream.dispose();
-                if (stage instanceof Future<?> pending && !pending.isDone()) {
-                    pending.cancel(true);
-                }
-            }));
+        return Single.defer(() -> {
+            CompletableFuture<HttpResponse<String>> future =
+                client.sendAsync(request, BODY_HANDLER);
+
+            return Single.fromCompletionStage(future)
+                .doOnDispose(() -> future.cancel(true));
         }).onErrorResumeNext(error -> Single.error(
-            error instanceof CompletionException completionException
-                && completionException.getCause() != null
-                    ? completionException.getCause()
-                    : error));
+            error instanceof CompletionException ce && ce.getCause() != null
+                ? ce.getCause()
+                : error));
     }
 
     /**
@@ -107,14 +107,20 @@ public class Scenarios implements AutoCloseable {
      * Needed for scenarios where the server returns 500 on one connection before 200 "right" on another.
      */
     @SafeVarargs
+    @SuppressWarnings({"unchecked", "varargs"})
     private static Single<ScenarioResult> race(Single<ScenarioResult>... requests) {
-        return Observable.range(0, requests.length)
-            .flatMap(i -> requests[i].toObservable().onErrorComplete())
+        return Observable.mergeArrayDelayError(
+                Arrays.stream(requests)
+                    .map(req -> req
+                        .onErrorReturnItem(ScenarioResult.LEFT)
+                        .toObservable())
+                    .toArray(Observable[]::new))
             .filter(result -> result == ScenarioResult.RIGHT)
-            .firstElement()
-            .switchIfEmpty(Single.just(ScenarioResult.LEFT));
+            .first(ScenarioResult.LEFT);
     }
 
+    //Scenarios
+    
     public Single<ScenarioResult> scenario1() {
         logger.info("Scenario 1");
         Supplier<Single<ScenarioResult>> req = () -> request("/1");
@@ -178,14 +184,13 @@ public class Scenarios implements AutoCloseable {
         logger.info("Scenario 7");
         var hedgeDelaySeconds = 3;
         Single<ScenarioResult> immediate = request("/7");
-        Single<ScenarioResult> hedge = Single.timer(hedgeDelaySeconds, TimeUnit.SECONDS, Schedulers.from(executor))
+        Single<ScenarioResult> hedge = Single.timer(hedgeDelaySeconds, TimeUnit.SECONDS, scheduler)
             .flatMap(__ -> request("/7"));
-        // Hedge request often never completes HTTP; winner is whichever finishes first — typically immediate.
-        return Observable.merge(
-                immediate.toObservable().onErrorComplete(),
-                hedge.toObservable().onErrorComplete())
-            .firstElement()
-            .switchIfEmpty(Single.just(ScenarioResult.LEFT));
+        // Hedge request often never completes HTTP; first successful response wins — typically immediate.
+        return Single.ambArray(
+                immediate.onErrorResumeWith(Single.never()),
+                hedge.onErrorResumeWith(Single.never()))
+            .onErrorReturnItem(ScenarioResult.LEFT);
     }
 
     public Single<ScenarioResult> scenario8() {
@@ -235,7 +240,6 @@ public class Scenarios implements AutoCloseable {
         logger.info("Scenario 10");
         var id = UUID.randomUUID().toString();
         var availableProcessors = Runtime.getRuntime().availableProcessors();
-        var scheduler = Schedulers.from(executor);
 
         // CPU-burning task: hashes a buffer until the surrounding subscription is disposed.
         Completable cpuTask = Completable.create(emitter -> {
@@ -312,12 +316,11 @@ public class Scenarios implements AutoCloseable {
 
     public Single<ScenarioResult> scenario11() {
         logger.info("Scenario 11");
-        Supplier<Single<ScenarioResult>> req = () -> request("/11");
-        Single<ScenarioResult> innerRace = race(req.get(), req.get());
+        var httpRequest = HttpRequest.newBuilder(url.resolve("/11")).GET().build();
         
-        return race(
-            innerRace, 
-            request("/11"));
+        Supplier<Single<ScenarioResult>> req = () -> toScenarioResult(exchange(httpRequest));
+        Single<ScenarioResult> innerRace = race(req.get(), req.get());
+        return race(req.get(), innerRace);
     }
 
     @Override
