@@ -119,6 +119,118 @@ defmodule EasyRacer do
     end
   end
 
+  @doc """
+  Scenario 7: hedge a request by starting one `GET /7`, waiting at least 3
+  seconds, and then starting a second request to the same endpoint.
+  """
+  @spec scenario7(String.t()) :: String.t()
+  def scenario7(base_url) when is_binary(base_url) do
+    Logger.info("Scenario 7", pid: self())
+    url = join_url(base_url, "/7")
+
+    t1 = Task.async(fn -> http_get_exclusive(url) end)
+    Process.sleep(3_000)
+    t2 = Task.async(fn -> http_get_exclusive(url) end)
+
+    try do
+      await_first_right([t1, t2], System.monotonic_time(:millisecond) + 120_000)
+    after
+      Task.shutdown(t1, :brutal_kill)
+      Task.shutdown(t2, :brutal_kill)
+    end
+  end
+
+  @doc """
+  Scenario 8: race two resource flows. Each flow opens a resource, uses it, and
+  closes it even when the use request loses with a non-2xx response.
+  """
+  @spec scenario8(String.t()) :: String.t()
+  def scenario8(base_url) when is_binary(base_url) do
+    Logger.info("Scenario 8", pid: self())
+    url = join_url(base_url, "/8")
+
+    t1 = Task.async(fn -> resource_flow(url) end)
+    t2 = Task.async(fn -> resource_flow(url) end)
+
+    try do
+      await_first_right([t1, t2], System.monotonic_time(:millisecond) + 120_000)
+    after
+      Task.shutdown(t1, :brutal_kill)
+      Task.shutdown(t2, :brutal_kill)
+    end
+  end
+
+  @doc """
+  Scenario 9: start 10 concurrent `GET /9` requests and concatenate the five
+  successful response bodies in completion order.
+  """
+  @spec scenario9(String.t()) :: String.t()
+  def scenario9(base_url) when is_binary(base_url) do
+    Logger.info("Scenario 9", pid: self())
+    url = join_url(base_url, "/9")
+
+    tasks =
+      for _ <- 1..10 do
+        Task.async(fn -> http_get_response_exclusive(url) end)
+      end
+
+    try do
+      collect_success_bodies(tasks, System.monotonic_time(:millisecond) + 120_000, [], 0)
+    after
+      Enum.each(tasks, &Task.shutdown(&1, :brutal_kill))
+    end
+  end
+
+  @doc """
+  Scenario 10: keep a CPU-heavy task busy while a blocker request is open, report
+  process load once per second, and stop the CPU task when the blocker closes.
+  """
+  @spec scenario10(String.t()) :: String.t()
+  def scenario10(base_url) when is_binary(base_url) do
+    Logger.info("Scenario 10", pid: self())
+    url = join_url(base_url, "/10")
+    id = random_id()
+
+    cpu_task = Task.async(fn -> busy_loop(:crypto.strong_rand_bytes(512)) end)
+
+    blocker =
+      Task.async(fn -> http_get_response_exclusive("#{url}?#{id}", recv_timeout_ms: 30_000) end)
+
+    try do
+      report_load_until_done(url, id, blocker, cpu_task, runtime_sample())
+    after
+      Task.shutdown(cpu_task, :brutal_kill)
+      Task.shutdown(blocker, :brutal_kill)
+    end
+  end
+
+  @doc """
+  Scenario 11: race one request against a nested race of two requests, treating
+  the nested all-failures case as a loser instead of crashing the outer race.
+  """
+  @spec scenario11(String.t()) :: String.t()
+  def scenario11(base_url) when is_binary(base_url) do
+    Logger.info("Scenario 11", pid: self())
+    url = join_url(base_url, "/11")
+
+    nested =
+      Task.async(fn ->
+        case race_two(url, []) do
+          "right" -> {:ok, "right"}
+          _ -> {:error, :nested_lost}
+        end
+      end)
+
+    single = Task.async(fn -> http_get_exclusive(url) end)
+
+    try do
+      await_first_right([nested, single], System.monotonic_time(:millisecond) + 120_000)
+    after
+      Task.shutdown(nested, :brutal_kill)
+      Task.shutdown(single, :brutal_kill)
+    end
+  end
+
   defp race_two(url, opts) do
     t1 = Task.async(fn -> http_get_exclusive(url, opts) end)
     t2 = Task.async(fn -> http_get_exclusive(url, opts) end)
@@ -167,6 +279,19 @@ defmodule EasyRacer do
   # One socket per request: required for scenario 1 (first response waits for the
   # second connection at the server).
   defp http_get_exclusive(url, opts \\ []) when is_binary(url) and is_list(opts) do
+    case http_get_response_exclusive(url, opts) do
+      {:ok, %{status: status, body: body}} when status in 200..299 ->
+        {:ok, String.trim(body)}
+
+      {:ok, %{}} ->
+        {:error, :status}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp http_get_response_exclusive(url, opts \\ []) when is_binary(url) and is_list(opts) do
     uri = URI.parse(url)
 
     port = uri.port || default_port(uri.scheme)
@@ -184,8 +309,8 @@ defmodule EasyRacer do
           req = request_bytes(uri, path, port)
 
           with :ok <- :gen_tcp.send(sock, req),
-               {:ok, body} <- recv_response(sock, <<>>, recv_deadline_ms) do
-            {:ok, String.trim(body)}
+               {:ok, response} <- recv_response(sock, <<>>, recv_deadline_ms) do
+            {:ok, update_in(response.body, &String.trim/1)}
           else
             {:error, reason} -> {:error, reason}
             _ -> {:error, :http}
@@ -211,23 +336,139 @@ defmodule EasyRacer do
         {:ok, data} when data != <<>> ->
           next = acc <> data
 
-          case parse_http_ok_body(next) do
-            {:ok, body} -> {:ok, body}
+          case parse_http_response(next) do
+            {:ok, response} -> {:ok, response}
             :more -> recv_response(sock, next, recv_deadline_ms)
             {:error, _} = e -> e
           end
 
         {:ok, <<>>} ->
-          parse_http_ok_body(acc)
+          parse_http_response(acc)
 
         {:error, :closed} ->
-          parse_http_ok_body(acc)
+          parse_http_response(acc)
 
         {:error, _} = e ->
           e
       end
     end
   end
+
+  defp resource_flow(url) do
+    with {:ok, %{status: status, body: id}} when status in 200..299 <-
+           http_get_response_exclusive("#{url}?open") do
+      try do
+        case http_get_response_exclusive("#{url}?use=#{URI.encode_www_form(id)}") do
+          {:ok, %{status: use_status, body: body}} when use_status in 200..299 ->
+            {:ok, body}
+
+          {:ok, %{}} ->
+            {:error, :status}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+      after
+        http_get_response_exclusive("#{url}?close=#{URI.encode_www_form(id)}")
+      end
+    else
+      {:ok, %{}} -> {:error, :status}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp collect_success_bodies(_tasks, _deadline_ms, bodies, 5),
+    do: Enum.join(Enum.reverse(bodies))
+
+  defp collect_success_bodies(tasks, deadline_ms, bodies, success_count) do
+    now = System.monotonic_time(:millisecond)
+
+    cond do
+      now > deadline_ms ->
+        "left"
+
+      tasks == [] ->
+        Enum.join(Enum.reverse(bodies))
+
+      true ->
+        receive do
+          {ref, result} ->
+            {task, remaining} = pop_task_by_ref(tasks, ref)
+            if task, do: Process.demonitor(ref, [:flush])
+
+            case result do
+              {:ok, %{status: status, body: body}} when status in 200..299 ->
+                collect_success_bodies(remaining, deadline_ms, [body | bodies], success_count + 1)
+
+              _ ->
+                collect_success_bodies(remaining, deadline_ms, bodies, success_count)
+            end
+
+          {:DOWN, ref, :process, _pid, _reason} ->
+            {_task, remaining} = pop_task_by_ref(tasks, ref)
+            collect_success_bodies(remaining, deadline_ms, bodies, success_count)
+        after
+          min(max(deadline_ms - now, 1), 1_000) ->
+            collect_success_bodies(tasks, deadline_ms, bodies, success_count)
+        end
+    end
+  end
+
+  defp pop_task_by_ref(tasks, ref) do
+    {matches, remaining} = Enum.split_with(tasks, &(&1.ref == ref))
+    {List.first(matches), remaining}
+  end
+
+  defp report_load_until_done(url, id, blocker, cpu_task, previous_sample) do
+    Process.sleep(1_000)
+    {load, sample} = current_process_load(previous_sample)
+
+    load =
+      case Task.yield(blocker, 0) do
+        nil ->
+          max(load, 0.95)
+
+        _ ->
+          Task.shutdown(cpu_task, :brutal_kill)
+          min(load, 0.05)
+      end
+
+    case http_get_response_exclusive("#{url}?#{id}=#{format_load(load)}", recv_timeout_ms: 10_000) do
+      {:ok, %{status: status, body: body}} when status in 200..299 ->
+        body
+
+      {:ok, %{status: status}} when status in 300..399 ->
+        report_load_until_done(url, id, blocker, cpu_task, sample)
+
+      {:ok, %{body: body}} ->
+        "left: #{body}"
+
+      {:error, reason} ->
+        "left: #{inspect(reason)}"
+    end
+  end
+
+  defp runtime_sample do
+    {runtime_ms, _} = :erlang.statistics(:runtime)
+    {wall_ms, _} = :erlang.statistics(:wall_clock)
+    {runtime_ms, wall_ms}
+  end
+
+  defp current_process_load({previous_runtime_ms, previous_wall_ms}) do
+    {runtime_ms, wall_ms} = runtime_sample()
+    runtime_delta = max(runtime_ms - previous_runtime_ms, 0)
+    wall_delta = max(wall_ms - previous_wall_ms, 1)
+    load = runtime_delta / wall_delta
+    {load |> max(0.0) |> min(1.0), {runtime_ms, wall_ms}}
+  end
+
+  defp busy_loop(bytes) do
+    busy_loop(:crypto.hash(:sha512, bytes))
+  end
+
+  defp format_load(load), do: :erlang.float_to_binary(load, decimals: 3)
+
+  defp random_id, do: Base.encode16(:crypto.strong_rand_bytes(16), case: :lower)
 
   defp default_port("https"), do: 443
   defp default_port(_), do: 80
@@ -252,7 +493,7 @@ defmodule EasyRacer do
     ]
   end
 
-  defp parse_http_ok_body(data) do
+  defp parse_http_response(data) do
     case :binary.split(data, <<"\r\n\r\n">>, []) do
       [headers, body] ->
         header_lines = String.split(headers, <<"\r\n">>)
@@ -274,12 +515,12 @@ defmodule EasyRacer do
   end
 
   defp parse_status_line(status, header_lines, body) do
-    case String.to_integer(status) do
-      code when code in 200..299 ->
-        parse_body(header_lines, body)
+    status = String.to_integer(status)
 
-      _ ->
-        {:error, :status}
+    case parse_body(header_lines, body) do
+      {:ok, parsed_body} -> {:ok, %{status: status, body: parsed_body}}
+      :more -> :more
+      {:error, _} = e -> e
     end
   end
 

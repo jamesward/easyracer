@@ -58,4 +58,25 @@ defmodule EasyRacerTest do
   test "scenario 6 returns right", %{base_url: base_url} do
     assert EasyRacer.scenario6(base_url) == "right"
   end
+
+  test "scenario 7 returns right", %{base_url: base_url} do
+    assert EasyRacer.scenario7(base_url) == "right"
+  end
+
+  test "scenario 8 returns right", %{base_url: base_url} do
+    assert EasyRacer.scenario8(base_url) == "right"
+  end
+
+  test "scenario 9 returns right", %{base_url: base_url} do
+    assert EasyRacer.scenario9(base_url) == "right"
+  end
+
+  @tag timeout: 60_000
+  test "scenario 10 returns right", %{base_url: base_url} do
+    assert EasyRacer.scenario10(base_url) == "right"
+  end
+
+  test "scenario 11 returns right", %{base_url: base_url} do
+    assert EasyRacer.scenario11(base_url) == "right"
+  end
 end
