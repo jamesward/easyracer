@@ -198,7 +198,11 @@ class Scenarios
 
   def scenario3
     LOG.info("Scenario 3")
-    race(Array.new(10_000) { -> { request("/3") } })
+    race(
+      Array.new(10_000) { 
+        -> { request("/3") 
+      } 
+    })
   end
 
   def scenario4
