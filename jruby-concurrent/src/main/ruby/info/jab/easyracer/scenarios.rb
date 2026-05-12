@@ -1,9 +1,14 @@
 # frozen_string_literal: true
 
 require "concurrent"
+require "digest"
 require "net/http"
+require "securerandom"
 require "rjack-logback"
 require "uri"
+
+java_import java.lang.management.ManagementFactory
+java_import com.sun.management.OperatingSystemMXBean
 
 class Scenarios
   LOG = RJack::SLF4J["info.jab.easyracer.Scenarios"]
@@ -11,9 +16,8 @@ class Scenarios
   LEFT = :left
   RIGHT = :right
 
-  def initialize(base_url, announce: true)
+  def initialize(base_url)
     @base = base_url.to_s.chomp("/")
-    @announce = announce
   end
 
   def close
@@ -21,61 +25,124 @@ class Scenarios
   end
 
   def scenario1
-    announce_scenario(1)
-    race_right([
+    LOG.info("Scenario 1")
+    race([
       -> { get_scenario_result("/1") },
       -> { get_scenario_result("/1") }
     ])
   end
 
   def scenario2
-    announce_scenario(2)
-    race_right([
+    LOG.info("Scenario 2")
+    race([
       -> { get_scenario_result("/2") },
       -> { get_scenario_result("/2") }
     ])
   end
 
   def scenario3
-    announce_scenario(3)
-    race_right(Array.new(10_000) { -> { get_scenario_result("/3") } })
+    LOG.info("Scenario 3")
+    race(Array.new(10_000) { -> { get_scenario_result("/3") } })
   end
 
   def scenario4
-    announce_scenario(4)
-    race_right([
+    LOG.info("Scenario 4")
+    race([
       -> { get_scenario_result("/4", read_timeout: 1) },
       -> { get_scenario_result("/4") }
     ])
   end
 
   def scenario5
-    announce_scenario(5)
-    race_right([
+    LOG.info("Scenario 5")
+    race([
       -> { get_scenario_result("/5") },
       -> { get_scenario_result("/5") }
     ])
   end
 
   def scenario6
-    announce_scenario(6)
-    race_right([
+    LOG.info("Scenario 6")
+    race([
       -> { get_scenario_result("/6") },
       -> { get_scenario_result("/6") },
       -> { get_scenario_result("/6") }
     ])
   end
 
-  private
-
-  def announce_scenario(number)
-    return unless @announce
-
-    LOG.info("Scenario #{number}")
+  # Hedging: primary GET immediately, duplicate GET after ≥3s (server checks ~2s gap).
+  def scenario7
+    LOG.info("Scenario 7")
+    race([
+      -> { get_scenario_result("/7") },
+      -> { Kernel.sleep(3); get_scenario_result("/7") }
+    ])
   end
 
+  # Race two open→use→close pipelines; always close in ensure (server couples winner to close id).
+  def scenario8
+    LOG.info("Scenario 8")
+    race([-> { scenario8_flow }, -> { scenario8_flow }])
+  end
+
+  def scenario9
+    LOG.info("Scenario 9")
+    observations = Concurrent::Array.new
+    futures = Array.new(10) do
+      Concurrent::Future.execute do
+        resp = fetch_response("/9")
+        observations << { at: Time.now, resp: resp }
+      rescue StandardError
+        observations << { at: Time.now, resp: nil }
+      end
+    end
+    futures.each do |f|
+      raise "scenario 9 timeout" unless f.wait(120)
+    end
+    pieces = observations.sort_by { |row| row[:at] }
+      .filter_map { |row| row[:resp] }
+      .select { |r| r.code.to_i == 200 }
+      .map { |r| r.body.to_s.strip }
+    pieces.join == "right" ? RIGHT : LEFT
+  end
+
+  # Blocker connection + CPU digest loop + load polling (server checks mean load during block).
+  def scenario10
+    LOG.info("Scenario 10")
+    id = SecureRandom.uuid.to_s
+    cancelled = Concurrent::AtomicBoolean.new(false)
+
+    cpu_future = Concurrent::Future.execute do
+      buf = SecureRandom.random_bytes(512)
+      buf = Digest::SHA512.digest(buf) until cancelled.true?
+    end
+
+    blocker_future = Concurrent::Future.execute do
+      begin
+        fetch_response("/10?#{id}")
+      rescue StandardError
+        nil
+      ensure
+        cancelled.make_true
+      end
+    end
+
+    verdict = scenario10_poll_loop(id, cancelled)
+    blocker_future.wait(120)
+    cpu_future.cancel rescue nil
+    verdict
+  end
+
+  # Triple concurrent GET: third arrival wins (README: nested race semantics; matches java-cf).
+  def scenario11
+    LOG.info("Scenario 11")
+    race(Array.new(3) { -> { get_scenario_result("/11") } })
+  end
+
+  private
+
   # First RIGHT wins. concurrent-ruby schedules racers; an unbounded queue avoids producer blocking.
-  def race_right(builders)
+  def race(builders)
     completion = Queue.new
     futures = builders.map do |builder|
       Concurrent::Future.execute do
@@ -91,10 +158,54 @@ class Scenarios
     futures&.each { |f| f.cancel rescue nil }
   end
 
-  def get_scenario_result(path, read_timeout: nil)
+  def scenario8_flow
+    open_res = fetch_response("/8?open")
+    return LEFT unless open_res.code.to_i == 200
+
+    resource_id = open_res.body.to_s.strip
+    LOG.info("Scenario 8: opened resource id=#{resource_id}")
+    verdict = LEFT
+    begin
+      use_res = fetch_response("/8?use=#{resource_id}")
+      verdict = response_to_result(use_res)
+    ensure
+      begin
+        LOG.info("Scenario 8: closing resource id=#{resource_id}")
+        fetch_response("/8?close=#{resource_id}")
+      rescue StandardError
+        nil
+      end
+    end
+    verdict
+  rescue StandardError
+    LEFT
+  end
+
+  def scenario10_poll_loop(id, cancelled)
+    os_bean = ManagementFactory.get_platform_mx_bean(OperatingSystemMXBean.java_class)
+    processors = Java::java.lang.Runtime.get_runtime.available_processors
+    loop do
+      load = os_bean.get_process_cpu_load
+      load = 0.0 if load.negative?
+      sample = load * processors
+      response = fetch_response("/10?#{id}=#{sample}")
+      code = response.code.to_i
+      if code >= 200 && code < 300
+        cancelled.make_true
+        return response_to_result(response)
+      elsif code >= 300 && code < 400
+        Kernel.sleep(1)
+      else
+        cancelled.make_true
+        return LEFT
+      end
+    end
+  end
+
+  def fetch_response(path, read_timeout: nil)
     uri = join_uri(path)
     limit = read_timeout.nil? ? 300 : read_timeout
-    response = Net::HTTP.start(
+    Net::HTTP.start(
       uri.hostname,
       uri.port,
       open_timeout: 5,
@@ -103,7 +214,10 @@ class Scenarios
     ) do |http|
       http.request(Net::HTTP::Get.new(uri))
     end
-    response_to_result(response)
+  end
+
+  def get_scenario_result(path, read_timeout: nil)
+    response_to_result(fetch_response(path, read_timeout: read_timeout))
   rescue StandardError
     LEFT
   end

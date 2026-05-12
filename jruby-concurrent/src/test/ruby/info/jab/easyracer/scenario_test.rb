@@ -90,15 +90,12 @@ class ScenarioProgressReporter < Minitest::StatisticsReporter
     super
 
     match = result.name.match(/\Atest_scenario_(\d+)\z/)
-    if result.klass.to_s == "ScenarioTest" && match
-      num = match[1].to_i
+    scenario_line = result.klass.to_s == "ScenarioTest" && match
+
+    # Pass/fail is already logged via info.jab.easyracer.Scenarios; omit duplicate "Scenario N." here.
+    if scenario_line
       skipped = result.respond_to?(:skipped?) ? result.skipped? : (result.result_code == "S")
-      line = if skipped
-               "Scenario #{num} Skipped"
-             else
-               "Scenario #{num}#{result.result_code}"
-             end
-      io.puts line
+      io.puts "Scenario #{match[1].to_i} Skipped" if skipped
     else
       io.print result.result_code
     end
@@ -161,14 +158,14 @@ class ScenarioTest < Minitest::Test
           base_url = from_env.chomp("/")
           wait_for_server(base_url)
           @@suite[:container] = nil
-          @@suite[:scenarios] = Scenarios.new(base_url, announce: false)
+          @@suite[:scenarios] = Scenarios.new(base_url)
           EasyracerTestLogging::LOG.info("Using EASYRACER_URL server at #{base_url}")
         else
           container = start_easyracer_container
           base_url = "http://#{container.host}:#{container.mapped_port(8080)}"
           wait_for_server(base_url)
           @@suite[:container] = container
-          @@suite[:scenarios] = Scenarios.new(base_url, announce: false)
+          @@suite[:scenarios] = Scenarios.new(base_url)
           EasyracerTestLogging::LOG.info("Easy Racer container ready at #{base_url}")
         end
 
@@ -251,7 +248,12 @@ class ScenarioTest < Minitest::Test
     3 => :scenario3,
     4 => :scenario4,
     5 => :scenario5,
-    6 => :scenario6
+    6 => :scenario6,
+    7 => :scenario7,
+    8 => :scenario8,
+    9 => :scenario9,
+    10 => :scenario10,
+    11 => :scenario11
   }.each do |number, method|
     define_method(format("test_scenario_%02d", number)) do
       if number == 3 && !ScenarioTest.linux_host?
