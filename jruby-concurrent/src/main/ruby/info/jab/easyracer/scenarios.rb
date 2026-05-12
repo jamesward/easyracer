@@ -92,20 +92,26 @@ class Scenarios
     LEFT
   end
 
-  # First RIGHT wins. concurrent-ruby schedules racers; an unbounded queue avoids producer blocking.
+  # First RIGHT wins. Stop publishing late LEFT results once a winner is observed.
   def race(builders)
     completion = Queue.new
+    winner = Concurrent::AtomicBoolean.new(false)
     futures = builders.map do |builder|
       Concurrent::Future.execute(executor: self.class.async_executor) do
-        completion.push((builder.call rescue LEFT))
+        result = (builder.call rescue LEFT)
+        completion.push(result) if result == RIGHT || !winner.true?
       end
     end
 
     builders.size.times do
-      return RIGHT if completion.pop == RIGHT
+      if completion.pop == RIGHT
+        winner.make_true
+        return RIGHT
+      end
     end
     LEFT
   ensure
+    winner&.make_true
     futures&.each { |f| f.cancel rescue nil }
   end
 
