@@ -5,6 +5,22 @@ unless RUBY_ENGINE == "jruby"
   exit 1
 end
 
+require "rjack-logback"
+
+logback_test_xml = File.expand_path("../../../../resources/logback-test.xml", __dir__)
+unless File.file?(logback_test_xml)
+  raise LoadError, "missing Logback test config: #{logback_test_xml}"
+end
+
+RJack::Logback.configure { RJack::Logback.load_xml_config(logback_test_xml) }
+
+# Application code uses announce: false in this suite, so Scenarios never emits SLF4J.
+# These lines make Logback visible (timestamp, thread, level, logger name from logback-test.xml).
+module EasyracerTestLogging
+  LOG = RJack::SLF4J["info.jab.easyracer.ScenarioTest"]
+end
+EasyracerTestLogging::LOG.info("Easy Racer tests — Logback config: #{logback_test_xml}")
+
 require "minitest/autorun"
 require "net/http"
 require "rbconfig"
@@ -86,12 +102,14 @@ class ScenarioTest < Minitest::Test
           wait_for_server(base_url)
           @@suite[:container] = nil
           @@suite[:scenarios] = Scenarios.new(base_url, announce: false)
+          EasyracerTestLogging::LOG.info("Using EASYRACER_URL server at #{base_url}")
         else
           container = start_easyracer_container
           base_url = "http://#{container.host}:#{container.mapped_port(8080)}"
           wait_for_server(base_url)
           @@suite[:container] = container
           @@suite[:scenarios] = Scenarios.new(base_url, announce: false)
+          EasyracerTestLogging::LOG.info("Easy Racer container ready at #{base_url}")
         end
 
         unless @@suite[:registered_cleanup]

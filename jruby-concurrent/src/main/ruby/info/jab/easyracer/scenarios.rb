@@ -2,9 +2,12 @@
 
 require "concurrent"
 require "net/http"
+require "rjack-logback"
 require "uri"
 
 class Scenarios
+  LOG = RJack::SLF4J["info.jab.easyracer.Scenarios"]
+
   LEFT = :left
   RIGHT = :right
 
@@ -68,8 +71,7 @@ class Scenarios
   def announce_scenario(number)
     return unless @announce
 
-    # Non-interactive / CI runs are often not a TTY; JVM stdout still shows in the process output.
-    Java::JavaLang::System.out.println("Scenario #{number}")
+    LOG.info("Scenario #{number}")
   end
 
   # First RIGHT wins. concurrent-ruby schedules racers; an unbounded queue avoids producer blocking.
