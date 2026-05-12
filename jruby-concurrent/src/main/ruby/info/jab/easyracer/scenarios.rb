@@ -50,7 +50,11 @@ class Scenarios
   class << self
     # Prefer virtual threads for blocking HTTP racers (e.g. scenario 3); falls back on older JDKs.
     def async_executor
-      @async_executor ||= (VirtualThreadExecutorService.new(auto_terminate: false) rescue Concurrent.global_io_executor)
+      @async_executor ||= begin
+        VirtualThreadExecutorService.new(auto_terminate: false)
+      rescue StandardError
+        Concurrent.global_io_executor
+      end
     end
   end
 
@@ -98,7 +102,11 @@ class Scenarios
     winner = Concurrent::AtomicBoolean.new(false)
     futures = builders.map do |builder|
       Concurrent::Future.execute(executor: self.class.async_executor) do
-        result = (builder.call rescue LEFT)
+        result = begin
+          builder.call
+        rescue StandardError
+          LEFT
+        end
         completion.push(result) if result == RIGHT || !winner.true?
       end
     end
@@ -112,7 +120,13 @@ class Scenarios
     LEFT
   ensure
     winner&.make_true
-    futures&.each { |f| f.cancel rescue nil }
+    futures&.each do |future|
+      begin
+        future.cancel
+      rescue StandardError
+        nil
+      end
+    end
   end
 
   def scenario8_flow
@@ -184,11 +198,7 @@ class Scenarios
 
   def scenario3
     LOG.info("Scenario 3")
-    race(
-      Array.new(10_000) { 
-        -> { request("/3") 
-      } 
-    })
+    race(Array.new(10_000) { -> { request("/3") } })
   end
 
   def scenario4
@@ -275,11 +285,15 @@ class Scenarios
 
     verdict = scenario10_poll_loop(id, cancelled)
     blocker_future.wait(120)
-    cpu_future.cancel rescue nil
+    begin
+      cpu_future.cancel
+    rescue StandardError
+      nil
+    end
     verdict
   end
 
-  # Triple concurrent GET: third arrival wins (README: nested race semantics;
+  # Triple concurrent GET: third arrival wins (README: nested race semantics).
   def scenario11
     LOG.info("Scenario 11")
     race(Array.new(3) { -> { request("/11") } })
