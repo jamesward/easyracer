@@ -8,8 +8,9 @@ class Scenarios
   LEFT = :left
   RIGHT = :right
 
-  def initialize(base_url)
+  def initialize(base_url, announce: true)
     @base = base_url.to_s.chomp("/")
+    @announce = announce
   end
 
   def close
@@ -30,6 +31,11 @@ class Scenarios
       -> { get_scenario_result("/2") },
       -> { get_scenario_result("/2") }
     ])
+  end
+
+  def scenario3
+    announce_scenario(3)
+    race_right(Array.new(10_000) { -> { get_scenario_result("/3") } })
   end
 
   def scenario4
@@ -60,6 +66,8 @@ class Scenarios
   private
 
   def announce_scenario(number)
+    return unless @announce
+
     # Non-interactive / CI runs are often not a TTY; JVM stdout still shows in the process output.
     Java::JavaLang::System.out.println("Scenario #{number}")
   end
