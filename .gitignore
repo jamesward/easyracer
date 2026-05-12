@@ -51,3 +51,7 @@ _build/
 
 # Clojure
 .cpcache/
+
+# Elixir
+deps/
+_build/

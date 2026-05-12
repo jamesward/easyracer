@@ -1,0 +1,31 @@
+# Generated file. DO NOT EDIT.
+'on':
+  push:
+    branches:
+    - main
+    paths:
+    - elixir-async/**
+    - .github/workflows/elixir-async.yaml
+  pull_request:
+    paths:
+    - elixir-async/**
+    - .github/workflows/elixir-async.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: erlef/setup-beam@v1
+      with:
+        otp-version: '27.3'
+        elixir-version: 1.18.3
+    - run: mix deps.get && mix test
+    defaults:
+      run:
+        working-directory: elixir-async

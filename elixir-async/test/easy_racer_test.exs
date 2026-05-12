@@ -1,0 +1,61 @@
+defmodule EasyRacerTest do
+  use ExUnit.Case, async: false
+
+  alias Testcontainers.Container
+  alias Testcontainers.HttpWaitStrategy
+
+  @image "ghcr.io/jamesward/easyracer"
+
+  setup_all do
+    config =
+      Container.new(@image)
+      |> Container.with_exposed_port(8080)
+      |> Container.with_waiting_strategy(HttpWaitStrategy.new("/", 8080, status_code: 200))
+
+    {:ok, container} = Testcontainers.start_container(config)
+
+    on_exit(fn ->
+      Testcontainers.stop_container(container.container_id)
+    end)
+
+    host = Testcontainers.get_host(container)
+    port = Testcontainers.get_port(container, 8080)
+    base_url = "http://#{host}:#{port}"
+
+    {:ok, base_url: base_url}
+  end
+
+  test "scenario 1 returns right", %{base_url: base_url} do
+    assert EasyRacer.scenario1(base_url) == "right"
+  end
+
+  test "scenario 2 returns right", %{base_url: base_url} do
+    assert EasyRacer.scenario2(base_url) == "right"
+  end
+
+  # 10k concurrent TCP connections is unreliable on macOS (and other non-Linux OSes);
+  # see easyracer kotlin-coroutines / java-cf notes. Linux CI matches typical deployment.
+  if match?({:unix, :linux}, :os.type()) do
+    @tag timeout: 300_000
+    test "scenario 3 returns right", %{base_url: base_url} do
+      assert EasyRacer.scenario3(base_url) == "right"
+    end
+  else
+    @tag skip: "Scenario 3 (10,000 concurrent connections) runs on Linux only"
+    test "scenario 3 returns right", %{base_url: base_url} do
+      assert EasyRacer.scenario3(base_url) == "right"
+    end
+  end
+
+  test "scenario 4 returns right", %{base_url: base_url} do
+    assert EasyRacer.scenario4(base_url) == "right"
+  end
+
+  test "scenario 5 returns right", %{base_url: base_url} do
+    assert EasyRacer.scenario5(base_url) == "right"
+  end
+
+  test "scenario 6 returns right", %{base_url: base_url} do
+    assert EasyRacer.scenario6(base_url) == "right"
+  end
+end
