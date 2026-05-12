@@ -89,6 +89,10 @@ clients = new Mapping<String, Run> {
     }
   }
 
+  ["java-rxjava"] = new {
+    steps = GitHubAction.Java.mavenTestSteps("--batch-mode --no-transfer-progress verify", "java-rxjava", "graalvm", "25")
+  }
+
   ["clojure-async"] = new {
     steps {
       new {
