@@ -14,11 +14,66 @@ end
 
 RJack::Logback.configure { RJack::Logback.load_xml_config(logback_test_xml) }
 
-# Application code uses announce: false in this suite, so Scenarios never emits SLF4J.
-# These lines make Logback visible (timestamp, thread, level, logger name from logback-test.xml).
 module EasyracerTestLogging
   LOG = RJack::SLF4J["info.jab.easyracer.ScenarioTest"]
 end
+
+# Forward Minitest reporter output (SummaryReporter, custom progress, etc.) to SLF4J so the
+# whole run uses logback-test.xml appenders and patterns.
+class LogbackMinitestIO
+  attr_accessor :sync
+
+  def initialize(logger)
+    @logger = logger
+    @buffer = +""
+    @sync = true
+  end
+
+  def puts(*lines)
+    if lines.empty?
+      @logger.info("")
+      return nil
+    end
+
+    lines.each do |line|
+      next if line.nil?
+
+      line.to_s.each_line do |segment|
+        segment.chomp!
+        @logger.info(segment) unless segment.empty?
+      end
+    end
+    nil
+  end
+
+  def print(*args)
+    args.each { |a| @buffer << a.to_s unless a.nil? }
+    drain_buffered_lines!
+    nil
+  end
+
+  def flush
+    drain_buffered_lines!
+    unless @buffer.empty?
+      @logger.info(@buffer)
+      @buffer.clear
+    end
+  end
+
+  def tty?
+    false
+  end
+
+  private
+
+  def drain_buffered_lines!
+    while (idx = @buffer.index("\n"))
+      line = @buffer.slice!(0..idx).chomp
+      @logger.info(line) unless line.empty?
+    end
+  end
+end
+
 EasyracerTestLogging::LOG.info("Easy Racer tests — Logback config: #{logback_test_xml}")
 
 require "minitest/autorun"
@@ -55,8 +110,13 @@ module Minitest
   def self.plugin_scenario_progress_init(options)
     return if options[:quiet]
 
-    reporter.reporters.reject! { |reporter| reporter.is_a?(ProgressReporter) }
-    reporter << ScenarioProgressReporter.new(options[:io], options)
+    log_io = LogbackMinitestIO.new(EasyracerTestLogging::LOG)
+    self.reporter.reporters.grep(Minitest::Reporter).each do |rep|
+      rep.io = log_io
+    end
+
+    self.reporter.reporters.reject! { |rep| rep.is_a?(ProgressReporter) }
+    self.reporter << ScenarioProgressReporter.new(log_io, options)
   end
 
   register_plugin :scenario_progress
@@ -119,7 +179,10 @@ class ScenarioTest < Minitest::Test
       rescue StandardError => e
         @@suite[:fatal] = e
         @@suite[:scenarios] = nil
-        warn "[easyracer] #{e.class}: #{e.message} | export #{URL_ENV_KEY}=http://127.0.0.1:8080 when the scenario server runs outside Testcontainers (see README)."
+        EasyracerTestLogging::LOG.warn(
+          "[easyracer] #{e.class}: #{e.message} | export #{URL_ENV_KEY}=http://127.0.0.1:8080 " \
+          "when the scenario server runs outside Testcontainers (see README)."
+        )
       end
     end
   end
