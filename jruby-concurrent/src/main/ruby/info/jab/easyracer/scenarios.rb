@@ -18,7 +18,27 @@ class Scenarios
   RIGHT = :right
 
   # JDK 21+ virtual-thread-per-task executor exposed as concurrent-ruby's ExecutorService.
+  # JDK 25+ only exposes Executors.newVirtualThreadPerTaskExecutor() (no ThreadFactory overload in this JVM),
+  # so we assign a distinct thread name per submitted task so log patterns like %thread stay readable.
   class VirtualThreadExecutorService < Concurrent::JavaExecutorService
+    TASK_NAME_SEQ = java.util.concurrent.atomic.AtomicLong.new(0)
+
+    def post(*args, &task)
+      raise ArgumentError, "no block given" unless block_given?
+
+      wrapped = proc do
+        thr = java.lang.Thread.current_thread
+        prior = thr.name
+        thr.name = "easyracer-vt-#{TASK_NAME_SEQ.get_and_increment}"
+        begin
+          task.call(*args)
+        ensure
+          thr.name = prior
+        end
+      end
+      super(*args, &wrapped)
+    end
+
     private
 
     def ns_initialize(opts = {})
@@ -158,7 +178,11 @@ class Scenarios
 
   def scenario3
     LOG.info("Scenario 3")
-    race(Array.new(10_000) { -> { request("/3") } })
+    race(
+      Array.new(10_000) { 
+        -> { request("/3") 
+      } 
+    })
   end
 
   def scenario4
