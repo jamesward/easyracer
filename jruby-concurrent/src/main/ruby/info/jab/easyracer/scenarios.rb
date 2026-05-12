@@ -17,6 +17,23 @@ class Scenarios
   LEFT = :left
   RIGHT = :right
 
+  # JDK 21+ virtual-thread-per-task executor exposed as concurrent-ruby's ExecutorService.
+  class VirtualThreadExecutorService < Concurrent::JavaExecutorService
+    private
+
+    def ns_initialize(opts = {})
+      @fallback_policy = opts.fetch(:fallback_policy, :abort)
+      @executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor
+    end
+  end
+
+  class << self
+    # Prefer virtual threads for blocking HTTP racers (e.g. scenario 3); falls back on older JDKs.
+    def async_executor
+      @async_executor ||= (VirtualThreadExecutorService.new(auto_terminate: false) rescue Concurrent.global_io_executor)
+    end
+  end
+
   private
 
   def join_uri(path)
@@ -59,7 +76,7 @@ class Scenarios
   def race(builders)
     completion = Queue.new
     futures = builders.map do |builder|
-      Concurrent::Future.execute do
+      Concurrent::Future.execute(executor: self.class.async_executor) do
         completion.push((builder.call rescue LEFT))
       end
     end
@@ -141,11 +158,7 @@ class Scenarios
 
   def scenario3
     LOG.info("Scenario 3")
-    race(
-      Array.new(10_000) { 
-        -> { request("/3") 
-      } 
-    })
+    race(Array.new(10_000) { -> { request("/3") } })
   end
 
   def scenario4
@@ -192,7 +205,7 @@ class Scenarios
     LOG.info("Scenario 9")
     observations = Concurrent::Array.new
     futures = Array.new(10) do
-      Concurrent::Future.execute do
+      Concurrent::Future.execute(executor: self.class.async_executor) do
         resp = fetch_response("/9")
         observations << { at: Time.now, resp: resp }
       rescue StandardError
@@ -215,12 +228,12 @@ class Scenarios
     id = SecureRandom.uuid.to_s
     cancelled = Concurrent::AtomicBoolean.new(false)
 
-    cpu_future = Concurrent::Future.execute do
+    cpu_future = Concurrent::Future.execute(executor: self.class.async_executor) do
       buf = SecureRandom.random_bytes(512)
       buf = Digest::SHA512.digest(buf) until cancelled.true?
     end
 
-    blocker_future = Concurrent::Future.execute do
+    blocker_future = Concurrent::Future.execute(executor: self.class.async_executor) do
       begin
         fetch_response("/10?#{id}")
       rescue StandardError
