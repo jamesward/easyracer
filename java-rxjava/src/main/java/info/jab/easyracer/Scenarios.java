@@ -255,6 +255,7 @@ public class Scenarios implements AutoCloseable {
 
         // Server-held request that signals "test in progress"; resolves when the server is satisfied.
         Completable blocker = exchange(HttpRequest.newBuilder(url.resolve("/10?" + id)).GET().build())
+            .observeOn(scheduler)
             .doOnSuccess(__ -> logger.info("scenario10 blocker"))
             .ignoreElement();
 
@@ -264,6 +265,7 @@ public class Scenarios implements AutoCloseable {
                 double load = processCpuLoadFraction() * availableProcessors;
                 return exchange(HttpRequest.newBuilder(url.resolve("/10?" + id + "=" + load)).GET().build());
             })
+            .observeOn(scheduler)
             .flatMapMaybe(response -> {
                 int status = response.statusCode();
                 if (status >= 200 && status < 300) {
@@ -279,6 +281,7 @@ public class Scenarios implements AutoCloseable {
             .repeatWhen(completions -> completions.delay(1, TimeUnit.SECONDS, scheduler))
             .firstOrError()
             .doOnSubscribe(__ -> logger.info("scenario10 loader"))
+            .subscribeOn(scheduler)
             .onErrorReturnItem(ScenarioResult.LEFT);
 
         // Start CPU loop and blocker concurrently; the blocker's completion stops the CPU loop so the loader can observe the drop.
