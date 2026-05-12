@@ -13,60 +13,163 @@ java_import com.sun.management.OperatingSystemMXBean
 class Scenarios
   LOG = RJack::SLF4J["info.jab.easyracer.Scenarios"]
 
+  # No enum in JRuby, so we use symbols
   LEFT = :left
   RIGHT = :right
 
-  def initialize(base_url)
-    @base = base_url.to_s.chomp("/")
+  private
+
+  def join_uri(path)
+    suffix = path.delete_prefix("/")
+    URI.join("#{@base}/", suffix)
   end
 
-  def close
-    true
+  def sleep(seconds)
+    Kernel.sleep(seconds)
+  end
+
+  def fetch_response(path, read_timeout: nil)
+    uri = join_uri(path)
+    limit = read_timeout.nil? ? 300 : read_timeout
+    Net::HTTP.start(
+      uri.hostname,
+      uri.port,
+      open_timeout: 5,
+      read_timeout: limit,
+      use_ssl: uri.scheme == "https"
+    ) do |http|
+      http.request(Net::HTTP::Get.new(uri))
+    end
+  end
+
+  def response_to_result(response)
+    return LEFT unless response.code.to_i == 200
+
+    body = response.body.to_s.strip
+    body == "right" ? RIGHT : LEFT
+  end
+
+  def request(path, read_timeout: nil)
+    response_to_result(fetch_response(path, read_timeout: read_timeout))
+  rescue StandardError
+    LEFT
+  end
+
+  # First RIGHT wins. concurrent-ruby schedules racers; an unbounded queue avoids producer blocking.
+  def race(builders)
+    completion = Queue.new
+    futures = builders.map do |builder|
+      Concurrent::Future.execute do
+        completion.push((builder.call rescue LEFT))
+      end
+    end
+
+    builders.size.times do
+      return RIGHT if completion.pop == RIGHT
+    end
+    LEFT
+  ensure
+    futures&.each { |f| f.cancel rescue nil }
+  end
+
+  def scenario8_flow
+    open_res = fetch_response("/8?open")
+    return LEFT unless open_res.code.to_i == 200
+
+    resource_id = open_res.body.to_s.strip
+    LOG.info("Scenario 8: opened resource id=#{resource_id}")
+    verdict = LEFT
+    begin
+      use_res = fetch_response("/8?use=#{resource_id}")
+      verdict = response_to_result(use_res)
+    ensure
+      begin
+        LOG.info("Scenario 8: closing resource id=#{resource_id}")
+        fetch_response("/8?close=#{resource_id}")
+      rescue StandardError
+        nil
+      end
+    end
+    verdict
+  rescue StandardError
+    LEFT
+  end
+
+  def scenario10_poll_loop(id, cancelled)
+    os_bean = ManagementFactory.get_platform_mx_bean(OperatingSystemMXBean.java_class)
+    processors = Java::java.lang.Runtime.get_runtime.available_processors
+    loop do
+      load = os_bean.get_process_cpu_load
+      load = 0.0 if load.negative?
+      sample = load * processors
+      response = fetch_response("/10?#{id}=#{sample}")
+      code = response.code.to_i
+      if code >= 200 && code < 300
+        cancelled.make_true
+        return response_to_result(response)
+      elsif code >= 300 && code < 400
+        sleep(1)
+      else
+        cancelled.make_true
+        return LEFT
+      end
+    end
+  end
+
+  public
+
+  # Analogous concept of Constructor in Java
+  def initialize(base_url)
+    @base = base_url.to_s.chomp("/")
   end
 
   def scenario1
     LOG.info("Scenario 1")
     race([
-      -> { get_scenario_result("/1") },
-      -> { get_scenario_result("/1") }
+      -> { request("/1") },
+      -> { request("/1") }
     ])
   end
 
   def scenario2
     LOG.info("Scenario 2")
     race([
-      -> { get_scenario_result("/2") },
-      -> { get_scenario_result("/2") }
+      -> { request("/2") },
+      -> { request("/2") }
     ])
   end
 
   def scenario3
     LOG.info("Scenario 3")
-    race(Array.new(10_000) { -> { get_scenario_result("/3") } })
+    race(
+      Array.new(10_000) { 
+        -> { request("/3") 
+      } 
+    })
   end
 
   def scenario4
     LOG.info("Scenario 4")
     race([
-      -> { get_scenario_result("/4", read_timeout: 1) },
-      -> { get_scenario_result("/4") }
+      -> { request("/4", read_timeout: 1) },
+      -> { request("/4") }
     ])
   end
 
   def scenario5
     LOG.info("Scenario 5")
     race([
-      -> { get_scenario_result("/5") },
-      -> { get_scenario_result("/5") }
+      -> { request("/5") },
+      -> { request("/5") }
     ])
   end
 
   def scenario6
     LOG.info("Scenario 6")
     race([
-      -> { get_scenario_result("/6") },
-      -> { get_scenario_result("/6") },
-      -> { get_scenario_result("/6") }
+      -> { request("/6") },
+      -> { request("/6") },
+      -> { request("/6") }
     ])
   end
 
@@ -74,8 +177,8 @@ class Scenarios
   def scenario7
     LOG.info("Scenario 7")
     race([
-      -> { get_scenario_result("/7") },
-      -> { Kernel.sleep(3); get_scenario_result("/7") }
+      -> { request("/7") },
+      -> { sleep(3); request("/7") }
     ])
   end
 
@@ -133,104 +236,9 @@ class Scenarios
     verdict
   end
 
-  # Triple concurrent GET: third arrival wins (README: nested race semantics; matches java-cf).
+  # Triple concurrent GET: third arrival wins (README: nested race semantics;
   def scenario11
     LOG.info("Scenario 11")
-    race(Array.new(3) { -> { get_scenario_result("/11") } })
-  end
-
-  private
-
-  # First RIGHT wins. concurrent-ruby schedules racers; an unbounded queue avoids producer blocking.
-  def race(builders)
-    completion = Queue.new
-    futures = builders.map do |builder|
-      Concurrent::Future.execute do
-        completion.push((builder.call rescue LEFT))
-      end
-    end
-
-    builders.size.times do
-      return RIGHT if completion.pop == RIGHT
-    end
-    LEFT
-  ensure
-    futures&.each { |f| f.cancel rescue nil }
-  end
-
-  def scenario8_flow
-    open_res = fetch_response("/8?open")
-    return LEFT unless open_res.code.to_i == 200
-
-    resource_id = open_res.body.to_s.strip
-    LOG.info("Scenario 8: opened resource id=#{resource_id}")
-    verdict = LEFT
-    begin
-      use_res = fetch_response("/8?use=#{resource_id}")
-      verdict = response_to_result(use_res)
-    ensure
-      begin
-        LOG.info("Scenario 8: closing resource id=#{resource_id}")
-        fetch_response("/8?close=#{resource_id}")
-      rescue StandardError
-        nil
-      end
-    end
-    verdict
-  rescue StandardError
-    LEFT
-  end
-
-  def scenario10_poll_loop(id, cancelled)
-    os_bean = ManagementFactory.get_platform_mx_bean(OperatingSystemMXBean.java_class)
-    processors = Java::java.lang.Runtime.get_runtime.available_processors
-    loop do
-      load = os_bean.get_process_cpu_load
-      load = 0.0 if load.negative?
-      sample = load * processors
-      response = fetch_response("/10?#{id}=#{sample}")
-      code = response.code.to_i
-      if code >= 200 && code < 300
-        cancelled.make_true
-        return response_to_result(response)
-      elsif code >= 300 && code < 400
-        Kernel.sleep(1)
-      else
-        cancelled.make_true
-        return LEFT
-      end
-    end
-  end
-
-  def fetch_response(path, read_timeout: nil)
-    uri = join_uri(path)
-    limit = read_timeout.nil? ? 300 : read_timeout
-    Net::HTTP.start(
-      uri.hostname,
-      uri.port,
-      open_timeout: 5,
-      read_timeout: limit,
-      use_ssl: uri.scheme == "https"
-    ) do |http|
-      http.request(Net::HTTP::Get.new(uri))
-    end
-  end
-
-  def get_scenario_result(path, read_timeout: nil)
-    response_to_result(fetch_response(path, read_timeout: read_timeout))
-  rescue StandardError
-    LEFT
-  end
-
-  def join_uri(path)
-    suffix = path.delete_prefix("/")
-    URI.join("#{@base}/", suffix)
-  end
-
-  def response_to_result(response)
-    return LEFT unless response.code.to_i == 200
-
-    body = response.body.to_s.strip
-    body == "right" ? RIGHT : LEFT
+    race(Array.new(3) { -> { request("/11") } })
   end
 end

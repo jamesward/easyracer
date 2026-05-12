@@ -225,7 +225,6 @@ class ScenarioTest < Minitest::Test
 
   def self.teardown_suite!
     @@suite[:mutex].synchronize do
-      @@suite[:scenarios]&.close
       @@suite[:scenarios] = nil
       @@suite[:fatal] = nil
       if (container = @@suite[:container])
