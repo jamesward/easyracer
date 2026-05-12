@@ -12,27 +12,8 @@ sdk env install
 ./mvnw versions:display-plugin-updates
 ```
 
-## Docker
-
-Prepared to test in OSX
-
-```bash
-docker compose build verify
-docker compose build --no-cache verify
-docker compose run --rm verify
-```
-
-## Work in progress
-
-```
-sysctl kern.maxfiles 
-sysctl kern.maxfilesperproc
-ulimit
-lsof -t -i:55023 | xargs kill
-```
-
 ## Interesting links
 
 - [Requirements to implement the scenarios](../README.md)
-- https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/CompletableFuture.html
-- https://docs.oracle.com/en/java/javase/21/docs/api/java.net.http/java/net/http/HttpClient.html
+- https://reactivex.io/documentation
+- https://javadoc.io/doc/io.reactivex.rxjava4/rxjava
