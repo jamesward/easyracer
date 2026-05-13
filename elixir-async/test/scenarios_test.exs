@@ -1,6 +1,8 @@
 defmodule EasyRacer.ScenariosTest do
   use ExUnit.Case, async: false
 
+  require Logger
+
   alias Testcontainers.Container
   alias Testcontainers.HttpWaitStrategy
   alias Testcontainers.PullPolicy
@@ -30,58 +32,25 @@ defmodule EasyRacer.ScenariosTest do
     {:ok, base_url: base_url}
   end
 
-  test "scenario 1 returns right", %{base_url: base_url} do
-    assert EasyRacer.Scenarios.scenario1(base_url) == "right"
-  end
-
-  test "scenario 2 returns right", %{base_url: base_url} do
-    assert EasyRacer.Scenarios.scenario2(base_url) == "right"
-  end
-
-  # 10k concurrent TCP connections is unreliable on macOS (and other non-Linux OSes);
+  # Scenario 3 needs a long budget on Linux; scenario 10 had a 60s per-test budget before.
+  # 10k concurrent TCP connections (scenario 3) is unreliable on macOS and other non-Linux OSes;
   # see easyracer kotlin-coroutines / java-cf notes. Linux CI matches typical deployment.
-  if match?({:unix, :linux}, :os.type()) do
-    @tag timeout: 300_000
-    test "scenario 3 returns right", %{base_url: base_url} do
-      assert EasyRacer.Scenarios.scenario3(base_url) == "right"
+  @tag timeout: 400_000
+  test "all scenarios return right", %{base_url: base_url} do
+    # Not started as an application module; load before `String.to_existing_atom/1`.
+    Code.ensure_loaded!(EasyRacer.Scenarios)
+
+    linux? = match?({:unix, :linux}, :os.type())
+
+    for n <- 1..11 do
+      cond do
+        n == 3 and not linux? ->
+          Logger.info("Scenario 3 skipped")
+
+        true ->
+          fun = String.to_existing_atom("scenario#{n}")
+          assert apply(EasyRacer.Scenarios, fun, [base_url]) == "right"
+      end
     end
-  else
-    @tag skip: "Scenario 3 (10,000 concurrent connections) runs on Linux only"
-    test "scenario 3 returns right", %{base_url: base_url} do
-      assert EasyRacer.Scenarios.scenario3(base_url) == "right"
-    end
-  end
-
-  test "scenario 4 returns right", %{base_url: base_url} do
-    assert EasyRacer.Scenarios.scenario4(base_url) == "right"
-  end
-
-  test "scenario 5 returns right", %{base_url: base_url} do
-    assert EasyRacer.Scenarios.scenario5(base_url) == "right"
-  end
-
-  test "scenario 6 returns right", %{base_url: base_url} do
-    assert EasyRacer.Scenarios.scenario6(base_url) == "right"
-  end
-
-  test "scenario 7 returns right", %{base_url: base_url} do
-    assert EasyRacer.Scenarios.scenario7(base_url) == "right"
-  end
-
-  test "scenario 8 returns right", %{base_url: base_url} do
-    assert EasyRacer.Scenarios.scenario8(base_url) == "right"
-  end
-
-  test "scenario 9 returns right", %{base_url: base_url} do
-    assert EasyRacer.Scenarios.scenario9(base_url) == "right"
-  end
-
-  @tag timeout: 60_000
-  test "scenario 10 returns right", %{base_url: base_url} do
-    assert EasyRacer.Scenarios.scenario10(base_url) == "right"
-  end
-
-  test "scenario 11 returns right", %{base_url: base_url} do
-    assert EasyRacer.Scenarios.scenario11(base_url) == "right"
   end
 end
