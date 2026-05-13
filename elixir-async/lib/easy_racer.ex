@@ -42,19 +42,18 @@ defmodule EasyRacer do
     race([url, url])
   end
 
-  @scenario_3_racers 10_000
-
   @doc """
-  Scenario 3: race #{@scenario_3_racers} concurrent `GET /3`. The server returns
+  Scenario 3: race 10_000 concurrent `GET /3`. The server returns
   `"right"` only after all connections are open; each racer uses its own socket.
   """
   @spec scenario3(String.t()) :: String.t()
   def scenario3(base_url) when is_binary(base_url) do
     Logger.info("Scenario 3", pid: self())
     url = join_url(base_url, "/3")
+    scenario_3_racers = 10_000
 
     url
-    |> List.duplicate(@scenario_3_racers)
+    |> List.duplicate(scenario_3_racers)
     |> race(600_000)
   end
 
@@ -216,35 +215,31 @@ defmodule EasyRacer do
     end
   end
 
+  defp await_first_right([], _deadline_ms), do: "left"
+
   defp await_first_right(tasks, deadline_ms) do
-    if System.monotonic_time(:millisecond) > deadline_ms do
+    now = System.monotonic_time(:millisecond)
+
+    if now > deadline_ms do
       "left"
     else
-      pairs = Task.yield_many(tasks, 250)
-
-      case Enum.find_value(pairs, fn {_task, out} ->
-             case out do
-               {:ok, {:ok, text}} when text in ["right", "left"] -> text
-               {:ok, {:error, _}} -> nil
-               {:ok, nil} -> nil
-               {:exit, _} -> nil
-               _ -> nil
-             end
-           end) do
-        text when is_binary(text) ->
+      receive do
+        {ref, {:ok, text}} when text in ["right", "left"] ->
+          Process.demonitor(ref, [:flush])
           text
 
-        nil ->
-          still =
-            pairs
-            |> Enum.filter(fn {_task, out} -> out == nil end)
-            |> Enum.map(&elem(&1, 0))
+        {ref, _result} ->
+          {_task, remaining} = pop_task_by_ref(tasks, ref)
+          Process.demonitor(ref, [:flush])
+          await_first_right(remaining, deadline_ms)
 
-          if still == [] do
-            "left"
-          else
-            await_first_right(still, deadline_ms)
-          end
+        {:DOWN, ref, :process, _pid, _reason} ->
+          {_task, remaining} = pop_task_by_ref(tasks, ref)
+          Process.demonitor(ref, [:flush])
+          await_first_right(remaining, deadline_ms)
+      after
+        max(0, min(deadline_ms - now, 1_000)) ->
+          await_first_right(tasks, deadline_ms)
       end
     end
   end
