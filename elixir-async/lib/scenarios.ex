@@ -1,4 +1,4 @@
-defmodule EasyRacer do
+defmodule EasyRacer.Scenarios do
   require Logger
 
   @moduledoc """

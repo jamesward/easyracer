@@ -5,7 +5,7 @@
 # Fork of Elixir 1.19.5 `ExUnit.CLIFormatter`: successful tests do not print "." so Logger
 # output is not glued to ExUnit progress. Bump this file when upgrading Elixir if the
 # upstream formatter changes.
-defmodule Support.ExUnitCLIFormatterNoDot do
+defmodule EasyRacer.ExUnitCLIFormatterNoDot do
   @moduledoc false
   use GenServer
 

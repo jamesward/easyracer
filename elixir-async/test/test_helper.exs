@@ -40,4 +40,4 @@ Logger.info("Docker pull finished in #{pull_elapsed_ms}ms (exit #{pull_exit_code
 # `mix test --seed N` still overrides when you want a different order or reproduction.
 # Custom formatter (fork of ExUnit.CLIFormatter) omits the "." pass marker so Logger lines
 # are not prefixed when not using --trace.
-ExUnit.start(seed: 0, formatters: [Support.ExUnitCLIFormatterNoDot])
+ExUnit.start(seed: 0, formatters: [EasyRacer.ExUnitCLIFormatterNoDot])
