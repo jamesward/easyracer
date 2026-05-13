@@ -28,7 +28,7 @@ defmodule EasyRacer do
   def scenario1(base_url) when is_binary(base_url) do
     Logger.info("Scenario 1", pid: self())
     url = join_url(base_url, "/1")
-    race_two(url, [])
+    race([url, url])
   end
 
   @doc """
@@ -39,7 +39,7 @@ defmodule EasyRacer do
   def scenario2(base_url) when is_binary(base_url) do
     Logger.info("Scenario 2", pid: self())
     url = join_url(base_url, "/2")
-    race_two(url, [])
+    race([url, url])
   end
 
   @scenario_3_racers 10_000
@@ -53,18 +53,9 @@ defmodule EasyRacer do
     Logger.info("Scenario 3", pid: self())
     url = join_url(base_url, "/3")
 
-    tasks =
-      for _ <- 1..@scenario_3_racers do
-        Task.async(fn -> http_get_exclusive(url) end)
-      end
-
-    deadline_ms = System.monotonic_time(:millisecond) + 600_000
-
-    try do
-      await_first_right(tasks, deadline_ms)
-    after
-      Enum.each(tasks, &Task.shutdown(&1, :brutal_kill))
-    end
+    url
+    |> List.duplicate(@scenario_3_racers)
+    |> race(600_000)
   end
 
   @doc """
@@ -76,15 +67,7 @@ defmodule EasyRacer do
     Logger.info("Scenario 4", pid: self())
     url = join_url(base_url, "/4")
 
-    t1 = Task.async(fn -> http_get_exclusive(url, recv_timeout_ms: 1_000) end)
-    t2 = Task.async(fn -> http_get_exclusive(url) end)
-
-    try do
-      await_first_right([t1, t2], System.monotonic_time(:millisecond) + 120_000)
-    after
-      Task.shutdown(t1, :brutal_kill)
-      Task.shutdown(t2, :brutal_kill)
-    end
+    race([{url, recv_timeout_ms: 1_000}, url])
   end
 
   @doc """
@@ -95,7 +78,7 @@ defmodule EasyRacer do
   def scenario5(base_url) when is_binary(base_url) do
     Logger.info("Scenario 5", pid: self())
     url = join_url(base_url, "/5")
-    race_two(url, [])
+    race([url, url])
   end
 
   @doc """
@@ -106,17 +89,7 @@ defmodule EasyRacer do
     Logger.info("Scenario 6", pid: self())
     url = join_url(base_url, "/6")
 
-    t1 = Task.async(fn -> http_get_exclusive(url) end)
-    t2 = Task.async(fn -> http_get_exclusive(url) end)
-    t3 = Task.async(fn -> http_get_exclusive(url) end)
-
-    try do
-      await_first_right([t1, t2, t3], System.monotonic_time(:millisecond) + 120_000)
-    after
-      Task.shutdown(t1, :brutal_kill)
-      Task.shutdown(t2, :brutal_kill)
-      Task.shutdown(t3, :brutal_kill)
-    end
+    race([url, url, url])
   end
 
   @doc """
@@ -149,15 +122,7 @@ defmodule EasyRacer do
     Logger.info("Scenario 8", pid: self())
     url = join_url(base_url, "/8")
 
-    t1 = Task.async(fn -> resource_flow(url) end)
-    t2 = Task.async(fn -> resource_flow(url) end)
-
-    try do
-      await_first_right([t1, t2], System.monotonic_time(:millisecond) + 120_000)
-    after
-      Task.shutdown(t1, :brutal_kill)
-      Task.shutdown(t2, :brutal_kill)
-    end
+    race([fn -> resource_flow(url) end, fn -> resource_flow(url) end])
   end
 
   @doc """
@@ -215,7 +180,7 @@ defmodule EasyRacer do
 
     nested =
       Task.async(fn ->
-        case race_two(url, []) do
+        case race([url, url]) do
           "right" -> {:ok, "right"}
           _ -> {:error, :nested_lost}
         end
@@ -231,15 +196,23 @@ defmodule EasyRacer do
     end
   end
 
-  defp race_two(url, opts) do
-    t1 = Task.async(fn -> http_get_exclusive(url, opts) end)
-    t2 = Task.async(fn -> http_get_exclusive(url, opts) end)
+  defp race(requests, timeout_ms \\ 120_000) when is_list(requests) do
+    tasks =
+      Enum.map(requests, fn
+        fun when is_function(fun, 0) ->
+          Task.async(fun)
+
+        {url, opts} when is_binary(url) and is_list(opts) ->
+          Task.async(fn -> http_get_exclusive(url, opts) end)
+
+        url when is_binary(url) ->
+          Task.async(fn -> http_get_exclusive(url) end)
+      end)
 
     try do
-      await_first_right([t1, t2], System.monotonic_time(:millisecond) + 120_000)
+      await_first_right(tasks, System.monotonic_time(:millisecond) + timeout_ms)
     after
-      Task.shutdown(t1, :brutal_kill)
-      Task.shutdown(t2, :brutal_kill)
+      Enum.each(tasks, &Task.shutdown(&1, :brutal_kill))
     end
   end
 
