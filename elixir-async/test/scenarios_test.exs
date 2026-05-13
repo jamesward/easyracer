@@ -32,9 +32,6 @@ defmodule EasyRacer.ScenariosTest do
     {:ok, base_url: base_url}
   end
 
-  # Scenario 3 needs a long budget on Linux; scenario 10 had a 60s per-test budget before.
-  # 10k concurrent TCP connections (scenario 3) is unreliable on macOS and other non-Linux OSes;
-  # see easyracer kotlin-coroutines / java-cf notes. Linux CI matches typical deployment.
   @tag timeout: 400_000
   test "all scenarios return right", %{base_url: base_url} do
     # Not started as an application module; load before `String.to_existing_atom/1`.
