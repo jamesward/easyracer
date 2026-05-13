@@ -27,7 +27,23 @@ clients = new Mapping<String, Run> {
         }
       }
       new {
-        run = "mix deps.get && mix test"
+        name = "Cache mix deps and build"
+        uses = "actions/cache@v4"
+        with {
+          ["path"] = """
+            elixir-async/deps
+            elixir-async/_build
+            """
+          ["key"] = "${{ runner.os }}-mix-1.18.3-otp27.3-${{ hashFiles('elixir-async/mix.lock') }}"
+          ["restore-keys"] = "${{ runner.os }}-mix-1.18.3-otp27.3-"
+        }
+      }
+      new {
+        name = "Install inotify-tools (silences fs backend ERROR)"
+        run = "sudo apt-get update && sudo apt-get install -y inotify-tools"
+      }
+      new {
+        run = "mix deps.get && mix test --slowest 5"
       }
     }
   }
