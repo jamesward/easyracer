@@ -39,11 +39,11 @@ clients = new Mapping<String, Run> {
         }
       }
       new {
-        name = "Install inotify-tools (silences fs backend ERROR)"
+        name = "Install inotify-tools"
         run = "sudo apt-get update && sudo apt-get install -y inotify-tools"
       }
       new {
-        run = "mix deps.get && mix test --slowest 5"
+        run = "mix deps.get && mix test"
       }
     }
   }

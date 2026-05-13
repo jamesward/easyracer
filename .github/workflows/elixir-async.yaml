@@ -33,9 +33,9 @@ jobs:
           elixir-async/_build
         key: ${{ runner.os }}-mix-1.18.3-otp27.3-${{ hashFiles('elixir-async/mix.lock') }}
         restore-keys: ${{ runner.os }}-mix-1.18.3-otp27.3-
-    - name: Install inotify-tools (silences fs backend ERROR)
+    - name: Install inotify-tools
       run: sudo apt-get update && sudo apt-get install -y inotify-tools
-    - run: mix deps.get && mix test --slowest 5
+    - run: mix deps.get && mix test
     defaults:
       run:
         working-directory: elixir-async
