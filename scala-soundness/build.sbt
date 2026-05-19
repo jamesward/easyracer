@@ -8,7 +8,7 @@ libraryDependencies ++= Seq(
   "dev.soundness" % "quantitative-units" % SoundnessVersion,
   "dev.soundness" % "telekinesis-core" % SoundnessVersion,
   "org.scalatest" %% "scalatest" % "3.2.20" % Test,
-  "org.slf4j" % "slf4j-simple" % "2.0.17" % Test,
+  "org.slf4j" % "slf4j-simple" % "2.0.18" % Test,
   "com.dimafeng" %% "testcontainers-scala-core" % "0.43.6" % Test
 )
 scalacOptions ++= Seq(
