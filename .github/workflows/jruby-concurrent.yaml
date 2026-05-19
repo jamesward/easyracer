@@ -1,0 +1,36 @@
+# Generated file. DO NOT EDIT.
+'on':
+  push:
+    branches:
+    - main
+    paths:
+    - jruby-concurrent/**
+    - .github/workflows/jruby-concurrent.yaml
+  pull_request:
+    paths:
+    - jruby-concurrent/**
+    - .github/workflows/jruby-concurrent.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: '25'
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: jruby
+        bundler-cache: 'true'
+        working-directory: jruby-concurrent
+    - run: bundle exec rake test
+    defaults:
+      run:
+        working-directory: jruby-concurrent

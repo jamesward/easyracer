@@ -51,3 +51,8 @@ _build/
 
 # Clojure
 .cpcache/
+
+# JRuby
+.bundle/
+vendor/
+.ruby-gemhome/
