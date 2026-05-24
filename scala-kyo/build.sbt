@@ -1,10 +1,10 @@
 scalaVersion := "3.8.3"
 
 libraryDependencies ++= Seq(
-  "io.getkyo" %% "kyo-core" % "1.0-RC1",
-  "io.getkyo" %% "kyo-direct" % "1.0-RC1",
+  "io.getkyo" %% "kyo-core" % "1.0.0-RC2",
+  "io.getkyo" %% "kyo-direct" % "1.0.0-RC2",
   "io.getkyo" %% "kyo-sttp" % "1.0-RC1",
-  "org.slf4j" % "slf4j-simple" % "2.0.17",
+  "org.slf4j" % "slf4j-simple" % "2.0.18",
   "org.scalatest" %% "scalatest" % "3.2.20" % Test,
   "com.dimafeng" %% "testcontainers-scala-core" % "0.43.6" % Test
 )

@@ -1,0 +1,14 @@
+# frozen_string_literal: true
+
+abort "jruby-concurrent requires JRuby (detected #{RUBY_ENGINE}). Use: jruby -S bundle exec rake test" unless RUBY_ENGINE == "jruby"
+
+require "rake/testtask"
+
+Rake::TestTask.new(:test) do |t|
+  t.libs << "src/main/ruby" << "src/test/ruby"
+  t.test_files = FileList["src/test/ruby/**/*_test.rb"]
+  t.verbose = false
+  t.warning = false
+end
+
+task default: :test

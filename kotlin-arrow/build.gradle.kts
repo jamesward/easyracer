@@ -1,6 +1,6 @@
 plugins {
     application
-    kotlin("jvm") version "2.3.20"
+    kotlin("jvm") version "2.3.21"
 }
 
 java {
@@ -18,9 +18,9 @@ application {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-    implementation("io.ktor:ktor-client-core:3.4.2")
-    implementation("io.ktor:ktor-client-java:3.4.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+    implementation("io.ktor:ktor-client-core:3.4.3")
+    implementation("io.ktor:ktor-client-java:3.4.3")
     implementation("io.arrow-kt:arrow-fx-coroutines:2.2.2.1")
     runtimeOnly("org.slf4j:slf4j-simple:2.0.17")
 

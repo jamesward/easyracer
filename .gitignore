@@ -55,3 +55,9 @@ _build/
 # Elixir
 deps/
 _build/
+
+# JRuby
+.bundle/
+vendor/
+.ruby-gemhome/
+

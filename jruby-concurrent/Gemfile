@@ -1,0 +1,18 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+unless defined?(JRUBY_VERSION)
+  abort "jruby-concurrent requires JRuby. Use: jruby -S bundle install"
+end
+
+# Pin runtime gems for reproducible installs
+gem "base64", "0.3.0" # Ruby 3.4+ / JRuby 10: stdlib base64 is not a default gem; docker-api needs it
+gem "concurrent-ruby", "1.3.5"
+gem "minitest", "5.27.0"
+gem "testcontainers", "0.2.0"
+gem "rjack-logback", "~> 1.5"
+
+group :development do
+  gem "rake", "~> 13.2"
+end

@@ -97,6 +97,32 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Java.mavenTestSteps("--batch-mode --no-transfer-progress verify", "java-cf", "graalvm", "25")
   }
 
+  ["jruby-concurrent"] = new {
+    steps {
+      new {
+        uses = "actions/checkout@v5"
+      }
+      new {
+        uses = "actions/setup-java@v5"
+        with {
+          ["distribution"] = "temurin"
+          ["java-version"] = "25"
+        }
+      }
+      new {
+        uses = "ruby/setup-ruby@v1"
+        with {
+          ["ruby-version"] = "jruby"
+          ["bundler-cache"] = "true"
+          ["working-directory"] = "jruby-concurrent"
+        }
+      }
+      new {
+        run = "bundle exec rake test"
+      }
+    }
+  }
+
   ["java-rxjava"] = new {
     steps = GitHubAction.Java.mavenTestSteps("--batch-mode --no-transfer-progress verify", "java-rxjava", "graalvm", "25")
   }
