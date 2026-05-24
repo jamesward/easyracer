@@ -52,18 +52,33 @@ defmodule EasyRacer.Scenarios do
     else
       receive do
         {ref, {:ok, text}} when text in ["right", "left"] ->
-          Process.demonitor(ref, [:flush])
-          text
+          case pop_task_by_ref(tasks, ref) do
+            {nil, _remaining} ->
+              await_first_right(tasks, deadline_ms)
+
+            {_task, _remaining} ->
+              Process.demonitor(ref, [:flush])
+              text
+          end
 
         {ref, _result} ->
-          {_task, remaining} = pop_task_by_ref(tasks, ref)
-          Process.demonitor(ref, [:flush])
-          await_first_right(remaining, deadline_ms)
+          case pop_task_by_ref(tasks, ref) do
+            {nil, _remaining} ->
+              await_first_right(tasks, deadline_ms)
+
+            {_task, remaining} ->
+              Process.demonitor(ref, [:flush])
+              await_first_right(remaining, deadline_ms)
+          end
 
         {:DOWN, ref, :process, _pid, _reason} ->
-          {_task, remaining} = pop_task_by_ref(tasks, ref)
-          Process.demonitor(ref, [:flush])
-          await_first_right(remaining, deadline_ms)
+          case pop_task_by_ref(tasks, ref) do
+            {nil, _remaining} ->
+              await_first_right(tasks, deadline_ms)
+
+            {_task, remaining} ->
+              await_first_right(remaining, deadline_ms)
+          end
       after
         max(0, min(deadline_ms - now, 1_000)) ->
           await_first_right(tasks, deadline_ms)
@@ -424,46 +439,61 @@ defmodule EasyRacer.Scenarios do
 
     deadline_ms = System.monotonic_time(:millisecond) + 120_000
 
-    collect = fn c, tasks, deadline_ms, bodies, success_count ->
-      if success_count == 5 do
-        Enum.join(Enum.reverse(bodies))
-      else
-        now = System.monotonic_time(:millisecond)
+    collect_successful_bodies =
+      fn
+        _collect, _tasks, _deadline_ms, bodies, 5 ->
+          Enum.join(Enum.reverse(bodies))
 
-        cond do
-          now > deadline_ms ->
+        _collect, [], _deadline_ms, bodies, _success_count ->
+          Enum.join(Enum.reverse(bodies))
+
+        collect, tasks, deadline_ms, bodies, success_count ->
+          now = System.monotonic_time(:millisecond)
+
+          if now > deadline_ms do
             "left"
-
-          tasks == [] ->
-            Enum.join(Enum.reverse(bodies))
-
-          true ->
+          else
             receive do
               {ref, result} ->
-                {task, remaining} = pop_task_by_ref(tasks, ref)
-                if task, do: Process.demonitor(ref, [:flush])
+                case pop_task_by_ref(tasks, ref) do
+                  {nil, _remaining} ->
+                    collect.(collect, tasks, deadline_ms, bodies, success_count)
 
-                case result do
-                  {:ok, %{status: status, body: body}} when status in 200..299 ->
-                    c.(c, remaining, deadline_ms, [body | bodies], success_count + 1)
+                  {_task, remaining} ->
+                    Process.demonitor(ref, [:flush])
 
-                  _ ->
-                    c.(c, remaining, deadline_ms, bodies, success_count)
+                    case result do
+                      {:ok, %{status: status, body: body}} when status in 200..299 ->
+                        collect.(
+                          collect,
+                          remaining,
+                          deadline_ms,
+                          [body | bodies],
+                          success_count + 1
+                        )
+
+                      _ ->
+                        collect.(collect, remaining, deadline_ms, bodies, success_count)
+                    end
                 end
 
               {:DOWN, ref, :process, _pid, _reason} ->
-                {_task, remaining} = pop_task_by_ref(tasks, ref)
-                c.(c, remaining, deadline_ms, bodies, success_count)
+                case pop_task_by_ref(tasks, ref) do
+                  {nil, _remaining} ->
+                    collect.(collect, tasks, deadline_ms, bodies, success_count)
+
+                  {_task, remaining} ->
+                    collect.(collect, remaining, deadline_ms, bodies, success_count)
+                end
             after
               min(max(deadline_ms - now, 1), 1_000) ->
-                c.(c, tasks, deadline_ms, bodies, success_count)
+                collect.(collect, tasks, deadline_ms, bodies, success_count)
             end
-        end
+          end
       end
-    end
 
     try do
-      collect.(collect, tasks, deadline_ms, [], 0)
+      collect_successful_bodies.(collect_successful_bodies, tasks, deadline_ms, [], 0)
     after
       Enum.each(tasks, &Task.shutdown(&1, :brutal_kill))
     end
@@ -536,7 +566,14 @@ defmodule EasyRacer.Scenarios do
       Task.async(fn -> http_get_response_exclusive("#{url}?#{id}", recv_timeout_ms: 30_000) end)
 
     try do
-      report_load_until_done.(report_load_until_done, url, id, blocker, cpu_task, runtime_sample.())
+      report_load_until_done.(
+        report_load_until_done,
+        url,
+        id,
+        blocker,
+        cpu_task,
+        runtime_sample.()
+      )
     after
       Task.shutdown(cpu_task, :brutal_kill)
       Task.shutdown(blocker, :brutal_kill)

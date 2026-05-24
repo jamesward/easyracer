@@ -21,7 +21,7 @@ defmodule EasyRacer.MixProject do
 
   defp deps do
     [
-      {:ecto, "~> 3.0", only: :test},
+      {:ecto, "~> 3.14", only: :test},
       {:testcontainers, "~> 2.3", only: :test}
     ]
   end
