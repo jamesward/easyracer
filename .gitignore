@@ -52,7 +52,12 @@ _build/
 # Clojure
 .cpcache/
 
+# Elixir
+deps/
+_build/
+
 # JRuby
 .bundle/
 vendor/
 .ruby-gemhome/
+

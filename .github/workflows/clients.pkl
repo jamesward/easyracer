@@ -14,6 +14,40 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Dotnet.testSteps(null, "3.1.x", "./dotnet/EasyRacer.Tests")
   }
 
+  ["elixir-async"] = new {
+    steps {
+      new {
+        uses = "actions/checkout@v4"
+      }
+      new {
+        uses = "erlef/setup-beam@v1"
+        with {
+          ["otp-version"] = "27.3"
+          ["elixir-version"] = "1.18.3"
+        }
+      }
+      new {
+        name = "Cache mix deps and build"
+        uses = "actions/cache@v4"
+        with {
+          ["path"] = """
+            elixir-async/deps
+            elixir-async/_build
+            """
+          ["key"] = "${{ runner.os }}-mix-1.18.3-otp27.3-${{ hashFiles('elixir-async/mix.lock') }}"
+          ["restore-keys"] = "${{ runner.os }}-mix-1.18.3-otp27.3-"
+        }
+      }
+      new {
+        name = "Install inotify-tools"
+        run = "sudo apt-get update && sudo apt-get install -y inotify-tools"
+      }
+      new {
+        run = "mix deps.get && mix test"
+      }
+    }
+  }
+
   ["elm-worker"] = new {
     steps = (GitHubAction.Elm.setupElm("0.19.1")) {
       new {
