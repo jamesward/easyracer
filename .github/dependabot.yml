@@ -139,3 +139,37 @@ updates:
   #   directory: "/ocaml-cohttp-eio"
   #   schedule:
   #     interval: "weekly"
+
+  # Scala sbt projects
+  - package-ecosystem: "sbt"
+    directory: "/scala-ce3"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "sbt"
+    directory: "/scala-gears"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "sbt"
+    directory: "/scala-kyo"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "sbt"
+    directory: "/scala-ox"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "sbt"
+    directory: "/scala-pekko"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "sbt"
+    directory: "/scala-soundness"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "sbt"
+    directory: "/scala-zio"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "sbt"
+    directory: "/scenario-server"
+    schedule:
+      interval: "weekly"
