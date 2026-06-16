@@ -1,5 +1,7 @@
 scalaVersion := "3.8.3"
 
+libraryDependencySchemes += "io.getkyo" %% "kyo-core" % "always"
+
 libraryDependencies ++= Seq(
   "io.getkyo" %% "kyo-core" % "1.0.0-RC2",
   "io.getkyo" %% "kyo-direct" % "1.0.0-RC2",

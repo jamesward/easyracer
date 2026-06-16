@@ -6,7 +6,7 @@ scalaVersion := "3.8.3"
 
 fork := true
 
-reStartArgs := Seq("--debug")
+runReloadArgs := Seq("--debug")
 
 val zioVersion = "2.1.26"
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set +e
-declare builtin_sbt_version="1.12.6"
+declare builtin_sbt_version="2.0.0"
 declare -a residual_args
 declare -a java_args
 declare -a scalac_args
@@ -25,7 +25,7 @@ declare use_sbtn=
 declare use_jvm_client=
 declare no_server=
 declare sbtn_command="$SBTN_CMD"
-declare sbtn_version="1.12.5"
+declare sbtn_version="2.0.0-f0d2fae4"
 declare use_colors=1
 declare is_this_dir_sbt=""
 declare hide_jdk_warnings=1
@@ -144,6 +144,9 @@ download_url () {
       curl --silent -L "$url" --output "$jar"
     elif command -v wget > /dev/null; then
       wget --quiet -O "$jar" "$url"
+    else
+      echoerr "failed to download $url: Neither curl nor wget is available"
+      exit 2
     fi
   } && [[ -f "$jar" ]]
 }
@@ -358,7 +361,7 @@ addSbtScriptProperty () {
 }
 
 addJdkWorkaround () {
-  local is_25="$(expr $java_version "=" 25)"
+  local is_25="$(expr $java_version ">=" 25)"
   if [[ "$hide_jdk_warnings" == "0" ]]; then
     :
   else
@@ -445,14 +448,17 @@ findProperty() {
   done
 }
 
-# Extracts the preloaded directory from either -Dsbt.preloaded, -Dsbt.global.base or -Duser.home
-# in that order.
+# Extracts the preloaded directory from -Dsbt.preloaded, -Dsbt.global.base, SBT_CONFIG_HOME,
+# XDG_CONFIG_HOME/sbt, or user.home/.sbt in that order.
 getPreloaded() {
   local preloaded && preloaded=$(findProperty sbt.preloaded)
   [ "$preloaded" ] && echo "$preloaded" && return
 
   local global_base && global_base=$(findProperty sbt.global.base)
   [ "$global_base" ] && echo "$global_base/preloaded" && return
+
+  [ -n "${SBT_CONFIG_HOME}" ] && echo "${SBT_CONFIG_HOME}/preloaded" && return
+  [ -n "${XDG_CONFIG_HOME}" ] && echo "${XDG_CONFIG_HOME}/sbt/preloaded" && return
 
   local user_home && user_home=$(findProperty user.home)
   echo "${user_home:-$HOME}/.sbt/preloaded"
@@ -559,7 +565,7 @@ run() {
   syncPreloaded
 
   # no jar? download it.
-  [[ -f "$sbt_jar" ]] || acquire_sbt_jar "$sbt_version" || {
+  [[ -f "$sbt_jar" ]] || acquire_sbt_jar || {
     exit 1
   }
 
@@ -581,7 +587,10 @@ run() {
     execRunner "$java_cmd" -jar "$sbt_jar" "sbtVersion" | tail -1 | sed -e 's/\[info\]//g'
   elif [[ $print_version ]]; then
     if [[ -n "$is_this_dir_sbt" ]]; then
-      execRunner "$java_cmd" -jar "$sbt_jar" "sbtVersion" | tail -1 | sed -e 's/\[info\]/sbt version in this project:/g'
+      local project_sbt_version
+      if project_sbt_version="$(projectSbtVersion)"; then
+        echo "sbt version in this project: $project_sbt_version"
+      fi
     fi
     echo "sbt runner version: $init_sbt_version"
     echoerr ""
@@ -635,23 +644,19 @@ Usage: `basename "$0"` [options]
   -h | --help         print this message
   -v | --verbose      this runner is chattier
   -V | --version      print sbt version information
-  --numeric-version   print the numeric sbt version (sbt sbtVersion)
-  --script-version    print the version of sbt script
-  shutdownall         shutdown all running sbt-launch processes
-  -d | --debug        set sbt log level to debug
-  -debug-inc | --debug-inc
-                      enable extra debugging for the incremental debugger
+  --server            run sbt server in the foreground, instead of using sbtn
+  --client            run sbtn (native client), and start sbt server in the background
+  --no-server         run sbtn, and fail if it cannot connect to a server
+  --jvm-client        run JVM client, and start sbt server in the background
+  --allow-empty       start sbt even if current directory contains no sbt project
   --no-colors         disable ANSI color codes
   --color=auto|always|true|false|never
                       enable or disable ANSI color codes      (sbt 1.3 and above)
   --supershell=auto|always|true|false|never
                       enable or disable supershell            (sbt 1.3 and above)
   --traces            generate Trace Event report on shutdown (sbt 1.3 and above)
-  --client            run native client
-  --jvm-client        run JVM client
   --timings           display task timings report on shutdown
-  --allow-empty       start sbt even if current directory contains no sbt project
-  --sbt-dir   <path>  path to global settings/plugins directory (default: ~/.sbt)
+  --sbt-dir   <path>  path to global settings/plugins directory (default: \$XDG_CONFIG_HOME/sbt or ~/.config/sbt)
   --sbt-boot  <path>  path to shared boot directory (default: ~/.sbt/boot in 0.11 series)
   --sbt-cache <path>  path to global cache directory (default: operating system specific)
   --ivy       <path>  path to local Ivy repository (default: ~/.ivy2)
@@ -660,6 +665,14 @@ Usage: `basename "$0"` [options]
   --no-global         uses global caches, but does not use global ~/.sbt directory.
   --jvm-debug <port>  Turn on JVM debugging, open at the given port.
   --batch             disable interactive mode
+  --numeric-version   print the numeric sbt version (sbt sbtVersion)
+  --script-version    print the version of sbt script
+  shutdownall         shutdown all running sbt-launch processes
+  -d | --debug        set sbt log level to debug
+  -debug-inc | --debug-inc
+                      enable extra debugging for the incremental compiler
+  --experimental_execution_log=true|<path>
+                      enable experimental execution log
 
   # sbt version (default: from project/build.properties if present, else latest release)
   --sbt-version  <version>   use the specified version of sbt
@@ -713,8 +726,11 @@ map_args () {
              --supershell=*) options=( "${options[@]}" "-Dsbt.supershell=${1:13}" ) && shift ;;
               -supershell=*) options=( "${options[@]}" "-Dsbt.supershell=${1:12}" ) && shift ;;
      -no-server|--no-server) options=( "${options[@]}" "-Dsbt.io.virtual=false" "-Dsbt.server.autostart=false" ) && shift ;;
+            --autostart=*) options=( "${options[@]}" "-Dsbt.server.autostart=${1:13}" ) && shift ;;
+             -autostart=*) options=( "${options[@]}" "-Dsbt.server.autostart=${1:12}" ) && shift ;;
                   --color=*) options=( "${options[@]}" "-Dsbt.color=${1:8}" ) && shift ;;
                    -color=*) options=( "${options[@]}" "-Dsbt.color=${1:7}" ) && shift ;;
+     --experimental_execution_log=*) options=( "${options[@]}" "-Dsbt.experimental_execution_log=${1:29}" ) && shift ;;
        -no-share|--no-share) options=( "${options[@]}" "${noshare_opts[@]}" ) && shift ;;
      -no-global|--no-global) options=( "${options[@]}" "-Dsbt.global.base=$(pwd)/project/.sbtboot" ) && shift ;;
                  -ivy|--ivy) require_arg path "$1" "$2" && options=( "${options[@]}" "-Dsbt.ivy.home=$2" ) && shift 2 ;;
@@ -753,7 +769,7 @@ process_args () {
                              sbt_cache="$2" &&
                              addJava "-Dsbt.global.localcache=$2" &&
                              shift 2 ;;
- -sbt-version|--sbt-version) require_arg version "$1" "$2" && sbt_version="$2" && shift 2 ;;
+ -sbt-version|--sbt-version) require_arg version "$1" "$2" && addJava "-Dsbt.version=$2" && shift 2 ;;
      -java-home|--java-home) require_arg path "$1" "$2" &&
                              java_cmd="$2/bin/java" &&
                              export JAVA_HOME="$2" &&
@@ -764,6 +780,7 @@ process_args () {
  -Dsbt.color=never|-Dsbt.log.noformat=true) addJava "$1" && use_colors=0 && shift ;;
                   "-D*"|-D*) addJava "$1" && shift ;;
                         -J*) addJava "${1:2}" && shift ;;
+                        bsp) use_sbtn=0 && addResidual "-bsp" && shift ;;
                           *) addResidual "$1" && shift ;;
     esac
   done
@@ -794,6 +811,16 @@ loadPropFile() {
       build_props_sbt_version="$v"
     fi
   done <<< "$(cat "$1" | sed $'/^\#/d;s/\r$//')"
+}
+
+projectSbtVersion() {
+  local version
+  version="$(trimString "$build_props_sbt_version")"
+  if [[ -n "$version" ]]; then
+    echo "$version"
+    return 0
+  fi
+  return 1
 }
 
 detectNativeClient() {

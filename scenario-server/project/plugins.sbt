@@ -1,4 +1,4 @@
-addSbtPlugin("io.spray" % "sbt-revolver" % "0.10.0")
+addSbtPlugin("com.jamesward" % "sbt-reload" % "0.0.2")
 
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.6")
 
