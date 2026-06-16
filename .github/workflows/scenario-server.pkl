@@ -1,7 +1,7 @@
 // pkl eval --format yaml -o scenario-server.yaml scenario-server.pkl
 
-amends "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.25#/GitHubAction.pkl"
-import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.25#/GitHubAction.pkl"
+amends "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.28#/GitHubAction.pkl"
+import "package://pkg.pkl-lang.org/github.com/jamesward/pklgha/pklgha@0.0.28#/GitHubAction.pkl"
 
 on {
   local thesePaths = new Listing<String> {
@@ -10,6 +10,9 @@ on {
   }
 
   push {
+    branches {
+      "main"
+    }
     paths = thesePaths
   }
   pull_request {

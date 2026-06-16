@@ -1,6 +1,8 @@
 # Generated file. DO NOT EDIT.
 'on':
   push:
+    branches:
+    - main
     paths:
     - scenario-server/**
     - .github/workflows/scenario-server.yaml
