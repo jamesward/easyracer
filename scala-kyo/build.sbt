@@ -8,7 +8,7 @@ libraryDependencies ++= Seq(
   "io.getkyo" %% "kyo-sttp" % "1.0-RC1",
   "org.slf4j" % "slf4j-simple" % "2.0.18",
   "org.scalatest" %% "scalatest" % "3.2.20" % Test,
-  "com.dimafeng" %% "testcontainers-scala-core" % "0.43.6" % Test
+  "com.dimafeng" %% "testcontainers-scala-core" % "0.44.1" % Test
 )
 
 Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oD")
