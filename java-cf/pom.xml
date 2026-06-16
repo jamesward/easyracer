@@ -17,7 +17,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <jspecify.version>1.0.0</jspecify.version>
-    <error-prone.version>2.49.0</error-prone.version>
+    <error-prone.version>2.50.0</error-prone.version>
     <nullaway.version>0.13.6</nullaway.version>
 
     <testcontainers-bom.version>2.0.5</testcontainers-bom.version>
