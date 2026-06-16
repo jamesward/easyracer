@@ -1,0 +1,31 @@
+# Generated file. DO NOT EDIT.
+'on':
+  push:
+    branches:
+    - main
+  pull_request: {}
+jobs:
+  check-dependabot:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: Check dependabot config exists
+      run: |-
+        if [ ! -f .github/dependabot.yml ]; then
+          echo "::error::Missing .github/dependabot.yml"
+          exit 1
+        fi
+    - name: Check all project directories have dependabot entries
+      run: |-
+        missing=()
+        for dir in $(find . -name build.properties -path '*/project/build.properties' -not -path '*/target/*' | sed 's|^\./||;s|/project/build.properties||' | sort); do
+          if ! grep -q "directory.*/$dir" .github/dependabot.yml; then
+            missing+=("$dir")
+          fi
+        done
+        if [ ${#missing[@]} -gt 0 ]; then
+          echo "::error::The following project directories are missing from .github/dependabot.yml:"
+          printf '  %s\n' "${missing[@]}"
+          exit 1
+        fi
+        echo "All project directories have dependabot entries."
