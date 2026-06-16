@@ -22,7 +22,7 @@ dependencies {
     implementation("io.ktor:ktor-client-core:3.4.3")
     implementation("io.ktor:ktor-client-java:3.4.3")
     implementation("com.louiscad.splitties:splitties-coroutines:3.0.0")
-    runtimeOnly("org.slf4j:slf4j-simple:2.0.17")
+    runtimeOnly("org.slf4j:slf4j-simple:2.0.18")
 
     testImplementation("io.kotest:kotest-runner-junit5:6.2.0")
     testImplementation("io.kotest:kotest-assertions-core:6.2.0")
