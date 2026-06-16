@@ -47,7 +47,8 @@ Docker / dockerCommands := {
       "RUN",
       "bash",
       "-c",
-      """modules=$(jdeps --ignore-missing-deps --multi-release 25 -R --print-module-deps /build/lib/*.jar | sed 's/java.desktop,//g; s/,java.desktop//g; s/java.desktop//g') && \
+      """chmod -R a+r /build/lib && \
+        |modules=$(jdeps --ignore-missing-deps --multi-release 25 -R --print-module-deps /build/lib/*.jar | sed 's/java.desktop,//g; s/,java.desktop//g; s/java.desktop//g') && \
         |jlink --output /opt/jre --add-modules $modules --compress zip-6 --no-header-files --no-man-pages""".stripMargin
     ),
     // Stage 2: distroless runtime (just glibc, no JRE)
