@@ -24,8 +24,8 @@ dependencies {
     implementation("io.arrow-kt:arrow-fx-coroutines:2.2.3")
     runtimeOnly("org.slf4j:slf4j-simple:2.0.18")
 
-    testImplementation("io.kotest:kotest-runner-junit5:6.2.0")
-    testImplementation("io.kotest:kotest-assertions-core:6.2.0")
+    testImplementation("io.kotest:kotest-runner-junit5:6.2.1")
+    testImplementation("io.kotest:kotest-assertions-core:6.2.1")
     testImplementation("io.kotest.extensions:kotest-extensions-testcontainers:2.0.2")
 }
 
