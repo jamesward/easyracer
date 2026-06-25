@@ -10,7 +10,7 @@ on:
 # only allow one run at a time; queue new runs instead of running them concurrently
 concurrency:
   group: ${{ github.workflow }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-upload:
