@@ -2,7 +2,7 @@ enablePlugins(JavaAppPackaging, DockerPlugin)
 
 name := "easyracer-server"
 
-scalaVersion := "3.8.4"
+scalaVersion := "3.9.0"
 
 fork := true
 
