@@ -23,7 +23,7 @@ dependencies {
     testImplementation("io.kotest:kotest-runner-junit5:6.2.4")
     testImplementation("io.kotest:kotest-assertions-core:6.2.4")
     testImplementation("io.kotest.extensions:kotest-extensions-testcontainers:2.0.2")
-    runtimeOnly("org.slf4j:slf4j-simple:2.0.18")
+    runtimeOnly("org.slf4j:slf4j-simple:2.0.19")
 }
 
 tasks.withType<Test>().configureEach {
