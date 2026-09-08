@@ -8,6 +8,6 @@ libraryDependencies ++= Seq(
   "org.apache.pekko" %% "pekko-http" % PekkoHttpVersion,
   "org.asynchttpclient" % "async-http-client" % "3.0.11",
   "org.scalatest" %% "scalatest" % "3.2.20" % Test,
-  "org.slf4j" % "slf4j-simple" % "2.0.18" % Test,
+  "org.slf4j" % "slf4j-simple" % "2.0.19" % Test,
   "com.dimafeng" %% "testcontainers-scala-core" % "0.44.1" % Test
 )
