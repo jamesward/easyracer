@@ -22,7 +22,7 @@ dependencies {
     implementation("io.ktor:ktor-client-core:3.6.0")
     implementation("io.ktor:ktor-client-java:3.6.0")
     implementation("io.arrow-kt:arrow-fx-coroutines:2.2.3")
-    runtimeOnly("org.slf4j:slf4j-simple:2.0.19")
+    runtimeOnly("org.slf4j:slf4j-simple:2.0.20")
 
     testImplementation("io.kotest:kotest-runner-junit5:6.2.5")
     testImplementation("io.kotest:kotest-assertions-core:6.2.5")
