@@ -1,5 +1,4 @@
 use std::time::Duration;
-use tokio::sync::mpsc;
 use tokio::time::{Instant, sleep, timeout};
 use tokio::time::error::Elapsed;
 use tokio_util::sync::CancellationToken;
@@ -7,7 +6,7 @@ use rand::RngExt;
 use rand::distr::{Alphanumeric, SampleString};
 use reqwest::Response;
 use sha2::{Sha512, Digest};
-use tokio::task::JoinError;
+use tokio::task::{JoinError, JoinSet};
 use procinfo::pid::stat_self;
 use procfs::ticks_per_second;
 use async_recursion::async_recursion;
@@ -47,22 +46,24 @@ pub async fn scenario_2(port: u16) -> String {
 pub async fn scenario_3(port: u16) -> String {
     let client = reqwest::Client::new();
 
-    let (tx, mut rx) = mpsc::channel(1);
-
     async fn req(port: u16, client: reqwest::Client) -> Result<String, reqwest::Error> {
         client.get(url(port, "3")).send().await?.text().await
     }
 
+    let mut set = JoinSet::new();
+
     for _ in 0..10_000 {
-        let cloned_client = client.clone();
-        let tx = tx.clone();
-        tokio::spawn(async move {
-            let result = req(port, cloned_client).await;
-            tx.send(result).await
-        });
+        set.spawn(req(port, client.clone()));
     }
 
-    rx.recv().await.unwrap().unwrap()
+    // returning drops the JoinSet, which aborts all the losing tasks
+    while let Some(result) = set.join_next().await {
+        if let Ok(Ok(text)) = result {
+            return text;
+        }
+    }
+
+    panic!("all failed")
 }
 
 pub async fn scenario_4(port: u16) -> String {
