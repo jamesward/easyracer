@@ -1,0 +1,28 @@
+# Generated file. DO NOT EDIT.
+'on':
+  push:
+    branches:
+    - main
+    paths:
+    - rust-futures/**
+    - .github/workflows/rust-futures.yaml
+  pull_request:
+    paths:
+    - rust-futures/**
+    - .github/workflows/rust-futures.yaml
+  workflow_run:
+    workflows:
+    - scenario-server
+    types:
+    - completed
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+    - uses: actions/checkout@v4
+    - run: rustup update
+    - run: cargo test
+    defaults:
+      run:
+        working-directory: rust-futures

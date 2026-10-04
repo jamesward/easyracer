@@ -41,11 +41,13 @@ object EasyRacerServerSpec extends ZIOSpecDefault:
         val server = ZIO.service[Server].run
         val port = server.port.run
         val url = ZIO.fromEither(URL.decode(s"http://localhost:$port/3")).run
-        val reqs = Seq.fill(10000)(Client.batched(Request.get(url)))
+        val failures = Ref.make(0).run
+        val req = Client.batched(Request.get(url)).catchAll(_ => failures.update(_ + 1) *> ZIO.never)
+        val reqs = Seq.fill(10000)(req)
         val winner = ZIO.raceAll(reqs.head, reqs.tail).run
         val body = winner.body.asString.run
-        TestClock.adjust(1.minute).run // todo: Something with DnsResolver seems to be hanging this test unless we move the clock forward
-        assertTrue(body == "right")
+        val numFailures = failures.get.run
+        assertTrue(body == "right", numFailures == 1)
     }.provide(
       Server.defaultWithPort(0),
       ZLayer.succeed(Client.Config.default.disabledConnectionPool),
@@ -53,5 +55,5 @@ object EasyRacerServerSpec extends ZIOSpecDefault:
       ZLayer.succeed(NettyConfig.default),
       DnsResolver.default,
       Scope.default,
-    ),
+    ) @@ TestAspect.withLiveClock,
   ).provideLayer(Runtime.removeDefaultLoggers)

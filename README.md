@@ -22,7 +22,7 @@ A scenario server validates the implementations of 11 scenarios:
     ```
     The winner returns a 200 response with a body containing `right`
 
-3. Race 10,000 concurrent requests
+3. Race 10,000 concurrent requests, where one produces a connection error
     ```
     GET /3
     ```
@@ -116,6 +116,7 @@ docker run -it -p8080:8080 ghcr.io/jamesward/easyracer --debug
 | [Elixir + Task (async)](elixir-async)                    | 11/11 ![tests](https://github.com/jamesward/easyracer/actions/workflows/elixir-async.yaml/badge.svg)            | [Juan Antonio Breña Moral](https://github.com/jabrena)                                                                                    |                                       |
 | [JRuby + concurrent](jruby-concurrent)                    | 11/11 ![tests](https://github.com/jamesward/easyracer/actions/workflows/jruby-concurrent.yaml/badge.svg)            | [Juan Antonio Breña Moral](https://github.com/jabrena)                                                                                    |                                       |
 | [Rust + Tokio](rust-tokio)                               | 10/11 ![tests](https://github.com/jamesward/easyracer/actions/workflows/rust-tokio.yaml/badge.svg)               | [James Ward](https://github.com/jamesward) and Rust Developer Retreat Participants                                                        | Needs Scenario 11                     |
+| [Rust + futures](rust-futures)                           | 3/11  ![tests](https://github.com/jamesward/easyracer/actions/workflows/rust-futures.yaml/badge.svg)             | [James Ward](https://github.com/jamesward)                                                                                                | Needs Scenarios 4-11                  |
 | [C#](dotnet)                                             | 9/11  ![tests](https://github.com/jamesward/easyracer/actions/workflows/dotnet.yaml/badge.svg)                   | [Jason De Lorme](https://github.com/delormej)                                                                                             | Scenario 10: CPU Not Pegged, Needs 11 |
 | [F# + Reactive Extensions](fsharp-reactive)              | 11/11 ![tests](https://github.com/jamesward/easyracer/actions/workflows/fsharp-reactive.yaml/badge.svg)          | [Jack Leow](https://github.com/jackgene)                                                                                                  |                                       |
 | [OCaml + Lwt + Cohttp](ocaml-cohttp-lwt)                 | 10/11 ![tests](https://github.com/jamesward/easyracer/actions/workflows/ocaml-cohttp-lwt.yaml/badge.svg)         | [Puneeth Chaganti](https://github.com/punchagan)                                                                                          | Needs Scenario 11                     |

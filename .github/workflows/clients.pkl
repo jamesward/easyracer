@@ -218,6 +218,20 @@ clients = new Mapping<String, Run> {
     steps = GitHubAction.Nix.runSteps("pytest")
   }
 
+  ["rust-futures"] = new {
+    steps {
+      new {
+        uses = "actions/checkout@v4"
+      }
+      new {
+        run = "rustup update"
+      }
+      new {
+        run = "cargo test"
+      }
+    }
+  }
+
   ["rust-tokio"] = new {
     steps {
       new {
