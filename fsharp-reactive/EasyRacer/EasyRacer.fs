@@ -25,6 +25,7 @@ let scenario3 (scenarioGet: string -> IObservable<HttpResponseMessage>) : IObser
     let req =
         scenarioGet "/3"
         |> Observable.bind (fun resp -> resp.Content.ReadAsStringAsync() |> Async.AwaitTask |> Observable.ofAsync)
+        |> Observable.catch Observable.empty
 
     Seq.replicate 10_000 req |> Observable.mergeSeq |> Observable.take 1
 

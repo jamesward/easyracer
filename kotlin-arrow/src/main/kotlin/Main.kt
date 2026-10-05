@@ -47,7 +47,7 @@ suspend fun HttpClient.scenario2(url: (Int) -> String): String {
 suspend fun HttpClient.scenario3(url: (Int) -> String): String = coroutineScope {
   val reqs = List(10_000) {
     async {
-      get(url(3))
+      ignoreException { get(url(3)) }
     }
   }
 

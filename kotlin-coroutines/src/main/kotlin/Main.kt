@@ -63,7 +63,13 @@ suspend fun scenario3(url: (Int) -> String): String = coroutineScope {
                 //
                 // If you are running on such a machine, uncomment the following line:
 //                Thread.sleep(0, 500_000)
-                async { client.get(url(3)) }.onAwait { it }
+                async {
+                    try {
+                        client.get(url(3))
+                    } catch (_: Exception) {
+                        awaitCancellation()
+                    }
+                }.onAwait { it }
             }
         }.bodyAsText()
     } finally {
