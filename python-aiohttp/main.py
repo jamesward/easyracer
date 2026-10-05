@@ -54,10 +54,16 @@ async def scenario3(port: int):
                 return await response.text()
 
         reqs = [asyncio.create_task(req()) for _ in range(10_000)]
-        iterable = await asyncio.wait(reqs, return_when=asyncio.FIRST_COMPLETED)
-        done = next(iterable)
-        print(done)
-        return await done
+        for coro in asyncio.as_completed(reqs):
+            try:
+                result = await coro
+
+                for req in reqs:
+                    req.cancel()
+
+                return result
+            except aiohttp.client_exceptions.ServerDisconnectedError:
+                pass
 
 
 # currently not working

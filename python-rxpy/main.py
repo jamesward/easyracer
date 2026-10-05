@@ -51,7 +51,7 @@ def scenario3(url: str):
             async with session.get(url) as response:
                 return await response.text()
 
-    def req(): return rx.from_future(asyncio.ensure_future(_req()))
+    def req(): return rx.from_future(asyncio.ensure_future(_req())) >> ops.catch(rx.empty())
 
     return rx.merge(*[req() for req in [req] * 10_000]) >> ops.first()
     # Or:

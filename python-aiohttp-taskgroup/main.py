@@ -68,8 +68,11 @@ async def scenario3(port: int):
     connector = aiohttp.TCPConnector(limit=10_000)
     async with aiohttp.ClientSession(connector=connector) as session:
         async def req():
-            async with session.get(url(port, 3)) as response:
-                return await response.text()
+            try:
+                async with session.get(url(port, 3)) as response:
+                    return await response.text()
+            except aiohttp.client_exceptions.ServerDisconnectedError:
+                raise asyncio.CancelledError
 
         async with FirstCompletedTaskGroup() as group:
             [group.create_task(req()) for _ in range(10_000)]

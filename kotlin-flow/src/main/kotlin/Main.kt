@@ -44,7 +44,7 @@ suspend fun scenario2(url: (Int) -> String): String {
 }
 
 suspend fun scenario3(url: (Int) -> String): String {
-    val req = client.getAsFlow(url(3)).map { it.bodyAsText() }
+    val req = client.getAsFlow(url(3)).catch {}.map { it.bodyAsText() }
 
     return List(10_000) { req }
         // Uncomment the following on macOS
