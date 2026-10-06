@@ -1,0 +1,74 @@
+// Copyright (c) 2026, Antonio Gabriel Muñoz Conejo <me AT tonivade DOT es>
+// Distributed under the terms of the MIT License
+
+plugins {
+  id 'java'
+  id 'jacoco'
+  id 'com.diffplug.eclipse.apt' version '4.4.1'
+  id 'net.ltgt.errorprone' version '5.1.0'
+}
+
+group = 'es.tonivade'
+
+java {
+  sourceCompatibility = '25'
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(25)
+  }
+}
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs << '-Xlint:all'
+  options.release = 25
+  if (!name.toLowerCase().contains("test")) {
+    options.errorprone {
+      check("NullAway", net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
+      option("NullAway:AnnotatedPackages", "es.tonivade.racer")
+      option("NullAway:SuggestSuppressions", "true")
+    }
+  } else {
+    options.errorprone.enabled = false
+  }
+}
+
+jacoco {
+  toolVersion = '0.8.14'
+}
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+  maven {
+    url = 'https://central.sonatype.com/repository/maven-snapshots/'
+  }
+}
+
+dependencies {
+  errorprone("com.google.errorprone:error_prone_core:2.49.0")
+  errorprone("com.uber.nullaway:nullaway:0.13.3")
+  compileOnly("org.jspecify:jspecify:1.0.0")
+  annotationProcessor("com.github.tonivade:diesel:$diesel_version")
+  implementation("com.github.tonivade:diesel:$diesel_version")
+  implementation("org.pcollections:pcollections:$pcollections_version")
+
+  testImplementation platform("org.junit:junit-bom:$junit_version")
+  testImplementation "org.junit.jupiter:junit-jupiter-engine"
+  testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+  useJUnitPlatform()
+
+  reports {
+    html.required = true
+  }
+}
+
+jacocoTestReport {
+  reports {
+    xml.required = true
+    html.required = true
+    xml.outputLocation = file("${buildDir}/reports/jacoco/report.xml")
+  }
+}
+
