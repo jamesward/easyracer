@@ -125,7 +125,11 @@ object EasyRacerClient extends IOApp.Simple {
     val url = scenarioUrl(3)
     val reqs = List.fill(10000)(client.expect[String](GET(url)))
 
-    multiRace(reqs)
+    // One request gets a connection error, so race to the first SUCCESSFUL completion (see scenario6)
+    raceSuccessAll(reqs).flatMap(_.fold(
+      c => IO.raiseError[String](new RuntimeException(c.toString)),
+      IO.pure
+    ))
   }
 
   def scenario4(client: Client[IO], scenarioUrl: Int => Uri) = {

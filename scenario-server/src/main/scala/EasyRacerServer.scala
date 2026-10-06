@@ -84,16 +84,20 @@ object EasyRacerServer extends ZIOAppDefault:
 
 
   /*
-  10000 concurrent requests gets a right response
+  Once 10000 concurrent requests have come in, the first one closes the connection, while a later one is right
   */
   def scenario3(session: Session[Unit])(@unused request: Request): ZIO[Any, Nothing, Response] =
     defer:
       val (num, promise) = session.add().run
-      if num < 10_000 then
+      if num == 1 then
+        promise.await.run
+        ZIO.interrupt.run
+      else if num < 10_000 then
         promise.await.run
         ZIO.never.run
       else
         promise.succeed(()).run
+        ZIO.sleep(1.second).run // insure that the failure comes before the right response
         Response.text("right")
 
     .onExit: _ =>

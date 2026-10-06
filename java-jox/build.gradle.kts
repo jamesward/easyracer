@@ -13,11 +13,11 @@ repositories {
 }
 
 dependencies {
-    implementation("com.softwaremill.jox:structured:0.5.3")
+    implementation("com.softwaremill.jox:structured:0.6.0")
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("org.testcontainers:testcontainers:2.0.5")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
-    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.19")
+    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.20")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

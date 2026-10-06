@@ -7,11 +7,11 @@ val zioVersion = "2.1.26"
 libraryDependencies ++= Seq(
   "dev.zio" %% "zio" % zioVersion,
   "dev.zio" %% "zio-concurrent" % zioVersion,
-  "dev.zio" %% "zio-http" % "3.11.4",
+  "dev.zio" %% "zio-http" % "3.11.6",
   "dev.zio" %% "zio-direct" % "1.0.0-RC7",
   "dev.zio" %% "zio-test" % zioVersion % Test,
   "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
-  "org.slf4j" % "slf4j-simple" % "2.0.19" % Test,
+  "org.slf4j" % "slf4j-simple" % "2.0.20" % Test,
   "com.dimafeng" %% "testcontainers-scala-core" % "0.44.1" % Test
 )
 

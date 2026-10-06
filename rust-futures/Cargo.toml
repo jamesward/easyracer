@@ -1,9 +1,12 @@
 [package]
-name = "rust-something"
+name = "rust_futures"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 futures = "0.3.28"
 reqwest = "0.13.1"
-tokio = {"version"= "1.28.2", features=["rt-multi-thread", "macros"]}
+tokio = { version = "1.45.0", features = ["rt-multi-thread", "macros"] }
+
+[dev-dependencies]
+testcontainers = "0.28.0"
