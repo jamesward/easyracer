@@ -2,7 +2,7 @@ scalaVersion := "3.9.0"
 
 libraryDependencies ++= Seq(
   "io.getkyo" %% "kyo-core" % "1.0.0-RC6",
-  "io.getkyo" %% "kyo-direct" % "1.0.0-RC6",
+  "io.getkyo" %% "kyo-direct" % "1.0.0-RC7",
   "io.getkyo" %% "kyo-http" % "1.0.0-RC6",
   "io.getkyo" %% "kyo-logging-slf4j" % "1.0.0-RC6",
   "org.slf4j" % "slf4j-simple" % "2.0.20",
