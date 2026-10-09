@@ -5,7 +5,7 @@ plugins {
   id 'java'
   id 'jacoco'
   id 'com.diffplug.eclipse.apt' version '4.4.1'
-  id 'net.ltgt.errorprone' version '5.1.0'
+  id 'net.ltgt.errorprone' version '5.1.1'
 }
 
 group = 'es.tonivade'
@@ -32,7 +32,7 @@ tasks.withType(JavaCompile) {
 }
 
 jacoco {
-  toolVersion = '0.8.14'
+  toolVersion = '0.8.15'
 }
 
 repositories {
@@ -44,9 +44,9 @@ repositories {
 }
 
 dependencies {
-  errorprone("com.google.errorprone:error_prone_core:2.49.0")
-  errorprone("com.uber.nullaway:nullaway:0.13.3")
-  compileOnly("org.jspecify:jspecify:1.0.0")
+  errorprone("com.google.errorprone:error_prone_core:2.50.0")
+  errorprone("com.uber.nullaway:nullaway:0.14.0")
+  compileOnly("org.jspecify:jspecify:1.0.1")
   annotationProcessor("com.github.tonivade:diesel:$diesel_version")
   implementation("com.github.tonivade:diesel:$diesel_version")
   implementation("org.pcollections:pcollections:$pcollections_version")
