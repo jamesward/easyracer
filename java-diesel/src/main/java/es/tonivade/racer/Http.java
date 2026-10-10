@@ -6,15 +6,16 @@ package es.tonivade.racer;
 
 import java.net.URI;
 import java.net.http.HttpResponse.BodyHandler;
+import java.util.concurrent.CompletableFuture;
 
 import com.github.tonivade.diesel.Diesel;
 import com.github.tonivade.diesel.Result;
 
-@Diesel(errorType = Throwable.class)
+@Diesel
 public interface Http {
 
-  Result<Throwable, String> get(URI request);
+  CompletableFuture<Result<Throwable, String>> get(URI request);
 
-  <T> Result<Throwable, T> get(URI request, BodyHandler<T> handler);
+  <T> CompletableFuture<Result<Throwable, T>> get(URI request, BodyHandler<T> handler);
 
 }
