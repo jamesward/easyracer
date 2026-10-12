@@ -12,10 +12,10 @@ import static com.github.tonivade.diesel.Program.bracket;
 import static com.github.tonivade.diesel.Program.catchAll;
 import static com.github.tonivade.diesel.Program.delayed;
 import static es.tonivade.racer.HttpDsl.get;
+import static java.net.http.HttpResponse.BodyHandlers.ofString;
 import static java.util.stream.Collectors.joining;
 
 import java.net.URI;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -84,7 +84,7 @@ public class Scenarios {
 
   private static Program<Http, Throwable, String> call(String str) {
     return pipe(
-        catchAll(get(request(str), HttpResponse.BodyHandlers.ofString()), Program::failure),
+        catchAll(get(request(str), ofString()), Program::failure),
         r -> {
           if (r.statusCode() == 200) {
             return Program.success(r.body());
