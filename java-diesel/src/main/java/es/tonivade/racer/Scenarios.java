@@ -9,10 +9,10 @@ import static com.github.tonivade.diesel.Concurrent.parAny;
 import static com.github.tonivade.diesel.Concurrent.parSequence;
 import static com.github.tonivade.diesel.Program.bracket;
 import static com.github.tonivade.diesel.Program.delayed;
-import static es.tonivade.racer.HttpDsl.get;
 import static java.util.stream.Collectors.joining;
 
 import java.net.URI;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.stream.IntStream;
 
@@ -76,7 +76,14 @@ public class Scenarios {
   }
 
   private static Program<Http, Throwable, String> call(String str) {
-    return get(request(str));
+    return HttpDsl.<Http, Throwable, String>get(request(str), HttpResponse.BodyHandlers.ofString())
+        .catchAll(e -> Program.failure(e))
+        .flatMap(r -> {
+          if (r.statusCode() == 200) {
+            return Program.success(r.body());
+          }
+          return Program.failure(new RuntimeException("error"));
+        });
   }
 
   private static URI request(String str) {
