@@ -90,14 +90,16 @@ public class Scenarios {
   }
 
   private static Program<Http, String, String> call(String str) {
-    return pipe(
-        catchAll(get(request(str), ofString()), _ -> Program.failure("left")),
-        r -> {
-          if (r.statusCode() == 200) {
-            return Program.success(r.body());
-          }
-          return Program.failure("left");
-        });
+    return catchAll(
+        pipe(
+            get(request(str), ofString()),
+            r -> {
+              if (r.statusCode() == 200) {
+                return Program.success(r.body());
+              }
+              return Program.failure("left");
+            }),
+        _ -> Program.failure("left"));
   }
 
   private static Program<Http, Void, String> callNoError(String str) {
