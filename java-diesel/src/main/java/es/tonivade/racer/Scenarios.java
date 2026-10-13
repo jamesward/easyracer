@@ -13,6 +13,7 @@ import static com.github.tonivade.diesel.Program.catchAll;
 import static com.github.tonivade.diesel.Program.delayed;
 import static es.tonivade.racer.HttpDsl.get;
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
+import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.IntStream.rangeClosed;
 
@@ -23,6 +24,7 @@ import java.util.concurrent.Executors;
 
 import com.github.tonivade.diesel.Either;
 import com.github.tonivade.diesel.Program;
+import com.github.tonivade.diesel.Program.ElapsedTime;
 
 public class Scenarios {
 
@@ -75,11 +77,11 @@ public class Scenarios {
     return parAny(executor, program, program);
   }
 
-  static Program<Http, String, String> scenario9() {
-    var program = call("/9");
+  static Program<Http, Void, String> scenario9() {
+    var program = callNoError("/9").timed();
     var requests = rangeClosed(1, 10).mapToObj(_ -> program).toList();
     return parSequence(executor, requests)
-        .map(c -> c.stream().collect(joining()));
+        .map(c -> c.stream().sorted(comparing(ElapsedTime::duration)).map(ElapsedTime::value).collect(joining()));
   }
 
   static Program<Http, String, String> scenario11() {
@@ -96,6 +98,19 @@ public class Scenarios {
           }
           return Program.failure("left");
         });
+  }
+
+  private static Program<Http, Void, String> callNoError(String str) {
+    return catchAll(
+        pipe(
+            get(request(str), ofString()),
+            r -> {
+              if (r.statusCode() == 200) {
+                return Program.success(r.body());
+              }
+              return Program.success("");
+            }),
+        _ -> Program.success(""));
   }
 
   private static URI request(String str) {
