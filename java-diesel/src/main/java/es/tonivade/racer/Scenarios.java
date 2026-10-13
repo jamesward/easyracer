@@ -40,8 +40,7 @@ public class Scenarios {
 
   static Program<Http, String, String> scenario3() {
     var program = call("/3");
-    var requests = rangeClosed(1, 10_000)
-        .mapToObj(_ -> program).toList();
+    var requests = rangeClosed(1, 10_000).mapToObj(_ -> program).toList();
     return parAny(executor, requests);
   }
 
@@ -77,10 +76,15 @@ public class Scenarios {
   }
 
   static Program<Http, String, String> scenario9() {
-    var requests = rangeClosed(1, 10)
-        .mapToObj(_ -> call("/9")).toList();
+    var program = call("/9");
+    var requests = rangeClosed(1, 10).mapToObj(_ -> program).toList();
     return parSequence(executor, requests)
         .map(c -> c.stream().collect(joining()));
+  }
+
+  static Program<Http, String, String> scenario11() {
+    var program = call("/11");
+    return parAny(executor, program, parAny(executor, program, program));
   }
 
   private static Program<Http, String, String> call(String str) {

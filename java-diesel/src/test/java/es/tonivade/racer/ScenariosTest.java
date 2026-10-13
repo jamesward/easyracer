@@ -96,6 +96,15 @@ class ScenariosTest {
     assertEquals(success("right"), result);
   }
 
+  @Test
+  void scenario11() {
+    var scenario = Scenarios.scenario11();
+
+    var result = scenario.eval(state);
+
+    assertEquals(success("right"), result);
+  }
+
   private String merge(Either<String, String> either) {
     return either.fold(identity(), identity());
   }
