@@ -4,7 +4,7 @@
  */
 package es.tonivade.racer;
 
-import static java.net.http.HttpClient.Redirect.NORMAL;
+import static java.net.http.HttpClient.Redirect.NEVER;
 import static java.net.http.HttpClient.Version.HTTP_1_1;
 
 import java.net.URI;
@@ -18,7 +18,7 @@ public class HttpImpl implements Http {
 
   private final HttpClient client = HttpClient.newBuilder()
     .version(HTTP_1_1)
-    .followRedirects(NORMAL)
+    .followRedirects(NEVER)
     .connectTimeout(Duration.ofSeconds(5))
     .build();
 

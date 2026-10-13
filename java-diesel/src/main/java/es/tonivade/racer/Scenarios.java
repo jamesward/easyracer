@@ -11,20 +11,31 @@ import static com.github.tonivade.diesel.Concurrent.parSequence;
 import static com.github.tonivade.diesel.Program.bracket;
 import static com.github.tonivade.diesel.Program.catchAll;
 import static com.github.tonivade.diesel.Program.delayed;
+import static com.github.tonivade.diesel.Program.failure;
+import static com.github.tonivade.diesel.Program.recursive;
+import static com.github.tonivade.diesel.Program.success;
+import static com.github.tonivade.diesel.Program.supply;
 import static es.tonivade.racer.HttpDsl.get;
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.IntStream.rangeClosed;
 
+import java.lang.management.ManagementFactory;
 import java.net.URI;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 
 import com.github.tonivade.diesel.Either;
 import com.github.tonivade.diesel.Program;
 import com.github.tonivade.diesel.Program.ElapsedTime;
+import com.sun.management.OperatingSystemMXBean;
 
 public class Scenarios {
 
@@ -81,12 +92,25 @@ public class Scenarios {
     var program = callNoError("/9").timed();
     var requests = rangeClosed(1, 10).mapToObj(_ -> program).toList();
     return parSequence(executor, requests)
-        .map(c -> c.stream().sorted(comparing(ElapsedTime::duration)).map(ElapsedTime::value).collect(joining()));
+        .map(c -> c.stream()
+            .sorted(comparing(ElapsedTime::duration))
+            .map(ElapsedTime::value)
+            .collect(joining()));
+  }
+
+  static Program<Http, String, String> scenario10() {
+    var id = UUID.randomUUID().toString();
+
+    var part1 = parAny(executor, call("/10?" + id), heavyTask());
+    var part2 = recursiveTask().apply(id);
+
+    return parAny(executor, part1, part2);
   }
 
   static Program<Http, String, String> scenario11() {
-    var program = call("/11");
-    return parAny(executor, program, parAny(executor, program, program));
+    return parAny(executor,
+        call("/11"),
+        parAny(executor, call("/11"), call("/11")));
   }
 
   private static Program<Http, String, String> call(String str) {
@@ -95,11 +119,11 @@ public class Scenarios {
             get(request(str), ofString()),
             r -> {
               if (r.statusCode() == 200) {
-                return Program.success(r.body());
+                return success(r.body());
               }
-              return Program.failure("left");
+              return failure("left");
             }),
-        _ -> Program.failure("left"));
+        _ -> failure("left"));
   }
 
   private static Program<Http, Void, String> callNoError(String str) {
@@ -108,11 +132,53 @@ public class Scenarios {
             get(request(str), ofString()),
             r -> {
               if (r.statusCode() == 200) {
-                return Program.success(r.body());
+                return success(r.body());
               }
-              return Program.success("");
+              return success("");
             }),
-        _ -> Program.success(""));
+        _ -> success(""));
+  }
+
+  private static <S extends Http> Function<String, Program<S, String, String>> recursiveTask() {
+    var osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
+    return recursive((self, id) -> {
+      var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
+      return catchAll(
+        pipe(
+            get(request("/10?" + id + "=" + load), ofString()),
+            r -> {
+              if (r.statusCode() >= 200 && r.statusCode() < 300) {
+                return success(r.body());
+              }
+              if (r.statusCode() >= 300 && r.statusCode() < 400) {
+                return delayed(Duration.ofSeconds(1), self.apply(id));
+              }
+              return failure("left");
+            }),
+        _ -> failure("left"));
+    });
+  }
+
+  private static <S> Program<S, String, String> heavyTask() {
+    return pipe(
+        supply(Scenarios::getDigest),
+        digest -> supply(() -> {
+          byte[] array = new byte[512];
+          ThreadLocalRandom.current().nextBytes(array);
+          while (!Thread.interrupted()) {
+            array = digest.digest(array);
+          }
+          return null;
+        })
+      );
+  }
+
+  private static MessageDigest getDigest() {
+    try {
+      return MessageDigest.getInstance("SHA-512");
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static URI request(String str) {
