@@ -169,7 +169,6 @@ public class Scenarios {
       while (!Thread.interrupted()) {
         array = digest.digest(array);
       }
-      System.out.println("interrupted");
     });
   }
 
