@@ -8,13 +8,15 @@ import static com.github.tonivade.diesel.Combine.pipe;
 import static com.github.tonivade.diesel.Concurrent.either;
 import static com.github.tonivade.diesel.Concurrent.parAny;
 import static com.github.tonivade.diesel.Concurrent.parSequence;
+import static com.github.tonivade.diesel.Concurrent.parZip;
 import static com.github.tonivade.diesel.Program.bracket;
 import static com.github.tonivade.diesel.Program.catchAll;
 import static com.github.tonivade.diesel.Program.delayed;
 import static com.github.tonivade.diesel.Program.failure;
+import static com.github.tonivade.diesel.Program.interruptibleTask;
 import static com.github.tonivade.diesel.Program.recursive;
 import static com.github.tonivade.diesel.Program.success;
-import static com.github.tonivade.diesel.Program.supply;
+import static com.github.tonivade.diesel.function.Finisher2.first;
 import static es.tonivade.racer.HttpDsl.get;
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
 import static java.util.Comparator.comparing;
@@ -27,7 +29,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.UUID;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
@@ -39,7 +41,7 @@ import com.sun.management.OperatingSystemMXBean;
 
 public class Scenarios {
 
-  private static final Executor executor = Executors.newVirtualThreadPerTaskExecutor();
+  private static final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
   private static final URI BASE_URI = URI.create("http://localhost:8080/1");
 
@@ -101,7 +103,7 @@ public class Scenarios {
   static Program<Http, String, String> scenario10() {
     var id = UUID.randomUUID().toString();
 
-    var part1 = parAny(executor, call("/10?" + id), heavyTask());
+    var part1 = parZip(call("/10?" + id), heavyTask(), first(), executor);
     var part2 = recursiveTask().apply(id);
 
     return parAny(executor, part1, part2);
@@ -159,18 +161,16 @@ public class Scenarios {
     });
   }
 
-  private static <S> Program<S, String, String> heavyTask() {
-    return pipe(
-        supply(Scenarios::getDigest),
-        digest -> supply(() -> {
-          byte[] array = new byte[512];
-          ThreadLocalRandom.current().nextBytes(array);
-          while (!Thread.interrupted()) {
-            array = digest.digest(array);
-          }
-          return null;
-        })
-      );
+  private static <S> Program<S, String, Void> heavyTask() {
+    return interruptibleTask(executor, () -> {
+      var digest = getDigest();
+      byte[] array = new byte[512];
+      ThreadLocalRandom.current().nextBytes(array);
+      while (!Thread.interrupted()) {
+        array = digest.digest(array);
+      }
+      System.out.println("interrupted");
+    });
   }
 
   private static MessageDigest getDigest() {

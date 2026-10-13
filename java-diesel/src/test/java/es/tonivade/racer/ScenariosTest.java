@@ -8,8 +8,6 @@ import static com.github.tonivade.diesel.Result.success;
 import static java.util.function.Function.identity;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.time.Duration;
-
 import org.junit.jupiter.api.Test;
 
 import com.github.tonivade.diesel.Either;
@@ -103,7 +101,7 @@ class ScenariosTest {
   void scenario10() {
     var scenario = Scenarios.scenario10();
 
-    var result = scenario.timeout(Duration.ofSeconds(10)).eval(state);
+    var result = scenario.eval(state);
 
     assertEquals(success("right"), result);
   }
