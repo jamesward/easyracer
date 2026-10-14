@@ -20,13 +20,15 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 class ScenariosTest {
 
+  private static final int PORT = 8080;
+
   @Container
   static GenericContainer<?> container = new GenericContainer<>(DockerImageName.parse("ghcr.io/jamesward/easyracer"))
-    .withExposedPorts(8080)
+    .withExposedPorts(PORT)
     .waitingFor(Wait.forHttp("/"));
 
   private final HttpImpl state = new HttpImpl();
-  private final Scenarios scenarios = new Scenarios(container.getMappedPort(8080));
+  private final Scenarios scenarios = new Scenarios(container.getMappedPort(PORT));
 
   @Test
   void scenario1() {
