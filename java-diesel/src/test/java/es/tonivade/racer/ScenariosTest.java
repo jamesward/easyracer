@@ -8,17 +8,29 @@ import static com.github.tonivade.diesel.Result.success;
 import static java.util.function.Function.identity;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.jupiter.api.Test;
-
 import com.github.tonivade.diesel.Either;
 
+import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
+
+@Testcontainers
 class ScenariosTest {
 
+  @Container
+  static GenericContainer<?> container = new GenericContainer<>(DockerImageName.parse("ghcr.io/jamesward/easyracer"))
+    .withExposedPorts(8080)
+    .waitingFor(Wait.forHttp("/"));
+
   private final HttpImpl state = new HttpImpl();
+  private final Scenarios scenarios = new Scenarios(container.getMappedPort(8080));
 
   @Test
   void scenario1() {
-    var scenario = Scenarios.scenario1();
+    var scenario = scenarios.scenario1();
 
     var result = scenario.eval(state).map(this::merge);
 
@@ -27,7 +39,7 @@ class ScenariosTest {
 
   @Test
   void scenario2() {
-    var scenario = Scenarios.scenario2();
+    var scenario = scenarios.scenario2();
 
     var result = scenario.eval(state).map(this::merge);
 
@@ -36,7 +48,7 @@ class ScenariosTest {
 
   @Test
   void scenario3() {
-    var scenario = Scenarios.scenario3();
+    var scenario = scenarios.scenario3();
 
     var result = scenario.eval(state);
 
@@ -45,7 +57,7 @@ class ScenariosTest {
 
   @Test
   void scenario4() {
-    var scenario = Scenarios.scenario4();
+    var scenario = scenarios.scenario4();
 
     var result = scenario.eval(state).map(this::merge);
 
@@ -54,7 +66,7 @@ class ScenariosTest {
 
   @Test
   void scenario5() {
-    var scenario = Scenarios.scenario5();
+    var scenario = scenarios.scenario5();
 
     var result = scenario.eval(state).map(this::merge);
 
@@ -63,7 +75,7 @@ class ScenariosTest {
 
   @Test
   void scenario6() {
-    var scenario = Scenarios.scenario6();
+    var scenario = scenarios.scenario6();
 
     var result = scenario.eval(state);
 
@@ -72,7 +84,7 @@ class ScenariosTest {
 
   @Test
   void scenario7() {
-    var scenario = Scenarios.scenario7();
+    var scenario = scenarios.scenario7();
 
     var result = scenario.eval(state);
 
@@ -81,7 +93,7 @@ class ScenariosTest {
 
   @Test
   void scenario8() {
-    var scenario = Scenarios.scenario8();
+    var scenario = scenarios.scenario8();
 
     var result = scenario.eval(state);
 
@@ -90,7 +102,7 @@ class ScenariosTest {
 
   @Test
   void scenario9() {
-    var scenario = Scenarios.scenario9();
+    var scenario = scenarios.scenario9();
 
     var result = scenario.eval(state);
 
@@ -99,7 +111,7 @@ class ScenariosTest {
 
   @Test
   void scenario10() {
-    var scenario = Scenarios.scenario10();
+    var scenario = scenarios.scenario10();
 
     var result = scenario.eval(state);
 
@@ -108,7 +120,7 @@ class ScenariosTest {
 
   @Test
   void scenario11() {
-    var scenario = Scenarios.scenario11();
+    var scenario = scenarios.scenario11();
 
     var result = scenario.eval(state);
 
