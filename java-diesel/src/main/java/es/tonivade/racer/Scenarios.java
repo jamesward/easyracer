@@ -47,44 +47,44 @@ public class Scenarios implements AutoCloseable {
     this.baseUrl = baseUrl;
   }
 
-  Program<Http, String, String> scenario1() {
+  public Program<Http, String, String> scenario1() {
     return parAny(executor, call("/1"), call("/1"));
   }
 
-  Program<Http, String, String> scenario2() {
+  public Program<Http, String, String> scenario2() {
     return parAny(executor, call("/2"), call("/2"));
   }
 
-  Program<Http, String, String> scenario3() {
+  public Program<Http, String, String> scenario3() {
     var program = call("/3");
     var requests = rangeClosed(1, 10_000).mapToObj(_ -> program).toList();
     return parAny(executor, requests);
   }
 
-  Program<Http, String, String> scenario4() {
+  public Program<Http, String, String> scenario4() {
     return parAny(executor,
         call("/4"),
         call("/4").timeout(Duration.ofSeconds(1)));
   }
 
-  Program<Http, String, String> scenario5() {
+  public Program<Http, String, String> scenario5() {
     return parAny(executor, call("/5"), call("/5"));
   }
 
-  Program<Http, String, String> scenario6() {
+  public Program<Http, String, String> scenario6() {
     return parAny(executor,
         call("/6"),
         call("/6"),
         call("/6"));
   }
 
-  Program<Http, String, String> scenario7() {
+  public Program<Http, String, String> scenario7() {
     return parAny(executor,
         call("/7"),
         delayed(Duration.ofSeconds(3), call("/7")));
   }
 
-  Program<Http, String, String> scenario8() {
+  public Program<Http, String, String> scenario8() {
     var program = bracket(
         call("/8?open"),
         id -> call("/8?use=" + id),
@@ -92,7 +92,7 @@ public class Scenarios implements AutoCloseable {
     return parAny(executor, program, program);
   }
 
-  Program<Http, Void, String> scenario9() {
+  public Program<Http, Void, String> scenario9() {
     var program = callNoError("/9")
         .map(result -> new TimedResponse(Instant.now(), result));
     var requests = rangeClosed(1, 10).mapToObj(_ -> program).toList();
@@ -103,7 +103,7 @@ public class Scenarios implements AutoCloseable {
             .collect(joining()));
   }
 
-  Program<Http, String, String> scenario10() {
+  public Program<Http, String, String> scenario10() {
     var id = UUID.randomUUID().toString();
 
     var part1 = parAny(executor, call("/10?" + id), heavyTask().map(_ -> ""));
@@ -112,7 +112,7 @@ public class Scenarios implements AutoCloseable {
     return parZip(part1, part2, last(), executor);
   }
 
-  Program<Http, String, String> scenario11() {
+  public Program<Http, String, String> scenario11() {
     return parAny(executor,
         call("/11"),
         parAny(executor, call("/11"), call("/11")));
@@ -188,5 +188,5 @@ public class Scenarios implements AutoCloseable {
         _ -> success(""));
   }
 
-  record TimedResponse(Instant instant, String value) {}
+  private record TimedResponse(Instant instant, String value) {}
 }
