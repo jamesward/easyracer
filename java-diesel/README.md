@@ -47,8 +47,7 @@ java-diesel/
     connection establishment has a five-second timeout. Individual
     requests do not have a global request timeout.
 -   **`Scenarios`** defines the eleven scenario programs using Diesel
-    combinators. It owns a virtual-thread-per-task executor and
-    implements `AutoCloseable`.
+    combinators. 
 -   **`ScenariosTest`** runs the scenarios as integration tests against
     the official Easy Racer container.
 
@@ -74,9 +73,6 @@ The implementation uses:
     handle unsuccessful requests.
 -   **`interruptibleTask`** for the CPU-intensive SHA-512 loop in
     scenario 10, which must stop when it loses the race.
-
-A virtual-thread-per-task executor is shared by the scenarios.
-`Scenarios.close()` closes the executor after use.
 
 ### Scenario-specific details
 

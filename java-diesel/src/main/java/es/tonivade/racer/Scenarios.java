@@ -32,14 +32,10 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
-public class Scenarios implements AutoCloseable {
-
-  private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+public class Scenarios {
 
   private final URI baseUrl;
 
@@ -48,38 +44,38 @@ public class Scenarios implements AutoCloseable {
   }
 
   public Program<Http, String, String> scenario1() {
-    return parAny(executor, call("/1"), call("/1"));
+    return parAny(call("/1"), call("/1"));
   }
 
   public Program<Http, String, String> scenario2() {
-    return parAny(executor, call("/2"), call("/2"));
+    return parAny(call("/2"), call("/2"));
   }
 
   public Program<Http, String, String> scenario3() {
     var program = call("/3");
     var requests = rangeClosed(1, 10_000).mapToObj(_ -> program).toList();
-    return parAny(executor, requests);
+    return parAny(requests);
   }
 
   public Program<Http, String, String> scenario4() {
-    return parAny(executor,
+    return parAny(
         call("/4"),
         call("/4").timeout(Duration.ofSeconds(1)));
   }
 
   public Program<Http, String, String> scenario5() {
-    return parAny(executor, call("/5"), call("/5"));
+    return parAny(call("/5"), call("/5"));
   }
 
   public Program<Http, String, String> scenario6() {
-    return parAny(executor,
+    return parAny(
         call("/6"),
         call("/6"),
         call("/6"));
   }
 
   public Program<Http, String, String> scenario7() {
-    return parAny(executor,
+    return parAny(
         call("/7"),
         delayed(Duration.ofSeconds(3), call("/7")));
   }
@@ -89,14 +85,14 @@ public class Scenarios implements AutoCloseable {
         call("/8?open"),
         id -> call("/8?use=" + id),
         id -> call("/8?close=" + id));
-    return parAny(executor, program, program);
+    return parAny(program, program);
   }
 
   public Program<Http, Void, String> scenario9() {
     var program = callNoError("/9")
         .map(result -> new TimedResponse(Instant.now(), result));
     var requests = rangeClosed(1, 10).mapToObj(_ -> program).toList();
-    return parSequence(executor, requests)
+    return parSequence(requests)
         .map(c -> c.stream()
             .sorted(comparing(TimedResponse::instant))
             .map(TimedResponse::value)
@@ -106,21 +102,16 @@ public class Scenarios implements AutoCloseable {
   public Program<Http, String, String> scenario10() {
     var id = UUID.randomUUID().toString();
 
-    var part1 = parAny(executor, call("/10?" + id), heavyTask().map(_ -> ""));
+    var part1 = parAny(call("/10?" + id), heavyTask().map(_ -> ""));
     var part2 = recursiveTask().apply(id);
 
-    return parZip(part1, part2, last(), executor);
+    return parZip(part1, part2, last());
   }
 
   public Program<Http, String, String> scenario11() {
-    return parAny(executor,
+    return parAny(
         call("/11"),
-        parAny(executor, call("/11"), call("/11")));
-  }
-
-  @Override
-  public void close() {
-    executor.close();
+        parAny(call("/11"), call("/11")));
   }
 
   private Function<String, Program<Http, String, String>> recursiveTask() {

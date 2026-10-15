@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -42,11 +41,6 @@ class ScenariosTest {
   void setUp() {
     var baseUrl = URI.create("http://" + container.getHost() + ":" + container.getMappedPort(PORT));
     scenarios = new Scenarios(baseUrl);
-  }
-
-  @AfterAll
-  void afterAll() {
-    scenarios.close();
   }
 
   @Test
