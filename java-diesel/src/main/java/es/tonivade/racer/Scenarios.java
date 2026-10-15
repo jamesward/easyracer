@@ -15,7 +15,7 @@ import static com.github.tonivade.diesel.Program.failure;
 import static com.github.tonivade.diesel.Program.interruptibleTask;
 import static com.github.tonivade.diesel.Program.recursive;
 import static com.github.tonivade.diesel.Program.success;
-import static com.github.tonivade.diesel.function.Finisher2.first;
+import static com.github.tonivade.diesel.function.Finisher2.last;
 import static es.tonivade.racer.HttpDsl.get;
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
 import static java.util.Comparator.comparing;
@@ -87,8 +87,8 @@ public class Scenarios implements AutoCloseable {
   Program<Http, String, String> scenario8() {
     var program = bracket(
         call("/8?open"),
-        id -> call("8?use=" + id),
-        id -> call("8?close=" + id));
+        id -> call("/8?use=" + id),
+        id -> call("/8?close=" + id));
     return parAny(executor, program, program);
   }
 
@@ -106,10 +106,10 @@ public class Scenarios implements AutoCloseable {
   Program<Http, String, String> scenario10() {
     var id = UUID.randomUUID().toString();
 
-    var part1 = parZip(call("/10?" + id), heavyTask(), first(), executor);
+    var part1 = parAny(executor, call("/10?" + id), heavyTask().map(_ -> ""));
     var part2 = recursiveTask().apply(id);
 
-    return parAny(executor, part1, part2);
+    return parZip(part1, part2, last(), executor);
   }
 
   Program<Http, String, String> scenario11() {

@@ -8,12 +8,15 @@ import static com.github.tonivade.diesel.Result.success;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.net.URI;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.Timeout.ThreadMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
@@ -47,6 +50,7 @@ class ScenariosTest {
   }
 
   @Test
+  @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario1() {
     var scenario = scenarios.scenario1();
 
@@ -56,6 +60,7 @@ class ScenariosTest {
   }
 
   @Test
+  @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario2() {
     var scenario = scenarios.scenario2();
 
@@ -65,6 +70,7 @@ class ScenariosTest {
   }
 
   @Test
+  @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario3() {
     var scenario = scenarios.scenario3();
 
@@ -74,6 +80,7 @@ class ScenariosTest {
   }
 
   @Test
+  @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario4() {
     var scenario = scenarios.scenario4();
 
@@ -83,6 +90,7 @@ class ScenariosTest {
   }
 
   @Test
+  @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario5() {
     var scenario = scenarios.scenario5();
 
@@ -92,6 +100,7 @@ class ScenariosTest {
   }
 
   @Test
+  @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario6() {
     var scenario = scenarios.scenario6();
 
@@ -101,6 +110,7 @@ class ScenariosTest {
   }
 
   @Test
+  @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario7() {
     var scenario = scenarios.scenario7();
 
@@ -110,6 +120,7 @@ class ScenariosTest {
   }
 
   @Test
+  @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario8() {
     var scenario = scenarios.scenario8();
 
@@ -119,6 +130,7 @@ class ScenariosTest {
   }
 
   @Test
+  @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario9() {
     var scenario = scenarios.scenario9();
 
@@ -128,6 +140,7 @@ class ScenariosTest {
   }
 
   @Test
+  @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario10() {
     var scenario = scenarios.scenario10();
 
@@ -137,6 +150,7 @@ class ScenariosTest {
   }
 
   @Test
+  @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario11() {
     var scenario = scenarios.scenario11();
 
