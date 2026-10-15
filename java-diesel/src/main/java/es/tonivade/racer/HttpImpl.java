@@ -19,11 +19,12 @@ public class HttpImpl implements Http {
   private final HttpClient client = HttpClient.newBuilder()
     .version(HTTP_1_1)
     .followRedirects(NEVER)
+    .connectTimeout(Duration.ofSeconds(5))
     .build();
 
   @Override
   public <T> CompletableFuture<HttpResponse<T>> get(URI uri, HttpResponse.BodyHandler<T> handler) {
-    var request = HttpRequest.newBuilder().GET().uri(uri).timeout(Duration.ofSeconds(5)).build();
+    var request = HttpRequest.newBuilder().GET().uri(uri).build();
     return client.sendAsync(request, handler);
   }
 }
