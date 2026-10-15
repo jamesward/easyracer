@@ -5,12 +5,15 @@
 package es.tonivade.racer;
 
 import static com.github.tonivade.diesel.Result.success;
-import static java.util.function.Function.identity;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.github.tonivade.diesel.Either;
+import java.net.URI;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
@@ -18,6 +21,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
+@TestInstance(Lifecycle.PER_CLASS)
 class ScenariosTest {
 
   private static final int PORT = 8080;
@@ -27,14 +31,26 @@ class ScenariosTest {
     .withExposedPorts(PORT)
     .waitingFor(Wait.forHttp("/"));
 
-  private final HttpImpl state = new HttpImpl();
-  private final Scenarios scenarios = new Scenarios(container.getMappedPort(PORT));
+  final HttpImpl state = new HttpImpl();
+
+  Scenarios scenarios;
+
+  @BeforeAll
+  void setUp() {
+    var baseUrl = URI.create("http://" + container.getHost() + ":" + container.getMappedPort(PORT));
+    scenarios = new Scenarios(baseUrl);
+  }
+
+  @AfterAll
+  void afterAll() {
+    scenarios.close();
+  }
 
   @Test
   void scenario1() {
     var scenario = scenarios.scenario1();
 
-    var result = scenario.eval(state).map(this::merge);
+    var result = scenario.eval(state);
 
     assertEquals(success("right"), result);
   }
@@ -43,7 +59,7 @@ class ScenariosTest {
   void scenario2() {
     var scenario = scenarios.scenario2();
 
-    var result = scenario.eval(state).map(this::merge);
+    var result = scenario.eval(state);
 
     assertEquals(success("right"), result);
   }
@@ -61,7 +77,7 @@ class ScenariosTest {
   void scenario4() {
     var scenario = scenarios.scenario4();
 
-    var result = scenario.eval(state).map(this::merge);
+    var result = scenario.eval(state);
 
     assertEquals(success("right"), result);
   }
@@ -70,7 +86,7 @@ class ScenariosTest {
   void scenario5() {
     var scenario = scenarios.scenario5();
 
-    var result = scenario.eval(state).map(this::merge);
+    var result = scenario.eval(state);
 
     assertEquals(success("right"), result);
   }
@@ -127,9 +143,5 @@ class ScenariosTest {
     var result = scenario.eval(state);
 
     assertEquals(success("right"), result);
-  }
-
-  private String merge(Either<String, String> either) {
-    return either.fold(identity(), identity());
   }
 }

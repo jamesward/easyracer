@@ -5,7 +5,6 @@
 package es.tonivade.racer;
 
 import static com.github.tonivade.diesel.Combine.pipe;
-import static com.github.tonivade.diesel.Concurrent.either;
 import static com.github.tonivade.diesel.Concurrent.parAny;
 import static com.github.tonivade.diesel.Concurrent.parSequence;
 import static com.github.tonivade.diesel.Concurrent.parZip;
@@ -23,9 +22,7 @@ import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.IntStream.rangeClosed;
 
-import com.github.tonivade.diesel.Either;
 import com.github.tonivade.diesel.Program;
-import com.github.tonivade.diesel.Program.ElapsedTime;
 import com.sun.management.OperatingSystemMXBean;
 
 import java.lang.management.ManagementFactory;
@@ -33,28 +30,29 @@ import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
-public class Scenarios {
+public class Scenarios implements AutoCloseable {
 
   private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
-  private final int port;
+  private final URI baseUrl;
 
-  public Scenarios(int port) {
-    this.port = port;
+  public Scenarios(URI baseUrl) {
+    this.baseUrl = baseUrl;
   }
 
-  Program<Http, String, Either<String, String>> scenario1() {
-    return either(call("/1"), call("/1"), executor);
+  Program<Http, String, String> scenario1() {
+    return parAny(executor, call("/1"), call("/1"));
   }
 
-  Program<Http, String, Either<String, String>> scenario2() {
-    return either(call("/2"), call("/2"), executor);
+  Program<Http, String, String> scenario2() {
+    return parAny(executor, call("/2"), call("/2"));
   }
 
   Program<Http, String, String> scenario3() {
@@ -63,14 +61,14 @@ public class Scenarios {
     return parAny(executor, requests);
   }
 
-  Program<Http, String, Either<String, String>> scenario4() {
-    return either(
+  Program<Http, String, String> scenario4() {
+    return parAny(executor,
         call("/4"),
-        call("/4").timeout(Duration.ofSeconds(1)), executor);
+        call("/4").timeout(Duration.ofSeconds(1)));
   }
 
-  Program<Http, String, Either<String, String>> scenario5() {
-    return either(call("/5"), call("/5"), executor);
+  Program<Http, String, String> scenario5() {
+    return parAny(executor, call("/5"), call("/5"));
   }
 
   Program<Http, String, String> scenario6() {
@@ -95,12 +93,13 @@ public class Scenarios {
   }
 
   Program<Http, Void, String> scenario9() {
-    var program = callNoError("/9").timed();
+    var program = callNoError("/9")
+        .map(result -> new TimedResponse(Instant.now(), result));
     var requests = rangeClosed(1, 10).mapToObj(_ -> program).toList();
     return parSequence(executor, requests)
         .map(c -> c.stream()
-            .sorted(comparing(ElapsedTime::duration))
-            .map(ElapsedTime::value)
+            .sorted(comparing(TimedResponse::instant))
+            .map(TimedResponse::value)
             .collect(joining()));
   }
 
@@ -119,13 +118,18 @@ public class Scenarios {
         parAny(executor, call("/11"), call("/11")));
   }
 
+  @Override
+  public void close() {
+    executor.close();
+  }
+
   private Function<String, Program<Http, String, String>> recursiveTask() {
     var osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
     return recursive((self, id) -> {
       var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
       return catchAll(
         pipe(
-            get(request("/10?" + id + "=" + load), ofString()),
+            get(baseUrl.resolve("/10?" + id + "=" + load), ofString()),
             r -> {
               if (r.statusCode() >= 200 && r.statusCode() < 300) {
                 return success(r.body());
@@ -161,7 +165,7 @@ public class Scenarios {
   private Program<Http, String, String> call(String str) {
     return catchAll(
         pipe(
-            get(request(str), ofString()),
+            get(baseUrl.resolve(str), ofString()),
             r -> {
               if (r.statusCode() == 200) {
                 return success(r.body());
@@ -174,7 +178,7 @@ public class Scenarios {
   private Program<Http, Void, String> callNoError(String str) {
     return catchAll(
         pipe(
-            get(request(str), ofString()),
+            get(baseUrl.resolve(str), ofString()),
             r -> {
               if (r.statusCode() == 200) {
                 return success(r.body());
@@ -184,7 +188,5 @@ public class Scenarios {
         _ -> success(""));
   }
 
-  private URI request(String str) {
-    return URI.create("http://localhost:" + port).resolve(str);
-  }
+  record TimedResponse(Instant instant, String value) {}
 }

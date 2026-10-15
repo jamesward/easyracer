@@ -19,7 +19,6 @@ public class HttpImpl implements Http {
   private final HttpClient client = HttpClient.newBuilder()
     .version(HTTP_1_1)
     .followRedirects(NEVER)
-    .connectTimeout(Duration.ofSeconds(5))
     .build();
 
   @Override
