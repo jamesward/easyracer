@@ -44,8 +44,8 @@ repositories {
 }
 
 dependencies {
-  errorprone("com.google.errorprone:error_prone_core:2.50.0")
-  errorprone("com.uber.nullaway:nullaway:0.14.0")
+  errorprone("com.google.errorprone:error_prone_core:2.51.0")
+  errorprone("com.uber.nullaway:nullaway:0.14.3")
   compileOnly("org.jspecify:jspecify:1.0.1")
   annotationProcessor("com.github.tonivade:diesel:$diesel_version")
   implementation("com.github.tonivade:diesel:$diesel_version")
