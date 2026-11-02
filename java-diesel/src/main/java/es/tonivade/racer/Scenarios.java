@@ -23,6 +23,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.IntStream.rangeClosed;
 
 import com.github.tonivade.diesel.Program;
+import com.github.tonivade.diesel.Unit;
 import com.sun.management.OperatingSystemMXBean;
 
 import java.lang.management.ManagementFactory;
@@ -134,7 +135,7 @@ public class Scenarios {
     });
   }
 
-  private Program<Http, String, Void> heavyTask() {
+  private Program<Http, String, Unit> heavyTask() {
     return interruptibleTask(() -> {
       var digest = getDigest();
       byte[] array = new byte[512];
