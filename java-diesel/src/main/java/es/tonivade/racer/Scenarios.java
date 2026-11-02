@@ -28,6 +28,7 @@ import com.sun.management.OperatingSystemMXBean;
 
 import java.lang.management.ManagementFactory;
 import java.net.URI;
+import java.net.http.HttpResponse;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -157,7 +158,7 @@ public class Scenarios {
   private Program<Http, String, String> call(String str) {
     return catchAll(
         pipe(
-            get(baseUrl.resolve(str), ofString()),
+            getString(str),
             r -> {
               if (r.statusCode() == 200) {
                 return success(r.body());
@@ -170,7 +171,7 @@ public class Scenarios {
   private Program<Http, Void, String> callNoError(String str) {
     return catchAll(
         pipe(
-            get(baseUrl.resolve(str), ofString()),
+            getString(str),
             r -> {
               if (r.statusCode() == 200) {
                 return success(r.body());
@@ -178,6 +179,10 @@ public class Scenarios {
               return success("");
             }),
         _ -> success(""));
+  }
+
+  private <E> Program<Http, E, HttpResponse<String>> getString(String str) {
+    return get(baseUrl.resolve(str), ofString());
   }
 
   private record TimedResponse(Instant instant, String value) {}
