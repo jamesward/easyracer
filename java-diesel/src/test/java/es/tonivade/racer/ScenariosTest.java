@@ -7,6 +7,8 @@ package es.tonivade.racer;
 import static com.github.tonivade.diesel.Result.success;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.github.tonivade.diesel.Program;
+
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
@@ -28,6 +30,7 @@ class ScenariosTest {
 
   private static final int PORT = 8080;
 
+  @SuppressWarnings("resource")
   @Container
   static GenericContainer<?> container = new GenericContainer<>(DockerImageName.parse("ghcr.io/jamesward/easyracer"))
     .withExposedPorts(PORT)
@@ -46,31 +49,19 @@ class ScenariosTest {
   @Test
   @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario1() {
-    var scenario = scenarios.scenario1();
-
-    var result = scenario.eval(state);
-
-    assertEquals(success("right"), result);
+    verifyScenario(scenarios.scenario1());
   }
 
   @Test
   @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario2() {
-    var scenario = scenarios.scenario2();
-
-    var result = scenario.eval(state);
-
-    assertEquals(success("right"), result);
+    verifyScenario(scenarios.scenario2());
   }
 
   @Test
   @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario3() {
-    var scenario = scenarios.scenario3();
-
-    var result = scenario.eval(state);
-
-    assertEquals(success("right"), result);
+    verifyScenario(scenarios.scenario3());
   }
 
   @Test
@@ -78,39 +69,25 @@ class ScenariosTest {
   void scenario4() {
     var scenario = scenarios.scenario4();
 
-    var result = scenario.eval(state);
-
-    assertEquals(success("right"), result);
+    verifyScenario(scenario);
   }
 
   @Test
   @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario5() {
-    var scenario = scenarios.scenario5();
-
-    var result = scenario.eval(state);
-
-    assertEquals(success("right"), result);
+    verifyScenario(scenarios.scenario5());
   }
 
   @Test
   @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario6() {
-    var scenario = scenarios.scenario6();
-
-    var result = scenario.eval(state);
-
-    assertEquals(success("right"), result);
+    verifyScenario(scenarios.scenario6());
   }
 
   @Test
   @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario7() {
-    var scenario = scenarios.scenario7();
-
-    var result = scenario.eval(state);
-
-    assertEquals(success("right"), result);
+    verifyScenario(scenarios.scenario7());
   }
 
   @Test
@@ -118,36 +95,28 @@ class ScenariosTest {
   void scenario8() {
     var scenario = scenarios.scenario8();
 
-    var result = scenario.eval(state);
-
-    assertEquals(success("right"), result);
+    verifyScenario(scenario);
   }
 
   @Test
   @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario9() {
-    var scenario = scenarios.scenario9();
-
-    var result = scenario.eval(state);
-
-    assertEquals(success("right"), result);
+    verifyScenario(scenarios.scenario9());
   }
 
   @Test
   @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario10() {
-    var scenario = scenarios.scenario10();
-
-    var result = scenario.eval(state);
-
-    assertEquals(success("right"), result);
+    verifyScenario(scenarios.scenario10());
   }
 
   @Test
   @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario11() {
-    var scenario = scenarios.scenario11();
+    verifyScenario(scenarios.scenario11());
+  }
 
+  private <E> void verifyScenario(Program<Http, E, String> scenario) {
     var result = scenario.eval(state);
 
     assertEquals(success("right"), result);
