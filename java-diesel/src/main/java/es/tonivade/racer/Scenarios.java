@@ -30,7 +30,6 @@ import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.net.http.HttpResponse;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
@@ -86,7 +85,7 @@ public class Scenarios {
     var program = bracket(
         call("/8?open"),
         id -> call("/8?use=" + id),
-        id -> call("/8?close=" + id));
+        id -> callNoError("/8?close=" + id));
     return parAny(program, program);
   }
 
@@ -138,21 +137,13 @@ public class Scenarios {
 
   private Program<Http, String, Unit> heavyTask() {
     return interruptibleTask(() -> {
-      var digest = getDigest();
+      var digest = MessageDigest.getInstance("SHA-512");
       byte[] array = new byte[512];
       ThreadLocalRandom.current().nextBytes(array);
       while (!Thread.interrupted()) {
         array = digest.digest(array);
       }
     });
-  }
-
-  private MessageDigest getDigest() {
-    try {
-      return MessageDigest.getInstance("SHA-512");
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   private Program<Http, String, String> call(String str) {
