@@ -22,6 +22,7 @@ import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.IntStream.rangeClosed;
 
+import com.github.tonivade.diesel.Delay;
 import com.github.tonivade.diesel.Program;
 import com.github.tonivade.diesel.Unit;
 import com.sun.management.OperatingSystemMXBean;
@@ -30,7 +31,6 @@ import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.net.http.HttpResponse;
 import java.security.MessageDigest;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -61,7 +61,7 @@ public class Scenarios {
   public Program<Http, String, String> scenario4() {
     return parAny(
         call("/4"),
-        call("/4").timeout(Duration.ofSeconds(1)));
+        call("/4").timeout(Delay.ofSeconds(1)));
   }
 
   public Program<Http, String, String> scenario5() {
@@ -78,7 +78,7 @@ public class Scenarios {
   public Program<Http, String, String> scenario7() {
     return parAny(
         call("/7"),
-        delayed(Duration.ofSeconds(3), call("/7")));
+        delayed(Delay.ofSeconds(3), call("/7")));
   }
 
   public Program<Http, String, String> scenario8() {
@@ -127,7 +127,7 @@ public class Scenarios {
                 return success(r.body());
               }
               if (r.statusCode() >= 300 && r.statusCode() < 400) {
-                return delayed(Duration.ofSeconds(1), self.apply(id));
+                return delayed(Delay.ofSeconds(1), self.apply(id));
               }
               return failure("left");
             }),
