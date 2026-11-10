@@ -13,7 +13,7 @@ extension (client: AsyncHttpClient)
         case HttpRequest(HttpMethods.GET, uri, Nil, HttpEntity.Empty, HttpProtocols.`HTTP/1.1`) =>
           val ahcRespFut = client.prepareGet(uri.toEffectiveHttpRequestUri(Uri.Host(host), port).toString).execute()
           Source.future(ahcRespFut.toCompletableFuture.asScala)
-            .watchTermination(): (_, done) =>
+            .watchTermination: (_, done) =>
               done.onComplete(_ => ahcRespFut.cancel(true))
               NotUsed
         case _ =>
