@@ -86,7 +86,7 @@ func scenario2(scenarioURL func(int) string) string {
 
 func scenario3(scenarioURL func(int) string) string {
 	url := scenarioURL(3)
-	result := make(chan string)
+	result := make(chan string, 10_000)
 	var wg sync.WaitGroup
 	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
