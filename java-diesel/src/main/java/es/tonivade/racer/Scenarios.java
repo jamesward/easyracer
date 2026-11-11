@@ -6,11 +6,11 @@ package es.tonivade.racer;
 
 import static com.github.tonivade.diesel.Combine.bracket;
 import static com.github.tonivade.diesel.Combine.catchAll;
+import static com.github.tonivade.diesel.Combine.delayed;
 import static com.github.tonivade.diesel.Combine.pipe;
 import static com.github.tonivade.diesel.Concurrent.parAny;
 import static com.github.tonivade.diesel.Concurrent.parSequence;
 import static com.github.tonivade.diesel.Concurrent.parZip;
-import static com.github.tonivade.diesel.Program.delayed;
 import static com.github.tonivade.diesel.Program.failure;
 import static com.github.tonivade.diesel.Program.interruptibleTask;
 import static com.github.tonivade.diesel.Program.recursive;
