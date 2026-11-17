@@ -25,8 +25,8 @@
     "vitest": "^5.1.0"
   },
   "dependencies": {
-    "@effect/platform-node": "4.1.2",
-    "effect": "4.1.2"
+    "@effect/platform-node": "4.1.4",
+    "effect": "4.1.4"
   },
   "type": "module"
 }
