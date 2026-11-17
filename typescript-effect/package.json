@@ -16,7 +16,7 @@
     "node": "22.21.1"
   },
   "devDependencies": {
-    "@effect/vitest": "^4.1.2",
+    "@effect/vitest": "^4.1.4",
     "@types/node": "^26.6.6",
     "nodemon": "latest",
     "testcontainers": "latest",
@@ -25,8 +25,8 @@
     "vitest": "^5.1.0"
   },
   "dependencies": {
-    "@effect/platform-node": "4.1.2",
-    "effect": "4.1.2"
+    "@effect/platform-node": "4.1.4",
+    "effect": "4.1.4"
   },
   "type": "module"
 }

@@ -2,7 +2,7 @@ enablePlugins(JavaAppPackaging, DockerPlugin)
 
 name := "easyracer-server"
 
-scalaVersion := "3.10.0"
+scalaVersion := "3.10.1"
 
 fork := true
 
@@ -14,7 +14,7 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio" % zioVersion,
   "dev.zio" %% "zio-concurrent" % zioVersion,
   "dev.zio" %% "zio-direct" % "1.0.0-RC7" exclude ("org.scalameta", "scalafmt-core_2.13"),
-  "dev.zio" %% "zio-logging" % "2.5.3",
+  "dev.zio" %% "zio-logging" % "2.5.4",
   "dev.zio" %% "zio-http" % "3.11.6"
     exclude ("io.netty", "netty-pkitesting")
     exclude ("com.lihaoyi", "unroll-plugin_3")

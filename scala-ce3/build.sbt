@@ -1,4 +1,4 @@
-scalaVersion := "3.10.0"
+scalaVersion := "3.10.1"
 
 libraryDependencies ++= List(
   "org.http4s" %% "http4s-ember-client" % "0.23.38",
