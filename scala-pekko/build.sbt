@@ -1,7 +1,7 @@
 scalaVersion := "3.10.0"
 
 val PekkoVersion = "2.0.0"
-val PekkoHttpVersion = "1.4.2"
+val PekkoHttpVersion = "2.0.0"
 
 libraryDependencies ++= Seq(
   "org.apache.pekko" %% "pekko-stream" % PekkoVersion,
