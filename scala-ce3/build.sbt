@@ -1,10 +1,10 @@
 scalaVersion := "3.10.1"
 
 libraryDependencies ++= List(
-  "org.http4s" %% "http4s-ember-client" % "0.23.38",
+  "org.http4s" %% "http4s-ember-client" % "0.23.39",
   "org.typelevel" %% "weaver-cats" % "0.13.1" % Test,
   "com.dimafeng" %% "testcontainers-scala" % "0.44.1" % Test,
-  "ch.qos.logback" % "logback-classic" % "1.6.6" % Runtime
+  "ch.qos.logback" % "logback-classic" % "1.6.8" % Runtime
 )
 
 testFrameworks += new TestFramework("weaver.framework.CatsEffect")
