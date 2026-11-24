@@ -16,7 +16,7 @@
     "node": "22.21.1"
   },
   "devDependencies": {
-    "@effect/vitest": "^4.1.4",
+    "@effect/vitest": "^4.1.5",
     "@types/node": "^26.6.6",
     "nodemon": "latest",
     "testcontainers": "latest",
