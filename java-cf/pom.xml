@@ -17,7 +17,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <jspecify.version>1.0.1</jspecify.version>
-    <error-prone.version>2.52.0</error-prone.version>
+    <error-prone.version>2.53.0</error-prone.version>
     <nullaway.version>0.14.4</nullaway.version>
 
     <testcontainers-bom.version>2.0.5</testcontainers-bom.version>
@@ -30,7 +30,7 @@
     <extra-enforcer-rules.version>1.12.1</extra-enforcer-rules.version>
     <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
     <maven-surefire-plugin.version>3.6.1</maven-surefire-plugin.version>
-    <versions-maven-plugin.version>2.25.1</versions-maven-plugin.version>
+    <versions-maven-plugin.version>2.25.2</versions-maven-plugin.version>
   </properties>
 
   <dependencyManagement>
