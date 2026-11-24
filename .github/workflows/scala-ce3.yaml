@@ -28,7 +28,7 @@ jobs:
         cache: sbt
     - uses: sbt/setup-sbt@v1
     - run: sbt test
-      working-directory: ./scala-ox
+      working-directory: ./scala-ce3
     defaults:
       run:
         working-directory: scala-ce3
