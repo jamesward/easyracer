@@ -12,6 +12,10 @@ import EasyRacerClient._
 object EasyRacerSuite extends IOSuite {
   override type Res = (EasyRacerContainer, Client[IO])
 
+  // Run scenarios one at a time: scenario 3's 10,000 requests otherwise starve
+  // scenario 10's once-per-second load reporter of connections.
+  override def maxParallelism: Int = 1
+
   def sharedResource: Resource[IO,Res] = {
     (
       ContainerResource(IO(EasyRacerContainer())),
