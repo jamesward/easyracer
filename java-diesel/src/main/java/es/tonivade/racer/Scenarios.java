@@ -121,7 +121,7 @@ public class Scenarios {
       var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
       return catchAll(
         pipe(
-            get(baseUrl.resolve("/10?" + id + "=" + load), ofString()),
+            getString("/10?" + id + "=" + load),
             r -> {
               if (r.statusCode() >= 200 && r.statusCode() < 300) {
                 return success(r.body());
