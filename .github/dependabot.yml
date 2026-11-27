@@ -35,6 +35,10 @@ updates:
     directory: "/java-reactor"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/java-diesel"
+    schedule:
+      interval: "weekly"
 
   # Go projects
   - package-ecosystem: "gomod"
