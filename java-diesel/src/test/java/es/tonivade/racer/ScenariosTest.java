@@ -36,7 +36,7 @@ class ScenariosTest {
     .withExposedPorts(PORT)
     .waitingFor(Wait.forHttp("/"));
 
-  final HttpImpl state = new HttpImpl();
+  final HttpImpl impl = new HttpImpl();
 
   Scenarios scenarios;
 
@@ -67,9 +67,7 @@ class ScenariosTest {
   @Test
   @Timeout(unit = TimeUnit.SECONDS, value = 30, threadMode = ThreadMode.SEPARATE_THREAD)
   void scenario4() {
-    var scenario = scenarios.scenario4();
-
-    verifyScenario(scenario);
+    verifyScenario(scenarios.scenario4());
   }
 
   @Test
@@ -117,7 +115,7 @@ class ScenariosTest {
   }
 
   private <E> void verifyScenario(Program<Http, E, String> scenario) {
-    var result = scenario.eval(state);
+    var result = scenario.eval(impl);
 
     assertEquals(success("right"), result);
   }
