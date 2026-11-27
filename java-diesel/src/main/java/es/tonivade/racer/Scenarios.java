@@ -1,0 +1,180 @@
+/*
+ * Copyright (c) 2026, Antonio Gabriel Muñoz Conejo <me AT tonivade DOT es>
+ * Distributed under the terms of the MIT License
+ */
+package es.tonivade.racer;
+
+import static com.github.tonivade.diesel.Combine.bracket;
+import static com.github.tonivade.diesel.Combine.catchAll;
+import static com.github.tonivade.diesel.Combine.delayed;
+import static com.github.tonivade.diesel.Combine.pipe;
+import static com.github.tonivade.diesel.Concurrent.parAny;
+import static com.github.tonivade.diesel.Concurrent.parSequence;
+import static com.github.tonivade.diesel.Concurrent.parZip;
+import static com.github.tonivade.diesel.Program.failure;
+import static com.github.tonivade.diesel.Program.interruptibleTask;
+import static com.github.tonivade.diesel.Program.recursive;
+import static com.github.tonivade.diesel.Program.success;
+import static com.github.tonivade.diesel.function.Finisher2.last;
+import static es.tonivade.racer.HttpDsl.get;
+import static java.net.http.HttpResponse.BodyHandlers.ofString;
+import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.IntStream.rangeClosed;
+
+import com.github.tonivade.diesel.Delay;
+import com.github.tonivade.diesel.Program;
+import com.github.tonivade.diesel.Unit;
+import com.sun.management.OperatingSystemMXBean;
+
+import java.lang.management.ManagementFactory;
+import java.net.URI;
+import java.net.http.HttpResponse;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
+
+public class Scenarios {
+
+  private final URI baseUrl;
+
+  public Scenarios(URI baseUrl) {
+    this.baseUrl = baseUrl;
+  }
+
+  public Program<Http, String, String> scenario1() {
+    return parAny(call("/1"), call("/1"));
+  }
+
+  public Program<Http, String, String> scenario2() {
+    return parAny(call("/2"), call("/2"));
+  }
+
+  public Program<Http, String, String> scenario3() {
+    var program = call("/3");
+    var requests = rangeClosed(1, 10_000).mapToObj(_ -> program).toList();
+    return parAny(requests);
+  }
+
+  public Program<Http, String, String> scenario4() {
+    return parAny(
+        call("/4"),
+        call("/4").timeout(Delay.ofSeconds(1)));
+  }
+
+  public Program<Http, String, String> scenario5() {
+    return parAny(call("/5"), call("/5"));
+  }
+
+  public Program<Http, String, String> scenario6() {
+    return parAny(
+        call("/6"),
+        call("/6"),
+        call("/6"));
+  }
+
+  public Program<Http, String, String> scenario7() {
+    return parAny(
+        call("/7"),
+        delayed(Delay.ofSeconds(3), call("/7")));
+  }
+
+  public Program<Http, String, String> scenario8() {
+    var program = bracket(
+        call("/8?open"),
+        id -> call("/8?use=" + id),
+        id -> callNoError("/8?close=" + id));
+    return parAny(program, program);
+  }
+
+  public Program<Http, Void, String> scenario9() {
+    var program = callNoError("/9")
+        .map(result -> new TimedResponse(Instant.now(), result));
+    var requests = rangeClosed(1, 10).mapToObj(_ -> program).toList();
+    return parSequence(requests)
+        .map(c -> c.stream()
+            .sorted(comparing(TimedResponse::instant))
+            .map(TimedResponse::value)
+            .collect(joining()));
+  }
+
+  public Program<Http, String, String> scenario10() {
+    var id = UUID.randomUUID().toString();
+
+    var part1 = parAny(call("/10?" + id), heavyTask().map(_ -> ""));
+    var part2 = recursiveTask().apply(id);
+
+    return parZip(part1, part2, last());
+  }
+
+  public Program<Http, String, String> scenario11() {
+    return parAny(
+        call("/11"),
+        parAny(call("/11"), call("/11")));
+  }
+
+  private Function<String, Program<Http, String, String>> recursiveTask() {
+    var osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
+    return recursive((self, id) -> {
+      var load = osBean.getProcessCpuLoad() * osBean.getAvailableProcessors();
+      return catchAll(
+        pipe(
+            getString("/10?" + id + "=" + load),
+            r -> {
+              if (r.statusCode() >= 200 && r.statusCode() < 300) {
+                return success(r.body());
+              }
+              if (r.statusCode() >= 300 && r.statusCode() < 400) {
+                return delayed(Delay.ofSeconds(1), self.apply(id));
+              }
+              return failure("left");
+            }),
+        _ -> failure("left"));
+    });
+  }
+
+  private Program<Http, String, Unit> heavyTask() {
+    return interruptibleTask(() -> {
+      var digest = MessageDigest.getInstance("SHA-512");
+      byte[] array = new byte[512];
+      ThreadLocalRandom.current().nextBytes(array);
+      while (!Thread.interrupted()) {
+        array = digest.digest(array);
+      }
+    });
+  }
+
+  private Program<Http, String, String> call(String str) {
+    return catchAll(
+        pipe(
+            getString(str),
+            r -> {
+              if (r.statusCode() == 200) {
+                return success(r.body());
+              }
+              return failure("left");
+            }),
+        _ -> failure("left"));
+  }
+
+  private Program<Http, Void, String> callNoError(String str) {
+    return catchAll(
+        pipe(
+            getString(str),
+            r -> {
+              if (r.statusCode() == 200) {
+                return success(r.body());
+              }
+              return success("");
+            }),
+        _ -> success(""));
+  }
+
+  private <E> Program<Http, E, HttpResponse<String>> getString(String str) {
+    return get(baseUrl.resolve(str), ofString());
+  }
+
+  private record TimedResponse(Instant instant, String value) {}
+}
